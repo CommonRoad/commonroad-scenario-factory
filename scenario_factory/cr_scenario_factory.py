@@ -308,6 +308,7 @@ class GenerateCRScenarios:
                 for i, state in enumerate(state_list):
                     state.time_step = i + 1
 
+                initial_state = InitialState(time_step=initial_state.time_step, position=initial_state.position, orientation=initial_state.orientation, velocity=initial_state.velocity, acceleration=initial_state.acceleration)
                 new_obs[obs_id] = DynamicObstacle(copy.deepcopy(obs.obstacle_id), obs.obstacle_type,
                                                   obstacle_shape=obs.obstacle_shape,
                                                   initial_state=initial_state,
