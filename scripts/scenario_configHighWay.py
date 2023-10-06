@@ -12,7 +12,7 @@ class ScenarioConfigHighway(ScenarioConfig):
     # GENERAL ##########################################################################################################
     _scenario_directory = getcwd() + "/example_files/"
 
-    _output_folder = getcwd() + "/output/"
+    _output_folder = getcwd() + "/output/interactive/"
 
     # Number of scenarios generated from one map
     scen_per_map = 8

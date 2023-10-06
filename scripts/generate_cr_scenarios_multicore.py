@@ -23,10 +23,9 @@ import shutil
 import time
 
 # Options
-scenario_directory = '/home/klischatm/out/2202_OSM_crawler'
-
-output_folder = '/home/klischat/out/2022_scenarios'
-CREATE_VIDEO = True
+scenario_directory = os.getcwd() + '/example_files/'
+output_folder = os.getcwd() + '/output/noninteractive/'
+CREATE_VIDEO = False
 NUM_POOL = 1
 
 # load parameters
@@ -44,6 +43,9 @@ filenames = list(Path(scenario_directory).rglob("*.xml"))
 # filenames = [file for file in filenames if 'Flensburg' not in str(file)]
 random.shuffle(filenames)
 timestr = time.strftime("%Y%m%d-%H%M%S")
+
+solution_folder = os.path.join(output_folder, timestr, "solutions")
+os.makedirs(solution_folder, exist_ok=False)
 
 # start logging, choose logging levels logging.INFO, logging.CRITICAL, logging.DEBUG
 logger = init_logging(__name__, logging.DEBUG)
@@ -106,8 +108,8 @@ def create_scenarios(cr_file):
             cr2sumo_converter = CR2SumoMapConverter(deepcopy(scenario_orig), sumo_conf)
             cr2sumo_converter._create_random_routes(sumo_net_copy)
 
-            scenario_wrapper = ScenarioWrapper().initialize(scenario_name, cr2sumo_converter.sumo_cfg_file, cr_file,
-                                                            sumo_conf.ego_start_time)
+            scenario_wrapper = ScenarioWrapper()
+            scenario_wrapper.initialize(scenario_name, cr2sumo_converter.sumo_cfg_file, cr_file, sumo_conf.ego_start_time)
             # simulate sumo scenario and extract scenario files
             sumo_sim = SumoSimulation()
             sumo_sim.initialize(sumo_conf, scenario_wrapper=scenario_wrapper)
@@ -122,7 +124,7 @@ def create_scenarios(cr_file):
 
             # select ego vehicles for planning problems and postprocess final CommonRoad scenarios
             cr_scenarios = GenerateCRScenarios(scenario, sumo_conf.simulation_steps, sumo_conf.scenario_name,
-                                               scenario_config, scenario_dir_name)
+                                               scenario_config, scenario_dir_name, solution_folder)
 
             scenario_counter_new = cr_scenarios.create_cr_scenarios(map_nr, scenario_counter)
 
