@@ -2,7 +2,8 @@ import numpy as np
 from commonroad.scenario.scenario import Tag
 from scenario_factory.config_files.scenario_config import ScenarioConfig
 from scenario_factory.enums import EgoSelectionCriterion
-from os import getcwd
+import os
+import scenario_factory
 
 
 class ScenarioConfigHighway(ScenarioConfig):
@@ -10,9 +11,9 @@ class ScenarioConfigHighway(ScenarioConfig):
     logging_level = 'WARNING'  # select DEBUG, INFO, WARNING, ERROR, CRITICAL
 
     # GENERAL ##########################################################################################################
-    _scenario_directory = getcwd() + "/example_files/"
+    _scenario_directory = os.path.dirname(scenario_factory.__file__) + "/../example_files/"
 
-    _output_folder = getcwd() + "/output/interactive/"
+    _output_folder = os.path.dirname(scenario_factory.__file__) + "/../output/interactive/"
 
     # Number of scenarios generated from one map
     scen_per_map = 8
