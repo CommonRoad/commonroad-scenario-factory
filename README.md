@@ -19,7 +19,7 @@ This repo refactors code which was developed mainly by Moritz Klischat. It can g
 | `git@gitlab.lrz.de:cps/commonroad-scenario-features.git` | `493e745cb81be2a861eb0d9ac002c92560cbada4` | 
 | `git@gitlab.lrz.de:cps/sumo-interface.git`               | `91ff00c056b8178d284fa83cc3379df4fa71c064` |
 
-7. Run the [`generate_interactive_senarios.py`](scripts/generate_interactive_senarios.py) script to create interactive scenarios. The required input files (CommonRoad Scenarios, containing a LaneletNetwork), can either be taken from existing CommonRoad scenarios or be created with the [OSM Map Extractor](https://gitlab.lrz.de/cps/osm-map-extractor). With the default settings, 112 solution files should be generated. You'll find these in the output folder. 
+7. Run the [`generate_interactive_senarios.py`](scripts/generate_senarios.py) script to create interactive scenarios. The required input files (CommonRoad Scenarios, containing a LaneletNetwork), can either be taken from existing CommonRoad scenarios or be created with the [OSM Map Extractor](https://gitlab.lrz.de/cps/osm-map-extractor). With the default settings, 112 solution files should be generated. You'll find these in the output folder. 
 
 # Previous / outdated Version
 The [backup](backup) directory contains an [installation guide](backup/installation_guide_scenariofactory.md) for installing an out-of-date and buggy version of the scenario factory as well as a required [python script](backup/generate_interactive_senarios.py).

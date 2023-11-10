@@ -170,7 +170,7 @@ class GenerateCRScenarios:
 
         obstacles = self.scenario._dynamic_obstacles
 
-        # Create planning problems by selecting ego vehicles and deleting of that vehicle afterwards
+        # Create planning problems by selecting ego vehicles and deleting of that vehicle afterward
         list_obstacles, \
             list_obstacles_with_ego, \
             self.list_planning_problem_set, \
@@ -187,7 +187,7 @@ class GenerateCRScenarios:
             scenario_id = ScenarioID.from_benchmark_id(
                 self.conf_scenario.map_name + "-" + str(map_nr) + "_" + str(scenario_counter),
                 scenario_version="2020a")
-            scenario_id.obstacle_behavior = "I"
+            scenario_id.obstacle_behavior = "I"  # TODO must be checked whether interactive or which type of obstacle prediction
             scenario_id.prediction_id = 1
             cr_scenario = Scenario(self.scenario.dt,
                                    scenario_id=scenario_id,
@@ -868,7 +868,7 @@ class GenerateCRScenarios:
         delete_ids = []
         for obs_id, time_steps in ego_veh_init_times.items():
             self.logger.debug(f'Checking {obs_id}')
-            ## DEBEG
+            # DEBUG
             assert obstacles[obs_id].obstacle_id == obs_id, 'bug: obstacle id != obs_id'
             if obs_id not in self.scenario._dynamic_obstacles:
                 self.logger.warning(f'{obs_id} not in scenario, there is a bug')

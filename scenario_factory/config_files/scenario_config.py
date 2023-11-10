@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 
+import scenario_factory
 from scenario_factory.enums import EgoSelectionCriterion
 
 
@@ -9,14 +10,15 @@ class ScenarioConfig():
     # logging level for logging module
     logging_level = 'DEBUG'  # select DEBUG, INFO, WARNING, ERROR, CRITICAL
 
-    _scenario_directory = None
-    _output_folder = None
+    _scenario_directory = os.path.dirname(scenario_factory.__file__) + "/../example_files/"
+    _output_folder = os.path.dirname(scenario_factory.__file__) + "/../output/"
+
     # GENERAL ##########################################################################################################
     # Number of scenarios generated from one map
     scen_per_map = 2
 
     # Number of planning problems generated from one scenario
-    planning_pro_per_scen = 12
+    planning_pro_per_scen = 2
 
     # Define the goal state of the planning problem with a lanelet (if False: define with a state)
     planning_pro_with_lanelet = True
@@ -31,7 +33,7 @@ class ScenarioConfig():
     map_name = 'ZAM_NEW'
 
     # Tags in cr scenario file
-    author = 'Moritz Klischat, Fabian Höltke'
+    author = 'Florian Finkeldei'
     affiliation = 'Technical University of Munich, Germany'
     source = 'OpenStreetMaps, SUMO Traffic Simulator'
     tags = ['simulated']
@@ -67,9 +69,9 @@ class ScenarioConfig():
 
     # LANE-CHANGE DETECTION
     lc_detection_threshold_time: float = 0.5  # [s]
-    lc_detection_min_velocity:float = 10.0  # [m/s] minimum velocity for detecting a lane change
+    lc_detection_min_velocity: float = 10.0  # [m/s] minimum velocity for detecting a lane change
 
-    #LANE MERGE
+    # LANE MERGE
     merge_detection_min_velocity = 10.0
 
     # OUT files

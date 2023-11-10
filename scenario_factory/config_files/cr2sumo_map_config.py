@@ -1,7 +1,7 @@
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
 
 
-class CR2SumoNetConfig_edited(SumoConfig):
+class CR2SumoNetConfig_edited(SumoConfig):  # TODO why 'edited'? -> remove
     # [m/s] if not None: use this speed limit instead of speed limit from CommonRoad files
     overwrite_speed_limit = 120 / 3.6
     # [m/s] default max. speed for SUMO for unrestricted sped limits

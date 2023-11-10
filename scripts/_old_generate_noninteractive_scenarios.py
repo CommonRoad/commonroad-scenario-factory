@@ -26,22 +26,21 @@ import time
 scenario_directory = os.getcwd() + '/example_files/'
 output_folder = os.getcwd() + '/output/noninteractive/'
 CREATE_VIDEO = False
-NUM_POOL = 1
+NUM_POOL = 8
 
 # load parameters
 from scenario_factory.config_files.scenario_config import ScenarioConfig
-from scenario_factory.config_files.sumo_config import SumoConf
-from scenario_factory.config_files.cr2sumo_map_config import CR2SumoNetConfig_edited
-# use vehicle parameters from sumo_config
-sumo_conf = SumoConf()
-cr2net_conf = CR2SumoNetConfig_edited()
-cr2net_conf.veh_params = sumo_conf.veh_params
+from crdesigner.map_conversion.sumo_map.config import SumoConfig
+
+sumo_conf = SumoConfig()
+sumo_conf.highway_mode = False
 
 scenario_config = ScenarioConfig()
+scenario_config.planning_pro_per_scen = 4
+scenario_config.scen_per_map = 4
 
 filenames = list(Path(scenario_directory).rglob("*.xml"))
-# filenames = [file for file in filenames if 'Flensburg' not in str(file)]
-random.shuffle(filenames)
+# random.shuffle(filenames)
 timestr = time.strftime("%Y%m%d-%H%M%S")
 
 solution_folder = os.path.join(output_folder, timestr, "solutions")
@@ -69,27 +68,31 @@ def create_scenarios(cr_file):
     os.makedirs(dir_name, exist_ok=True)
 
     map_nr = int(split_map_name[2])
-
     obtained_scenario_number = 0
 
     try:
         # conversion from CommonRoad to SUMO map
-        sumo_net_path = dir_name + "/" + location_name + '-' + str(map_nr) + ".net.xml"
-        cr2sumo_converter = CR2SumoMapConverter.from_file(cr_file, cr2net_conf)
+        scenario_path = dir_name + "/"  # + location_name + '-' + str(map_nr)
         scenario_orig, _ = CommonRoadFileReader(cr_file).open()
-        cr2sumo_converter._convert_map()
-        files = cr2sumo_converter.write_intermediate_files(sumo_net_path)
-        logger.info(f'write map to path {cr_file}')
-        conversion_possible = cr2sumo_converter.merge_intermediate_files(sumo_net_path, False, *files)
+        sumo_conf.scenario_name = str(scenario_orig.scenario_id)
+        cr2sumo = CR2SumoMapConverter(scenario_orig, sumo_conf)
 
+        sumo_net_path = os.path.join(scenario_path, sumo_conf.scenario_name + '.net.xml')
+        logger.info("Converting to SUMO Map")
+        cr2sumo._convert_map()
+
+        logger.info("Merging Intermediate Files")
+        intermediary_files = cr2sumo.write_intermediate_files(sumo_net_path)
+        conversion_possible = cr2sumo.merge_intermediate_files(sumo_net_path, True, *intermediary_files)
         if not conversion_possible:
-            logger.warning('Conversion to net file failed!')
-            return 0, cr_file
+            logger.error("Error converting map, see above for details")
+            return False
 
-        # read boundary from netfile
+        # wait for previous step to be finished
         while os.path.exists(sumo_net_path) == False:
             time.sleep(0.05)
 
+        # scenario generation and export
         scenario_counter = 0
         for i_scenario in range(scenario_config.scen_per_map):
             scenario_name = location_name + '-' + str(map_nr) + "_" + str(i_scenario + 1)
@@ -101,8 +104,8 @@ def create_scenarios(cr_file):
                 os.mkdir(scenario_dir_name)
             sumo_net_copy = os.path.join(scenario_dir_name, scenario_name + ".net.xml")
             cr_map_copy = os.path.join(scenario_dir_name, scenario_name + ".cr.xml")
-            shutil.copy(sumo_net_path, sumo_net_copy)
-            shutil.copy(cr_file, cr_map_copy)
+            shutil.copy(sumo_net_path, sumo_net_copy)  # copy sumo net file into scenario-specific sub-folder
+            shutil.copy(cr_file, cr_map_copy)  # copy original commonroad file into scenario-specific sub-folder # TODO this file is redundant? do not copy? or only to upper directory?
 
             # generate route file and additional files for SUMO simulation
             cr2sumo_converter = CR2SumoMapConverter(deepcopy(scenario_orig), sumo_conf)
@@ -120,18 +123,19 @@ def create_scenarios(cr_file):
             sumo_sim.stop()
             scenario = sumo_sim.commonroad_scenarios_all_time_steps()
             scenario.location = scenario_orig.location
-            scenario.tags = scenario_orig.tags
+            scenario.tags = scenario_orig.tags  # TODO general (lanelet network based tags should be written here – latest)
 
             # select ego vehicles for planning problems and postprocess final CommonRoad scenarios
             cr_scenarios = GenerateCRScenarios(scenario, sumo_conf.simulation_steps, sumo_conf.scenario_name,
                                                scenario_config, scenario_dir_name, solution_folder)
 
-            scenario_counter_new = cr_scenarios.create_cr_scenarios(map_nr, scenario_counter)
+            scenario_counter_prev = scenario_counter
+            scenario_counter = cr_scenarios.create_cr_scenarios(map_nr, scenario_counter)
 
-            scenario_nr_new = cr_scenarios.write_cr_file_and_video(scenario_counter, CREATE_VIDEO,
-                                                                   check_validity=False)
-            scenario_counter = scenario_counter_new
-            obtained_scenario_number += scenario_nr_new
+            scenario_nr_added = cr_scenarios.write_cr_file_and_video(scenario_counter_prev, CREATE_VIDEO,
+                                                                     check_validity=False)
+
+            obtained_scenario_number += scenario_nr_added
     except:
         logger.warning(f'UNEXPECTED ERROR, continue with next scenario: {traceback.format_exc()}')
         try:
@@ -143,13 +147,13 @@ def create_scenarios(cr_file):
     return obtained_scenario_number, cr_file
 
 pool = Pool(processes=NUM_POOL)
-res0 = pool.map(create_scenarios, filenames)
+res_multi = pool.map(create_scenarios, filenames)
 
 res = {}
-for r in res0:
+for r in res_multi:
     if type(r) is tuple and len(r) == 2:
        res[r[1]] = r[0]
 
-res = {r[1]: r[0] for r in res0}
+res = {r[1]: r[0] for r in res_multi}
 
 logger.info(f'obtained_scenario_number: {sum(list(res.values()))}')
