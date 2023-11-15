@@ -11,7 +11,7 @@ from commonroad.scenario.intersection import Intersection
 from commonroad_dc.pycrcc import CollisionChecker
 
 from autocorrect_intersections import ScenarioFixer
-from configHighway import SumoConfigHighway
+from crdesigner.map_conversion.sumo_map.config import SumoConfig
 from evaluate_solutions import timeout
 
 matplotlib.use("TkAgg")
@@ -78,7 +78,7 @@ forbidden_lanelet_types = {LaneletType.EXIT_RAMP}
 min_length_route = 300
 
 # sumo settings
-CONFIG = SumoConfigHighway
+CONFIG = SumoConfig
 
 # folder = "/home/klischat/GIT_REPOS/commonroad-map-tool/test/opendrive_test_files"
 folder = "/home/klischat/Downloads/xodr_out/in"

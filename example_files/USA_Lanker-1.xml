@@ -1,0 +1,6604 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<commonRoad timeStepSize="0.1" commonRoadVersion="2020a" author="Lukas Braunstorfer, Marat Faizov, Markus Koschi, Alexander Zhu" affiliation="Technical University of Munich, Germany" source="Next Generation Simulation (NGSIM) and OpenStreetMaps (OSM)" benchmarkID="USA_Lanker-1" date="2023-11-15">
+  <location>
+    <geoNameId>5404794</geoNameId>
+    <gpsLatitude>34.139045</gpsLatitude>
+    <gpsLongitude>-118.362223</gpsLongitude>
+  </location>
+  <scenarioTags>
+    <comfort/>
+    <urban/>
+    <lane_following/>
+    <oncoming_traffic/>
+    <intersection/>
+    <speed_limit/>
+    <multi_lane/>
+  </scenarioTags>
+  <lanelet id="3419">
+    <leftBound>
+      <point>
+        <x>35.3597</x>
+        <y>46.516</y>
+      </point>
+      <point>
+        <x>30.9922</x>
+        <y>37.5202</y>
+      </point>
+      <point>
+        <x>27.5817</x>
+        <y>30.4956</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>32.7284</x>
+        <y>47.8685</y>
+      </point>
+      <point>
+        <x>28.2824</x>
+        <y>38.9113</y>
+      </point>
+      <point>
+        <x>24.831</x>
+        <y>31.958</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </rightBound>
+    <successor ref="3432"/>
+    <adjacentLeft ref="3464" drivingDir="opposite"/>
+    <adjacentRight ref="3422" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11431"/>
+  </lanelet>
+  <lanelet id="3432">
+    <leftBound>
+      <point>
+        <x>27.5817</x>
+        <y>30.4956</y>
+      </point>
+      <point>
+        <x>25.7349</x>
+        <y>26.7206</y>
+      </point>
+      <point>
+        <x>23.888</x>
+        <y>22.9455</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>24.831</x>
+        <y>31.958</y>
+      </point>
+      <point>
+        <x>22.9377</x>
+        <y>28.1682</y>
+      </point>
+      <point>
+        <x>21.0444</x>
+        <y>24.3785</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </rightBound>
+    <predecessor ref="3419"/>
+    <successor ref="3440"/>
+    <adjacentLeft ref="3458" drivingDir="opposite"/>
+    <adjacentRight ref="3433" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11432"/>
+  </lanelet>
+  <lanelet id="3440">
+    <leftBound>
+      <point>
+        <x>23.888</x>
+        <y>22.9455</y>
+      </point>
+      <point>
+        <x>20.6138</x>
+        <y>16.6208</y>
+      </point>
+      <point>
+        <x>16.7291</x>
+        <y>8.6734</y>
+      </point>
+      <point>
+        <x>12.7843</x>
+        <y>0.8498</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>21.0444</x>
+        <y>24.3785</y>
+      </point>
+      <point>
+        <x>17.8937</x>
+        <y>18.0519</y>
+      </point>
+      <point>
+        <x>14.009</x>
+        <y>10.1045</y>
+      </point>
+      <point>
+        <x>10.0788</x>
+        <y>2.2193</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </rightBound>
+    <predecessor ref="3432"/>
+    <successor ref="3667"/>
+    <adjacentLeft ref="3452" drivingDir="opposite"/>
+    <adjacentRight ref="3442" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>12.7843</x>
+        <y>0.8498</y>
+      </point>
+      <point>
+        <x>10.0788</x>
+        <y>2.2193</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficSignRef ref="11537"/>
+      <trafficLightRef ref="11526"/>
+      <trafficLightRef ref="11527"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11537"/>
+    <trafficSignRef ref="11433"/>
+    <trafficLightRef ref="11526"/>
+    <trafficLightRef ref="11527"/>
+  </lanelet>
+  <lanelet id="3667">
+    <leftBound>
+      <point>
+        <x>12.7843</x>
+        <y>0.8498</y>
+      </point>
+      <point>
+        <x>9.7779</x>
+        <y>-5.586</y>
+      </point>
+      <point>
+        <x>8.6344</x>
+        <y>-9.4484</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>10.0788</x>
+        <y>2.2193</y>
+      </point>
+      <point>
+        <x>6.3824</x>
+        <y>-4.8973</y>
+      </point>
+      <point>
+        <x>4.3101</x>
+        <y>-9.1257</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3440"/>
+    <successor ref="3666"/>
+    <adjacentRight ref="3665" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11434"/>
+  </lanelet>
+  <lanelet id="3666">
+    <leftBound>
+      <point>
+        <x>8.6344</x>
+        <y>-9.4484</y>
+      </point>
+      <point>
+        <x>8.1213</x>
+        <y>-11.8418</y>
+      </point>
+      <point>
+        <x>7.9281</x>
+        <y>-13.4858</y>
+      </point>
+      <point>
+        <x>7.7633</x>
+        <y>-15.2917</y>
+      </point>
+      <point>
+        <x>7.7784</x>
+        <y>-16.9617</y>
+      </point>
+      <point>
+        <x>8.2271</x>
+        <y>-18.3553</y>
+      </point>
+      <point>
+        <x>9.1076</x>
+        <y>-19.7197</y>
+      </point>
+      <point>
+        <x>10.4317</x>
+        <y>-21.2004</y>
+      </point>
+      <point>
+        <x>12.5305</x>
+        <y>-23.5345</y>
+      </point>
+      <point>
+        <x>17.2223</x>
+        <y>-27.516</y>
+      </point>
+      <point>
+        <x>25.2628</x>
+        <y>-31.798</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>4.3101</x>
+        <y>-9.1257</y>
+      </point>
+      <point>
+        <x>3.4956</x>
+        <y>-11.5148</y>
+      </point>
+      <point>
+        <x>3.1361</x>
+        <y>-13.4335</y>
+      </point>
+      <point>
+        <x>2.9649</x>
+        <y>-15.6932</y>
+      </point>
+      <point>
+        <x>3.4083</x>
+        <y>-18.2387</y>
+      </point>
+      <point>
+        <x>4.2561</x>
+        <y>-20.3768</y>
+      </point>
+      <point>
+        <x>5.3083</x>
+        <y>-22.1745</y>
+      </point>
+      <point>
+        <x>6.6362</x>
+        <y>-23.9323</y>
+      </point>
+      <point>
+        <x>9.4831</x>
+        <y>-26.735</y>
+      </point>
+      <point>
+        <x>15.3205</x>
+        <y>-30.2702</y>
+      </point>
+      <point>
+        <x>23.8455</x>
+        <y>-34.8932</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3667"/>
+    <successor ref="3489"/>
+    <adjacentRight ref="3664" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11434"/>
+  </lanelet>
+  <lanelet id="3489">
+    <leftBound>
+      <point>
+        <x>25.2628</x>
+        <y>-31.798</y>
+      </point>
+      <point>
+        <x>33.9406</x>
+        <y>-36.0734</y>
+      </point>
+      <point>
+        <x>38.9255</x>
+        <y>-38.5294</y>
+      </point>
+      <point>
+        <x>47.8958</x>
+        <y>-42.9489</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>23.8455</x>
+        <y>-34.8932</y>
+      </point>
+      <point>
+        <x>32.5253</x>
+        <y>-39.155</y>
+      </point>
+      <point>
+        <x>37.434</x>
+        <y>-41.5651</y>
+      </point>
+      <point>
+        <x>46.4104</x>
+        <y>-45.9723</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3666"/>
+    <predecessor ref="3674"/>
+    <adjacentRight ref="3492" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11435"/>
+  </lanelet>
+  <lanelet id="3422">
+    <leftBound>
+      <point>
+        <x>32.7284</x>
+        <y>47.8685</y>
+      </point>
+      <point>
+        <x>28.2824</x>
+        <y>38.9113</y>
+      </point>
+      <point>
+        <x>24.831</x>
+        <y>31.958</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>29.9544</x>
+        <y>49.2919</y>
+      </point>
+      <point>
+        <x>25.5416</x>
+        <y>40.3183</y>
+      </point>
+      <point>
+        <x>22.1302</x>
+        <y>33.3812</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </rightBound>
+    <successor ref="3433"/>
+    <adjacentLeft ref="3419" drivingDir="same"/>
+    <adjacentRight ref="3425" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11436"/>
+  </lanelet>
+  <lanelet id="3433">
+    <leftBound>
+      <point>
+        <x>24.831</x>
+        <y>31.958</y>
+      </point>
+      <point>
+        <x>22.9377</x>
+        <y>28.1682</y>
+      </point>
+      <point>
+        <x>21.0444</x>
+        <y>24.3785</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>22.1302</x>
+        <y>33.3812</y>
+      </point>
+      <point>
+        <x>20.2212</x>
+        <y>29.5763</y>
+      </point>
+      <point>
+        <x>18.3122</x>
+        <y>25.7714</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </rightBound>
+    <predecessor ref="3422"/>
+    <successor ref="3442"/>
+    <adjacentLeft ref="3432" drivingDir="same"/>
+    <adjacentRight ref="3434" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11437"/>
+  </lanelet>
+  <lanelet id="3442">
+    <leftBound>
+      <point>
+        <x>21.0444</x>
+        <y>24.3785</y>
+      </point>
+      <point>
+        <x>17.8937</x>
+        <y>18.0519</y>
+      </point>
+      <point>
+        <x>14.009</x>
+        <y>10.1045</y>
+      </point>
+      <point>
+        <x>10.0788</x>
+        <y>2.2193</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>18.3122</x>
+        <y>25.7714</y>
+      </point>
+      <point>
+        <x>15.226</x>
+        <y>19.6286</y>
+      </point>
+      <point>
+        <x>11.3413</x>
+        <y>11.6812</y>
+      </point>
+      <point>
+        <x>7.3927</x>
+        <y>3.5961</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </rightBound>
+    <predecessor ref="3433"/>
+    <successor ref="3665"/>
+    <adjacentLeft ref="3440" drivingDir="same"/>
+    <adjacentRight ref="3444" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>10.0788</x>
+        <y>2.2193</y>
+      </point>
+      <point>
+        <x>7.3927</x>
+        <y>3.5961</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficLightRef ref="11526"/>
+      <trafficLightRef ref="11527"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11438"/>
+    <trafficLightRef ref="11526"/>
+    <trafficLightRef ref="11527"/>
+  </lanelet>
+  <lanelet id="3665">
+    <leftBound>
+      <point>
+        <x>10.0788</x>
+        <y>2.2193</y>
+      </point>
+      <point>
+        <x>6.3824</x>
+        <y>-4.8973</y>
+      </point>
+      <point>
+        <x>4.3101</x>
+        <y>-9.1257</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>7.3927</x>
+        <y>3.5961</y>
+      </point>
+      <point>
+        <x>3.5724</x>
+        <y>-4.0501</y>
+      </point>
+      <point>
+        <x>1.3739</x>
+        <y>-8.6376</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3442"/>
+    <successor ref="3664"/>
+    <adjacentLeft ref="3667" drivingDir="same"/>
+    <adjacentRight ref="3606" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11439"/>
+  </lanelet>
+  <lanelet id="3664">
+    <leftBound>
+      <point>
+        <x>4.3101</x>
+        <y>-9.1257</y>
+      </point>
+      <point>
+        <x>3.4956</x>
+        <y>-11.5148</y>
+      </point>
+      <point>
+        <x>3.1361</x>
+        <y>-13.4335</y>
+      </point>
+      <point>
+        <x>2.9649</x>
+        <y>-15.6932</y>
+      </point>
+      <point>
+        <x>3.4083</x>
+        <y>-18.2387</y>
+      </point>
+      <point>
+        <x>4.2561</x>
+        <y>-20.3768</y>
+      </point>
+      <point>
+        <x>5.3083</x>
+        <y>-22.1745</y>
+      </point>
+      <point>
+        <x>6.6362</x>
+        <y>-23.9323</y>
+      </point>
+      <point>
+        <x>9.4831</x>
+        <y>-26.735</y>
+      </point>
+      <point>
+        <x>15.3205</x>
+        <y>-30.2702</y>
+      </point>
+      <point>
+        <x>23.8455</x>
+        <y>-34.8932</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>1.3739</x>
+        <y>-8.6376</y>
+      </point>
+      <point>
+        <x>0.0586</x>
+        <y>-11.3123</y>
+      </point>
+      <point>
+        <x>-0.5288</x>
+        <y>-13.4893</y>
+      </point>
+      <point>
+        <x>-0.6132</x>
+        <y>-15.9604</y>
+      </point>
+      <point>
+        <x>-0.1737</x>
+        <y>-18.9883</y>
+      </point>
+      <point>
+        <x>0.4487</x>
+        <y>-21.9826</y>
+      </point>
+      <point>
+        <x>1.5294</x>
+        <y>-24.0624</y>
+      </point>
+      <point>
+        <x>3.0272</x>
+        <y>-26.5974</y>
+      </point>
+      <point>
+        <x>6.4208</x>
+        <y>-29.7446</y>
+      </point>
+      <point>
+        <x>12.6726</x>
+        <y>-33.1748</y>
+      </point>
+      <point>
+        <x>22.1731</x>
+        <y>-37.9812</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3665"/>
+    <successor ref="3492"/>
+    <adjacentLeft ref="3666" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11439"/>
+  </lanelet>
+  <lanelet id="3492">
+    <leftBound>
+      <point>
+        <x>23.8455</x>
+        <y>-34.8932</y>
+      </point>
+      <point>
+        <x>32.5253</x>
+        <y>-39.155</y>
+      </point>
+      <point>
+        <x>37.434</x>
+        <y>-41.5651</y>
+      </point>
+      <point>
+        <x>46.4104</x>
+        <y>-45.9723</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>22.1731</x>
+        <y>-37.9812</y>
+      </point>
+      <point>
+        <x>30.9476</x>
+        <y>-42.3065</y>
+      </point>
+      <point>
+        <x>35.8761</x>
+        <y>-44.736</y>
+      </point>
+      <point>
+        <x>44.8455</x>
+        <y>-49.1574</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </rightBound>
+    <predecessor ref="3664"/>
+    <predecessor ref="3676"/>
+    <predecessor ref="3678"/>
+    <adjacentLeft ref="3489" drivingDir="same"/>
+    <adjacentRight ref="3495" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11440"/>
+  </lanelet>
+  <lanelet id="3425">
+    <leftBound>
+      <point>
+        <x>29.9544</x>
+        <y>49.2919</y>
+      </point>
+      <point>
+        <x>25.5416</x>
+        <y>40.3183</y>
+      </point>
+      <point>
+        <x>22.1302</x>
+        <y>33.3812</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>27.2953</x>
+        <y>50.6577</y>
+      </point>
+      <point>
+        <x>22.8459</x>
+        <y>41.7022</y>
+      </point>
+      <point>
+        <x>19.362</x>
+        <y>34.69</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <successor ref="3434"/>
+    <adjacentLeft ref="3422" drivingDir="same"/>
+    <adjacentRight ref="3428" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11441"/>
+  </lanelet>
+  <lanelet id="3434">
+    <leftBound>
+      <point>
+        <x>22.1302</x>
+        <y>33.3812</y>
+      </point>
+      <point>
+        <x>20.2212</x>
+        <y>29.5763</y>
+      </point>
+      <point>
+        <x>18.3122</x>
+        <y>25.7714</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>19.362</x>
+        <y>34.69</y>
+      </point>
+      <point>
+        <x>17.4843</x>
+        <y>30.9154</y>
+      </point>
+      <point>
+        <x>15.6066</x>
+        <y>27.1409</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3425"/>
+    <successor ref="3444"/>
+    <adjacentLeft ref="3433" drivingDir="same"/>
+    <adjacentRight ref="3435" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11442"/>
+  </lanelet>
+  <lanelet id="3444">
+    <leftBound>
+      <point>
+        <x>18.3122</x>
+        <y>25.7714</y>
+      </point>
+      <point>
+        <x>15.226</x>
+        <y>19.6286</y>
+      </point>
+      <point>
+        <x>11.3413</x>
+        <y>11.6812</y>
+      </point>
+      <point>
+        <x>7.3927</x>
+        <y>3.5961</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>15.6066</x>
+        <y>27.1409</y>
+      </point>
+      <point>
+        <x>12.52</x>
+        <y>20.9672</y>
+      </point>
+      <point>
+        <x>8.6353</x>
+        <y>13.0198</y>
+      </point>
+      <point>
+        <x>4.5526</x>
+        <y>5.0059</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3434"/>
+    <successor ref="3606"/>
+    <adjacentLeft ref="3442" drivingDir="same"/>
+    <adjacentRight ref="3446" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>7.3927</x>
+        <y>3.5961</y>
+      </point>
+      <point>
+        <x>4.5526</x>
+        <y>5.0059</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficLightRef ref="11526"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11443"/>
+    <trafficLightRef ref="11526"/>
+  </lanelet>
+  <lanelet id="3606">
+    <leftBound>
+      <point>
+        <x>7.3927</x>
+        <y>3.5961</y>
+      </point>
+      <point>
+        <x>4.3936</x>
+        <y>-2.4757</y>
+      </point>
+      <point>
+        <x>1.3945</x>
+        <y>-8.5476</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>4.5526</x>
+        <y>5.0059</y>
+      </point>
+      <point>
+        <x>1.5729</x>
+        <y>-1.0862</y>
+      </point>
+      <point>
+        <x>-1.4068</x>
+        <y>-7.1783</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3444"/>
+    <successor ref="3642"/>
+    <adjacentLeft ref="3665" drivingDir="same"/>
+    <adjacentRight ref="3608" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11444"/>
+  </lanelet>
+  <lanelet id="3642">
+    <leftBound>
+      <point>
+        <x>1.3945</x>
+        <y>-8.5476</y>
+      </point>
+      <point>
+        <x>-0.0686</x>
+        <y>-11.5097</y>
+      </point>
+      <point>
+        <x>-1.7013</x>
+        <y>-14.8152</y>
+      </point>
+      <point>
+        <x>-3.1084</x>
+        <y>-17.6636</y>
+      </point>
+      <point>
+        <x>-4.5175</x>
+        <y>-20.5158</y>
+      </point>
+      <point>
+        <x>-6.0153</x>
+        <y>-23.5477</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-1.4068</x>
+        <y>-7.1783</y>
+      </point>
+      <point>
+        <x>-2.8449</x>
+        <y>-10.1187</y>
+      </point>
+      <point>
+        <x>-4.4625</x>
+        <y>-13.426</y>
+      </point>
+      <point>
+        <x>-5.8574</x>
+        <y>-16.2758</y>
+      </point>
+      <point>
+        <x>-7.2451</x>
+        <y>-19.1109</y>
+      </point>
+      <point>
+        <x>-8.7216</x>
+        <y>-22.1272</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3606"/>
+    <successor ref="3622"/>
+    <adjacentRight ref="3644" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11445"/>
+  </lanelet>
+  <lanelet id="3622">
+    <leftBound>
+      <point>
+        <x>-6.0153</x>
+        <y>-23.5477</y>
+      </point>
+      <point>
+        <x>-8.715</x>
+        <y>-29.0128</y>
+      </point>
+      <point>
+        <x>-11.4147</x>
+        <y>-34.4778</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-8.7216</x>
+        <y>-22.1272</y>
+      </point>
+      <point>
+        <x>-11.4016</x>
+        <y>-27.6026</y>
+      </point>
+      <point>
+        <x>-14.0816</x>
+        <y>-33.0779</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3642"/>
+    <successor ref="3536"/>
+    <adjacentRight ref="3624" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11446"/>
+  </lanelet>
+  <lanelet id="3536">
+    <leftBound>
+      <point>
+        <x>-11.4147</x>
+        <y>-34.4778</y>
+      </point>
+      <point>
+        <x>-15.6522</x>
+        <y>-43.2228</y>
+      </point>
+      <point>
+        <x>-19.6711</x>
+        <y>-51.9071</y>
+      </point>
+      <point>
+        <x>-23.4418</x>
+        <y>-60.5333</y>
+      </point>
+      <point>
+        <x>-26.9037</x>
+        <y>-69.1947</y>
+      </point>
+      <point>
+        <x>-28.3619</x>
+        <y>-72.8936</y>
+      </point>
+      <point>
+        <x>-32.0294</x>
+        <y>-82.1967</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-14.0816</x>
+        <y>-33.0779</y>
+      </point>
+      <point>
+        <x>-18.2897</x>
+        <y>-41.6928</y>
+      </point>
+      <point>
+        <x>-22.3715</x>
+        <y>-50.4531</y>
+      </point>
+      <point>
+        <x>-26.1439</x>
+        <y>-59.2025</y>
+      </point>
+      <point>
+        <x>-29.6717</x>
+        <y>-68.1398</y>
+      </point>
+      <point>
+        <x>-31.0389</x>
+        <y>-71.5746</y>
+      </point>
+      <point>
+        <x>-34.7371</x>
+        <y>-80.8656</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3622"/>
+    <predecessor ref="3668"/>
+    <adjacentRight ref="3539" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11447"/>
+  </lanelet>
+  <lanelet id="3428">
+    <leftBound>
+      <point>
+        <x>27.2953</x>
+        <y>50.6577</y>
+      </point>
+      <point>
+        <x>22.8459</x>
+        <y>41.7022</y>
+      </point>
+      <point>
+        <x>19.362</x>
+        <y>34.69</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>24.5711</x>
+        <y>52.0562</y>
+      </point>
+      <point>
+        <x>20.1195</x>
+        <y>43.1018</y>
+      </point>
+      <point>
+        <x>16.6377</x>
+        <y>36.0982</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <successor ref="3435"/>
+    <adjacentLeft ref="3425" drivingDir="same"/>
+    <adjacentRight ref="3431" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11448"/>
+  </lanelet>
+  <lanelet id="3435">
+    <leftBound>
+      <point>
+        <x>19.362</x>
+        <y>34.69</y>
+      </point>
+      <point>
+        <x>17.4843</x>
+        <y>30.9154</y>
+      </point>
+      <point>
+        <x>15.6066</x>
+        <y>27.1409</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>16.6377</x>
+        <y>36.0982</y>
+      </point>
+      <point>
+        <x>14.7439</x>
+        <y>32.2776</y>
+      </point>
+      <point>
+        <x>12.8501</x>
+        <y>28.4571</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3428"/>
+    <successor ref="3446"/>
+    <adjacentLeft ref="3434" drivingDir="same"/>
+    <adjacentRight ref="3436" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11449"/>
+  </lanelet>
+  <lanelet id="3446">
+    <leftBound>
+      <point>
+        <x>15.6066</x>
+        <y>27.1409</y>
+      </point>
+      <point>
+        <x>12.52</x>
+        <y>20.9672</y>
+      </point>
+      <point>
+        <x>8.6353</x>
+        <y>13.0198</y>
+      </point>
+      <point>
+        <x>4.5526</x>
+        <y>5.0059</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>12.8501</x>
+        <y>28.4571</y>
+      </point>
+      <point>
+        <x>9.8907</x>
+        <y>22.5279</y>
+      </point>
+      <point>
+        <x>6.0678</x>
+        <y>14.5797</y>
+      </point>
+      <point>
+        <x>1.8234</x>
+        <y>6.3449</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3435"/>
+    <successor ref="3608"/>
+    <adjacentLeft ref="3444" drivingDir="same"/>
+    <adjacentRight ref="3448" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>4.5526</x>
+        <y>5.0059</y>
+      </point>
+      <point>
+        <x>1.8234</x>
+        <y>6.3449</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficLightRef ref="11526"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11450"/>
+    <trafficLightRef ref="11526"/>
+  </lanelet>
+  <lanelet id="3608">
+    <leftBound>
+      <point>
+        <x>4.5526</x>
+        <y>5.0059</y>
+      </point>
+      <point>
+        <x>1.5729</x>
+        <y>-1.0862</y>
+      </point>
+      <point>
+        <x>-1.4068</x>
+        <y>-7.1783</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>1.8234</x>
+        <y>6.3449</y>
+      </point>
+      <point>
+        <x>-1.1472</x>
+        <y>0.2458</y>
+      </point>
+      <point>
+        <x>-4.1177</x>
+        <y>-5.8533</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3446"/>
+    <successor ref="3644"/>
+    <adjacentLeft ref="3606" drivingDir="same"/>
+    <adjacentRight ref="3610" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11451"/>
+  </lanelet>
+  <lanelet id="3644">
+    <leftBound>
+      <point>
+        <x>-1.4068</x>
+        <y>-7.1783</y>
+      </point>
+      <point>
+        <x>-2.8449</x>
+        <y>-10.1187</y>
+      </point>
+      <point>
+        <x>-4.4625</x>
+        <y>-13.426</y>
+      </point>
+      <point>
+        <x>-5.8574</x>
+        <y>-16.2758</y>
+      </point>
+      <point>
+        <x>-7.2451</x>
+        <y>-19.1109</y>
+      </point>
+      <point>
+        <x>-8.7216</x>
+        <y>-22.1272</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-4.1177</x>
+        <y>-5.8533</y>
+      </point>
+      <point>
+        <x>-5.5381</x>
+        <y>-8.7693</y>
+      </point>
+      <point>
+        <x>-7.149</x>
+        <y>-12.077</y>
+      </point>
+      <point>
+        <x>-8.5362</x>
+        <y>-14.9234</y>
+      </point>
+      <point>
+        <x>-9.9083</x>
+        <y>-17.7392</y>
+      </point>
+      <point>
+        <x>-11.3694</x>
+        <y>-20.7374</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3608"/>
+    <successor ref="3624"/>
+    <adjacentLeft ref="3642" drivingDir="same"/>
+    <adjacentRight ref="3646" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11452"/>
+  </lanelet>
+  <lanelet id="3624">
+    <leftBound>
+      <point>
+        <x>-8.7216</x>
+        <y>-22.1272</y>
+      </point>
+      <point>
+        <x>-11.4016</x>
+        <y>-27.6026</y>
+      </point>
+      <point>
+        <x>-14.0816</x>
+        <y>-33.0779</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-11.3694</x>
+        <y>-20.7374</y>
+      </point>
+      <point>
+        <x>-14.0401</x>
+        <y>-26.2176</y>
+      </point>
+      <point>
+        <x>-16.7108</x>
+        <y>-31.6979</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3644"/>
+    <successor ref="3539"/>
+    <adjacentLeft ref="3622" drivingDir="same"/>
+    <adjacentRight ref="3626" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11453"/>
+  </lanelet>
+  <lanelet id="3539">
+    <leftBound>
+      <point>
+        <x>-14.0816</x>
+        <y>-33.0779</y>
+      </point>
+      <point>
+        <x>-18.2897</x>
+        <y>-41.6928</y>
+      </point>
+      <point>
+        <x>-22.3715</x>
+        <y>-50.4531</y>
+      </point>
+      <point>
+        <x>-26.1439</x>
+        <y>-59.2025</y>
+      </point>
+      <point>
+        <x>-29.6717</x>
+        <y>-68.1398</y>
+      </point>
+      <point>
+        <x>-31.0389</x>
+        <y>-71.5746</y>
+      </point>
+      <point>
+        <x>-34.7371</x>
+        <y>-80.8656</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-16.7108</x>
+        <y>-31.6979</y>
+      </point>
+      <point>
+        <x>-20.9895</x>
+        <y>-40.1926</y>
+      </point>
+      <point>
+        <x>-25.072</x>
+        <y>-48.9991</y>
+      </point>
+      <point>
+        <x>-28.7809</x>
+        <y>-57.6261</y>
+      </point>
+      <point>
+        <x>-32.5611</x>
+        <y>-66.9294</y>
+      </point>
+      <point>
+        <x>-33.886</x>
+        <y>-70.1717</y>
+      </point>
+      <point>
+        <x>-37.6686</x>
+        <y>-79.4286</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3624"/>
+    <adjacentLeft ref="3536" drivingDir="same"/>
+    <adjacentRight ref="3542" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11454"/>
+  </lanelet>
+  <lanelet id="3431">
+    <leftBound>
+      <point>
+        <x>24.5711</x>
+        <y>52.0562</y>
+      </point>
+      <point>
+        <x>20.1195</x>
+        <y>43.1018</y>
+      </point>
+      <point>
+        <x>16.6377</x>
+        <y>36.0982</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>22.1583</x>
+        <y>53.2958</y>
+      </point>
+      <point>
+        <x>17.5914</x>
+        <y>44.3996</y>
+      </point>
+      <point>
+        <x>13.989</x>
+        <y>37.3822</y>
+      </point>
+    </rightBound>
+    <successor ref="3436"/>
+    <successor ref="3438"/>
+    <adjacentLeft ref="3428" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11455"/>
+  </lanelet>
+  <lanelet id="3436">
+    <leftBound>
+      <point>
+        <x>16.6377</x>
+        <y>36.0982</y>
+      </point>
+      <point>
+        <x>14.7439</x>
+        <y>32.2776</y>
+      </point>
+      <point>
+        <x>12.8501</x>
+        <y>28.4571</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>13.989</x>
+        <y>37.3822</y>
+      </point>
+      <point>
+        <x>12.0492</x>
+        <y>33.5931</y>
+      </point>
+      <point>
+        <x>10.1095</x>
+        <y>29.804</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3431"/>
+    <successor ref="3448"/>
+    <adjacentLeft ref="3435" drivingDir="same"/>
+    <adjacentRight ref="3438" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11456"/>
+  </lanelet>
+  <lanelet id="3448">
+    <leftBound>
+      <point>
+        <x>12.8501</x>
+        <y>28.4571</y>
+      </point>
+      <point>
+        <x>9.8907</x>
+        <y>22.5279</y>
+      </point>
+      <point>
+        <x>6.0678</x>
+        <y>14.5797</y>
+      </point>
+      <point>
+        <x>1.8234</x>
+        <y>6.3449</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>10.1095</x>
+        <y>29.804</y>
+      </point>
+      <point>
+        <x>7.0539</x>
+        <y>23.63</y>
+      </point>
+      <point>
+        <x>3.2309</x>
+        <y>15.6817</y>
+      </point>
+      <point>
+        <x>-0.7324</x>
+        <y>7.643</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </rightBound>
+    <predecessor ref="3436"/>
+    <successor ref="3610"/>
+    <adjacentLeft ref="3446" drivingDir="same"/>
+    <adjacentRight ref="3450" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>1.8234</x>
+        <y>6.3449</y>
+      </point>
+      <point>
+        <x>-0.7324</x>
+        <y>7.643</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficLightRef ref="11526"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11457"/>
+    <trafficLightRef ref="11526"/>
+  </lanelet>
+  <lanelet id="3610">
+    <leftBound>
+      <point>
+        <x>1.8234</x>
+        <y>6.3449</y>
+      </point>
+      <point>
+        <x>-1.1472</x>
+        <y>0.2458</y>
+      </point>
+      <point>
+        <x>-4.1177</x>
+        <y>-5.8533</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-0.7324</x>
+        <y>7.643</y>
+      </point>
+      <point>
+        <x>-3.7986</x>
+        <y>1.5662</y>
+      </point>
+      <point>
+        <x>-6.8647</x>
+        <y>-4.5106</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3448"/>
+    <successor ref="3646"/>
+    <adjacentLeft ref="3608" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11458"/>
+  </lanelet>
+  <lanelet id="3646">
+    <leftBound>
+      <point>
+        <x>-4.1177</x>
+        <y>-5.8533</y>
+      </point>
+      <point>
+        <x>-5.5381</x>
+        <y>-8.7693</y>
+      </point>
+      <point>
+        <x>-7.149</x>
+        <y>-12.077</y>
+      </point>
+      <point>
+        <x>-8.5362</x>
+        <y>-14.9234</y>
+      </point>
+      <point>
+        <x>-9.9083</x>
+        <y>-17.7392</y>
+      </point>
+      <point>
+        <x>-11.3694</x>
+        <y>-20.7374</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-6.8647</x>
+        <y>-4.5106</y>
+      </point>
+      <point>
+        <x>-8.3123</x>
+        <y>-7.3794</y>
+      </point>
+      <point>
+        <x>-9.9679</x>
+        <y>-10.6608</y>
+      </point>
+      <point>
+        <x>-11.3909</x>
+        <y>-13.4822</y>
+      </point>
+      <point>
+        <x>-12.7896</x>
+        <y>-16.2552</y>
+      </point>
+      <point>
+        <x>-14.2797</x>
+        <y>-19.2096</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3610"/>
+    <successor ref="3626"/>
+    <adjacentLeft ref="3644" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11459"/>
+  </lanelet>
+  <lanelet id="3626">
+    <leftBound>
+      <point>
+        <x>-11.3694</x>
+        <y>-20.7374</y>
+      </point>
+      <point>
+        <x>-14.0401</x>
+        <y>-26.2176</y>
+      </point>
+      <point>
+        <x>-16.7108</x>
+        <y>-31.6979</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-14.2797</x>
+        <y>-19.2096</y>
+      </point>
+      <point>
+        <x>-17.0243</x>
+        <y>-24.6511</y>
+      </point>
+      <point>
+        <x>-19.7689</x>
+        <y>-30.0926</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3646"/>
+    <successor ref="3542"/>
+    <adjacentLeft ref="3624" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11460"/>
+  </lanelet>
+  <lanelet id="3542">
+    <leftBound>
+      <point>
+        <x>-16.7108</x>
+        <y>-31.6979</y>
+      </point>
+      <point>
+        <x>-20.9895</x>
+        <y>-40.1926</y>
+      </point>
+      <point>
+        <x>-25.072</x>
+        <y>-48.9991</y>
+      </point>
+      <point>
+        <x>-28.7809</x>
+        <y>-57.6261</y>
+      </point>
+      <point>
+        <x>-32.5611</x>
+        <y>-66.9294</y>
+      </point>
+      <point>
+        <x>-33.886</x>
+        <y>-70.1717</y>
+      </point>
+      <point>
+        <x>-37.6686</x>
+        <y>-79.4286</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-19.7689</x>
+        <y>-30.0926</y>
+      </point>
+      <point>
+        <x>-23.8128</x>
+        <y>-38.6753</y>
+      </point>
+      <point>
+        <x>-27.8368</x>
+        <y>-47.7288</y>
+      </point>
+      <point>
+        <x>-31.672</x>
+        <y>-56.5388</y>
+      </point>
+      <point>
+        <x>-35.1413</x>
+        <y>-65.7234</y>
+      </point>
+      <point>
+        <x>-36.4519</x>
+        <y>-68.9074</y>
+      </point>
+      <point>
+        <x>-40.2582</x>
+        <y>-78.1546</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3600"/>
+    <predecessor ref="3626"/>
+    <adjacentLeft ref="3539" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11461"/>
+  </lanelet>
+  <lanelet id="3438">
+    <leftBound>
+      <point>
+        <x>16.6377</x>
+        <y>36.0982</y>
+      </point>
+      <point>
+        <x>13.3736</x>
+        <y>32.9511</y>
+      </point>
+      <point>
+        <x>10.1095</x>
+        <y>29.804</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>13.989</x>
+        <y>37.3822</y>
+      </point>
+      <point>
+        <x>10.5782</x>
+        <y>34.2526</y>
+      </point>
+      <point>
+        <x>7.1675</x>
+        <y>31.1229</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3431"/>
+    <successor ref="3450"/>
+    <adjacentLeft ref="3436" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11462"/>
+  </lanelet>
+  <lanelet id="3450">
+    <leftBound>
+      <point>
+        <x>10.1095</x>
+        <y>29.804</y>
+      </point>
+      <point>
+        <x>7.0539</x>
+        <y>23.63</y>
+      </point>
+      <point>
+        <x>3.2309</x>
+        <y>15.6817</y>
+      </point>
+      <point>
+        <x>-0.7324</x>
+        <y>7.643</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>7.1675</x>
+        <y>31.1229</y>
+      </point>
+      <point>
+        <x>3.8937</x>
+        <y>24.8288</y>
+      </point>
+      <point>
+        <x>0.1401</x>
+        <y>17.4028</y>
+      </point>
+      <point>
+        <x>-4.068</x>
+        <y>9.5523</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3438"/>
+    <successor ref="3604"/>
+    <adjacentLeft ref="3448" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>-0.7324</x>
+        <y>7.643</y>
+      </point>
+      <point>
+        <x>-4.068</x>
+        <y>9.5523</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficLightRef ref="11526"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11463"/>
+    <trafficLightRef ref="11526"/>
+  </lanelet>
+  <lanelet id="3604">
+    <leftBound>
+      <point>
+        <x>-0.7324</x>
+        <y>7.643</y>
+      </point>
+      <point>
+        <x>-1.5353</x>
+        <y>6.077</y>
+      </point>
+      <point>
+        <x>-2.882</x>
+        <y>3.7723</y>
+      </point>
+      <point>
+        <x>-4.6134</x>
+        <y>1.596</y>
+      </point>
+      <point>
+        <x>-6.9431</x>
+        <y>-0.2485</y>
+      </point>
+      <point>
+        <x>-9.1815</x>
+        <y>-1.1094</y>
+      </point>
+      <point>
+        <x>-11.2879</x>
+        <y>-1.3719</y>
+      </point>
+      <point>
+        <x>-13.7872</x>
+        <y>-0.998</y>
+      </point>
+      <point>
+        <x>-16.9676</x>
+        <y>0.3935</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-4.068</x>
+        <y>9.5523</y>
+      </point>
+      <point>
+        <x>-5.3496</x>
+        <y>8.5701</y>
+      </point>
+      <point>
+        <x>-6.5204</x>
+        <y>7.7711</y>
+      </point>
+      <point>
+        <x>-7.565</x>
+        <y>7.1549</y>
+      </point>
+      <point>
+        <x>-8.9961</x>
+        <y>6.5288</y>
+      </point>
+      <point>
+        <x>-10.1601</x>
+        <y>6.2221</y>
+      </point>
+      <point>
+        <x>-11.6461</x>
+        <y>6.0892</y>
+      </point>
+      <point>
+        <x>-12.9902</x>
+        <y>6.1543</y>
+      </point>
+      <point>
+        <x>-14.4418</x>
+        <y>6.2672</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3450"/>
+    <successor ref="3487"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11464"/>
+  </lanelet>
+  <lanelet id="3487">
+    <leftBound>
+      <point>
+        <x>-16.9676</x>
+        <y>0.3935</y>
+      </point>
+      <point>
+        <x>-26.1432</x>
+        <y>5.3248</y>
+      </point>
+      <point>
+        <x>-34.7897</x>
+        <y>10.4948</y>
+      </point>
+      <point>
+        <x>-35.7843</x>
+        <y>11.0918</y>
+      </point>
+      <point>
+        <x>-44.3583</x>
+        <y>16.2382</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-14.4418</x>
+        <y>6.2672</y>
+      </point>
+      <point>
+        <x>-23.6932</x>
+        <y>10.2147</y>
+      </point>
+      <point>
+        <x>-32.7205</x>
+        <y>14.6821</y>
+      </point>
+      <point>
+        <x>-33.7186</x>
+        <y>15.1755</y>
+      </point>
+      <point>
+        <x>-42.683</x>
+        <y>19.6069</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3604"/>
+    <adjacentLeft ref="3484" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11465"/>
+  </lanelet>
+  <lanelet id="3473">
+    <leftBound>
+      <point>
+        <x>-48.3277</x>
+        <y>8.4489</y>
+      </point>
+      <point>
+        <x>-39.4044</x>
+        <y>3.9352</y>
+      </point>
+      <point>
+        <x>-38.2303</x>
+        <y>3.3413</y>
+      </point>
+      <point>
+        <x>-28.6503</x>
+        <y>-1.411</y>
+      </point>
+      <point>
+        <x>-19.239</x>
+        <y>-6.0687</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-49.7082</x>
+        <y>5.7199</y>
+      </point>
+      <point>
+        <x>-40.785</x>
+        <y>1.2059</y>
+      </point>
+      <point>
+        <x>-39.5679</x>
+        <y>0.5902</y>
+      </point>
+      <point>
+        <x>-29.9879</x>
+        <y>-4.1622</y>
+      </point>
+      <point>
+        <x>-20.3774</x>
+        <y>-8.9457</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </rightBound>
+    <successor ref="3673"/>
+    <adjacentRight ref="3476" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>-19.239</x>
+        <y>-6.0687</y>
+      </point>
+      <point>
+        <x>-20.3774</x>
+        <y>-8.9457</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficSignRef ref="11536"/>
+      <trafficLightRef ref="11525"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11536"/>
+    <trafficSignRef ref="11466"/>
+    <trafficLightRef ref="11525"/>
+  </lanelet>
+  <lanelet id="3673">
+    <leftBound>
+      <point>
+        <x>-19.239</x>
+        <y>-6.0687</y>
+      </point>
+      <point>
+        <x>-13.9508</x>
+        <y>-8.6378</y>
+      </point>
+      <point>
+        <x>-10.5601</x>
+        <y>-9.8934</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-20.3774</x>
+        <y>-8.9457</y>
+      </point>
+      <point>
+        <x>-15.3512</x>
+        <y>-11.4573</y>
+      </point>
+      <point>
+        <x>-11.5763</x>
+        <y>-13.1707</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3473"/>
+    <successor ref="3672"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11467"/>
+  </lanelet>
+  <lanelet id="3672">
+    <leftBound>
+      <point>
+        <x>-10.5601</x>
+        <y>-9.8934</y>
+      </point>
+      <point>
+        <x>-6.6213</x>
+        <y>-10.8409</y>
+      </point>
+      <point>
+        <x>-4.1236</x>
+        <y>-11.3225</y>
+      </point>
+      <point>
+        <x>-1.6464</x>
+        <y>-11.6191</y>
+      </point>
+      <point>
+        <x>0.2302</x>
+        <y>-11.7456</y>
+      </point>
+      <point>
+        <x>2.2549</x>
+        <y>-11.7897</y>
+      </point>
+      <point>
+        <x>3.5008</x>
+        <y>-11.6919</y>
+      </point>
+      <point>
+        <x>4.186</x>
+        <y>-11.5028</y>
+      </point>
+      <point>
+        <x>4.751</x>
+        <y>-11.1877</y>
+      </point>
+      <point>
+        <x>5.3253</x>
+        <y>-10.5866</y>
+      </point>
+      <point>
+        <x>6.5109</x>
+        <y>-9.1256</y>
+      </point>
+      <point>
+        <x>9.6699</x>
+        <y>-5.2631</y>
+      </point>
+      <point>
+        <x>11.3044</x>
+        <y>-2.293</y>
+      </point>
+      <point>
+        <x>12.7843</x>
+        <y>0.8498</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-11.5763</x>
+        <y>-13.1707</y>
+      </point>
+      <point>
+        <x>-7.8234</x>
+        <y>-14.9405</y>
+      </point>
+      <point>
+        <x>-4.7597</x>
+        <y>-16.3995</y>
+      </point>
+      <point>
+        <x>-2.265</x>
+        <y>-17.0966</y>
+      </point>
+      <point>
+        <x>0.3281</x>
+        <y>-17.3949</y>
+      </point>
+      <point>
+        <x>2.9758</x>
+        <y>-17.1168</y>
+      </point>
+      <point>
+        <x>5.0189</x>
+        <y>-16.9458</y>
+      </point>
+      <point>
+        <x>6.5526</x>
+        <y>-16.6224</y>
+      </point>
+      <point>
+        <x>7.8671</x>
+        <y>-15.7715</y>
+      </point>
+      <point>
+        <x>9.1313</x>
+        <y>-13.6722</y>
+      </point>
+      <point>
+        <x>10.2571</x>
+        <y>-11.2765</y>
+      </point>
+      <point>
+        <x>12.433</x>
+        <y>-6.6641</y>
+      </point>
+      <point>
+        <x>13.946</x>
+        <y>-3.5307</y>
+      </point>
+      <point>
+        <x>15.4096</x>
+        <y>-0.4492</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3673"/>
+    <successor ref="3452"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11467"/>
+  </lanelet>
+  <lanelet id="3452">
+    <leftBound>
+      <point>
+        <x>12.7843</x>
+        <y>0.8498</y>
+      </point>
+      <point>
+        <x>16.7291</x>
+        <y>8.6734</y>
+      </point>
+      <point>
+        <x>20.6138</x>
+        <y>16.6208</y>
+      </point>
+      <point>
+        <x>23.888</x>
+        <y>22.9455</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>15.4096</x>
+        <y>-0.4492</y>
+      </point>
+      <point>
+        <x>19.3218</x>
+        <y>7.2516</y>
+      </point>
+      <point>
+        <x>23.014</x>
+        <y>14.7093</y>
+      </point>
+      <point>
+        <x>26.4829</x>
+        <y>21.6778</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3612"/>
+    <predecessor ref="3672"/>
+    <successor ref="3458"/>
+    <adjacentLeft ref="3440" drivingDir="opposite"/>
+    <adjacentRight ref="3454" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11468"/>
+  </lanelet>
+  <lanelet id="3458">
+    <leftBound>
+      <point>
+        <x>23.888</x>
+        <y>22.9455</y>
+      </point>
+      <point>
+        <x>25.7349</x>
+        <y>26.7206</y>
+      </point>
+      <point>
+        <x>27.5817</x>
+        <y>30.4956</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>26.4829</x>
+        <y>21.6778</y>
+      </point>
+      <point>
+        <x>28.3767</x>
+        <y>25.4982</y>
+      </point>
+      <point>
+        <x>30.2705</x>
+        <y>29.3187</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3452"/>
+    <successor ref="3464"/>
+    <adjacentLeft ref="3432" drivingDir="opposite"/>
+    <adjacentRight ref="3460" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11469"/>
+  </lanelet>
+  <lanelet id="3464">
+    <leftBound>
+      <point>
+        <x>27.5817</x>
+        <y>30.4956</y>
+      </point>
+      <point>
+        <x>30.9922</x>
+        <y>37.5202</y>
+      </point>
+      <point>
+        <x>35.3597</x>
+        <y>46.516</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>30.2705</x>
+        <y>29.3187</y>
+      </point>
+      <point>
+        <x>33.6639</x>
+        <y>36.1486</y>
+      </point>
+      <point>
+        <x>38.1134</x>
+        <y>45.1041</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3458"/>
+    <adjacentLeft ref="3419" drivingDir="opposite"/>
+    <adjacentRight ref="3467" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11470"/>
+  </lanelet>
+  <lanelet id="3476">
+    <leftBound>
+      <point>
+        <x>-49.7082</x>
+        <y>5.7199</y>
+      </point>
+      <point>
+        <x>-40.785</x>
+        <y>1.2059</y>
+      </point>
+      <point>
+        <x>-39.5679</x>
+        <y>0.5902</y>
+      </point>
+      <point>
+        <x>-29.9879</x>
+        <y>-4.1622</y>
+      </point>
+      <point>
+        <x>-20.3774</x>
+        <y>-8.9457</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-51.0728</x>
+        <y>3.0221</y>
+      </point>
+      <point>
+        <x>-42.1495</x>
+        <y>-1.4916</y>
+      </point>
+      <point>
+        <x>-41.043</x>
+        <y>-2.0513</y>
+      </point>
+      <point>
+        <x>-31.463</x>
+        <y>-6.8036</y>
+      </point>
+      <point>
+        <x>-21.8525</x>
+        <y>-11.5872</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <successor ref="3634"/>
+    <adjacentLeft ref="3473" drivingDir="same"/>
+    <adjacentRight ref="3479" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>-20.3774</x>
+        <y>-8.9457</y>
+      </point>
+      <point>
+        <x>-21.8525</x>
+        <y>-11.5872</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficLightRef ref="11525"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11471"/>
+    <trafficLightRef ref="11525"/>
+  </lanelet>
+  <lanelet id="3634">
+    <leftBound>
+      <point>
+        <x>-20.3774</x>
+        <y>-8.9457</y>
+      </point>
+      <point>
+        <x>-15.8842</x>
+        <y>-11.214</y>
+      </point>
+      <point>
+        <x>-11.3909</x>
+        <y>-13.4822</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-21.8525</x>
+        <y>-11.5872</y>
+      </point>
+      <point>
+        <x>-17.321</x>
+        <y>-13.9212</y>
+      </point>
+      <point>
+        <x>-12.7896</x>
+        <y>-16.2552</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3476"/>
+    <successor ref="3656"/>
+    <adjacentRight ref="3636" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11472"/>
+  </lanelet>
+  <lanelet id="3656">
+    <leftBound>
+      <point>
+        <x>-11.3909</x>
+        <y>-13.4822</y>
+      </point>
+      <point>
+        <x>-8.5362</x>
+        <y>-14.9234</y>
+      </point>
+      <point>
+        <x>-5.8574</x>
+        <y>-16.2758</y>
+      </point>
+      <point>
+        <x>-3.1084</x>
+        <y>-17.6636</y>
+      </point>
+      <point>
+        <x>-0.1551</x>
+        <y>-19.1544</y>
+      </point>
+      <point>
+        <x>2.5599</x>
+        <y>-20.5251</y>
+      </point>
+      <point>
+        <x>5.2127</x>
+        <y>-21.8642</y>
+      </point>
+      <point>
+        <x>7.9566</x>
+        <y>-23.2493</y>
+      </point>
+      <point>
+        <x>10.751</x>
+        <y>-24.6601</y>
+      </point>
+      <lineMarking>broad_dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-12.7896</x>
+        <y>-16.2552</y>
+      </point>
+      <point>
+        <x>-9.9083</x>
+        <y>-17.7392</y>
+      </point>
+      <point>
+        <x>-7.2451</x>
+        <y>-19.1109</y>
+      </point>
+      <point>
+        <x>-4.5175</x>
+        <y>-20.5158</y>
+      </point>
+      <point>
+        <x>-1.5416</x>
+        <y>-22.0485</y>
+      </point>
+      <point>
+        <x>1.1643</x>
+        <y>-23.4423</y>
+      </point>
+      <point>
+        <x>3.8114</x>
+        <y>-24.8057</y>
+      </point>
+      <point>
+        <x>6.5364</x>
+        <y>-26.2092</y>
+      </point>
+      <point>
+        <x>9.3156</x>
+        <y>-27.6407</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3634"/>
+    <successor ref="3674"/>
+    <adjacentRight ref="3658" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11473"/>
+  </lanelet>
+  <lanelet id="3674">
+    <leftBound>
+      <point>
+        <x>10.751</x>
+        <y>-24.6601</y>
+      </point>
+      <point>
+        <x>16.7561</x>
+        <y>-27.6138</y>
+      </point>
+      <point>
+        <x>25.2628</x>
+        <y>-31.798</y>
+      </point>
+      <lineMarking>broad_dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>9.3156</x>
+        <y>-27.6407</y>
+      </point>
+      <point>
+        <x>15.3598</x>
+        <y>-30.6576</y>
+      </point>
+      <point>
+        <x>23.8455</x>
+        <y>-34.8932</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </rightBound>
+    <predecessor ref="3656"/>
+    <successor ref="3489"/>
+    <adjacentRight ref="3676" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11474"/>
+  </lanelet>
+  <lanelet id="3479">
+    <leftBound>
+      <point>
+        <x>-51.0728</x>
+        <y>3.0221</y>
+      </point>
+      <point>
+        <x>-42.1495</x>
+        <y>-1.4916</y>
+      </point>
+      <point>
+        <x>-41.043</x>
+        <y>-2.0513</y>
+      </point>
+      <point>
+        <x>-31.463</x>
+        <y>-6.8036</y>
+      </point>
+      <point>
+        <x>-21.8525</x>
+        <y>-11.5872</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-52.5315</x>
+        <y>0.1383</y>
+      </point>
+      <point>
+        <x>-43.608</x>
+        <y>-4.3749</y>
+      </point>
+      <point>
+        <x>-42.4294</x>
+        <y>-4.971</y>
+      </point>
+      <point>
+        <x>-32.8494</x>
+        <y>-9.7234</y>
+      </point>
+      <point>
+        <x>-23.239</x>
+        <y>-14.5069</y>
+      </point>
+    </rightBound>
+    <successor ref="3600"/>
+    <successor ref="3636"/>
+    <adjacentLeft ref="3476" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>-21.8525</x>
+        <y>-11.5872</y>
+      </point>
+      <point>
+        <x>-23.239</x>
+        <y>-14.5069</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficLightRef ref="11525"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11475"/>
+    <trafficLightRef ref="11525"/>
+  </lanelet>
+  <lanelet id="3600">
+    <leftBound>
+      <point>
+        <x>-21.8525</x>
+        <y>-11.5872</y>
+      </point>
+      <point>
+        <x>-17.218</x>
+        <y>-14.0227</y>
+      </point>
+      <point>
+        <x>-14.9789</x>
+        <y>-15.3009</y>
+      </point>
+      <point>
+        <x>-13.2614</x>
+        <y>-16.2947</y>
+      </point>
+      <point>
+        <x>-11.9882</x>
+        <y>-17.0576</y>
+      </point>
+      <point>
+        <x>-11.2594</x>
+        <y>-17.9388</y>
+      </point>
+      <point>
+        <x>-11.2069</x>
+        <y>-19.2077</y>
+      </point>
+      <point>
+        <x>-11.767</x>
+        <y>-21.0403</y>
+      </point>
+      <point>
+        <x>-12.7726</x>
+        <y>-23.2729</y>
+      </point>
+      <point>
+        <x>-13.9027</x>
+        <y>-25.5653</y>
+      </point>
+      <point>
+        <x>-16.7108</x>
+        <y>-31.6979</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-23.239</x>
+        <y>-14.5069</y>
+      </point>
+      <point>
+        <x>-18.8969</x>
+        <y>-16.8613</y>
+      </point>
+      <point>
+        <x>-17.15</x>
+        <y>-17.9633</y>
+      </point>
+      <point>
+        <x>-15.6614</x>
+        <y>-18.7907</y>
+      </point>
+      <point>
+        <x>-15.4484</x>
+        <y>-18.9877</y>
+      </point>
+      <point>
+        <x>-15.329</x>
+        <y>-19.2817</y>
+      </point>
+      <point>
+        <x>-15.3099</x>
+        <y>-19.6267</y>
+      </point>
+      <point>
+        <x>-15.5642</x>
+        <y>-20.6173</y>
+      </point>
+      <point>
+        <x>-16.1604</x>
+        <y>-22.317</y>
+      </point>
+      <point>
+        <x>-16.9912</x>
+        <y>-24.2213</y>
+      </point>
+      <point>
+        <x>-19.7689</x>
+        <y>-30.0926</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3479"/>
+    <successor ref="3542"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11476"/>
+  </lanelet>
+  <lanelet id="3636">
+    <leftBound>
+      <point>
+        <x>-21.8525</x>
+        <y>-11.5872</y>
+      </point>
+      <point>
+        <x>-17.321</x>
+        <y>-13.9212</y>
+      </point>
+      <point>
+        <x>-12.7896</x>
+        <y>-16.2552</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-23.239</x>
+        <y>-14.5069</y>
+      </point>
+      <point>
+        <x>-18.7594</x>
+        <y>-16.8582</y>
+      </point>
+      <point>
+        <x>-14.2797</x>
+        <y>-19.2096</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3479"/>
+    <successor ref="3658"/>
+    <adjacentLeft ref="3634" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11477"/>
+  </lanelet>
+  <lanelet id="3658">
+    <leftBound>
+      <point>
+        <x>-12.7896</x>
+        <y>-16.2552</y>
+      </point>
+      <point>
+        <x>-9.9083</x>
+        <y>-17.7392</y>
+      </point>
+      <point>
+        <x>-7.2451</x>
+        <y>-19.1109</y>
+      </point>
+      <point>
+        <x>-4.5175</x>
+        <y>-20.5158</y>
+      </point>
+      <point>
+        <x>-1.5416</x>
+        <y>-22.0485</y>
+      </point>
+      <point>
+        <x>1.1643</x>
+        <y>-23.4423</y>
+      </point>
+      <point>
+        <x>3.8114</x>
+        <y>-24.8057</y>
+      </point>
+      <point>
+        <x>6.5364</x>
+        <y>-26.2092</y>
+      </point>
+      <point>
+        <x>9.3156</x>
+        <y>-27.6407</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-14.2797</x>
+        <y>-19.2096</y>
+      </point>
+      <point>
+        <x>-11.3694</x>
+        <y>-20.7374</y>
+      </point>
+      <point>
+        <x>-8.7216</x>
+        <y>-22.1272</y>
+      </point>
+      <point>
+        <x>-6.0153</x>
+        <y>-23.5477</y>
+      </point>
+      <point>
+        <x>-3.0146</x>
+        <y>-25.1228</y>
+      </point>
+      <point>
+        <x>-0.3172</x>
+        <y>-26.5388</y>
+      </point>
+      <point>
+        <x>2.3251</x>
+        <y>-27.9257</y>
+      </point>
+      <point>
+        <x>5.0312</x>
+        <y>-29.3462</y>
+      </point>
+      <point>
+        <x>7.7955</x>
+        <y>-30.7972</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3636"/>
+    <successor ref="3676"/>
+    <adjacentLeft ref="3656" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11478"/>
+  </lanelet>
+  <lanelet id="3676">
+    <leftBound>
+      <point>
+        <x>9.3156</x>
+        <y>-27.6407</y>
+      </point>
+      <point>
+        <x>15.3598</x>
+        <y>-30.6576</y>
+      </point>
+      <point>
+        <x>23.8455</x>
+        <y>-34.8932</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>7.7955</x>
+        <y>-30.7972</y>
+      </point>
+      <point>
+        <x>13.7907</x>
+        <y>-33.7928</y>
+      </point>
+      <point>
+        <x>22.1731</x>
+        <y>-37.9812</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3658"/>
+    <successor ref="3492"/>
+    <adjacentLeft ref="3674" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11479"/>
+  </lanelet>
+  <lanelet id="3499">
+    <leftBound>
+      <point>
+        <x>49.3094</x>
+        <y>-40.0719</y>
+      </point>
+      <point>
+        <x>40.3181</x>
+        <y>-35.6952</y>
+      </point>
+      <point>
+        <x>35.3636</x>
+        <y>-33.2835</y>
+      </point>
+      <point>
+        <x>29.9174</x>
+        <y>-30.6326</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>50.8953</x>
+        <y>-36.8442</y>
+      </point>
+      <point>
+        <x>41.9192</x>
+        <y>-32.4365</y>
+      </point>
+      <point>
+        <x>36.9225</x>
+        <y>-29.9829</y>
+      </point>
+      <point>
+        <x>31.587</x>
+        <y>-27.3629</y>
+      </point>
+    </rightBound>
+    <successor ref="3524"/>
+    <adjacentRight ref="3502" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11480"/>
+  </lanelet>
+  <lanelet id="3524">
+    <leftBound>
+      <point>
+        <x>29.9174</x>
+        <y>-30.6326</y>
+      </point>
+      <point>
+        <x>26.9846</x>
+        <y>-29.1763</y>
+      </point>
+      <point>
+        <x>24.0519</x>
+        <y>-27.72</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>31.587</x>
+        <y>-27.3629</y>
+      </point>
+      <point>
+        <x>28.6317</x>
+        <y>-25.8919</y>
+      </point>
+      <point>
+        <x>25.6764</x>
+        <y>-24.4209</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3499"/>
+    <successor ref="3530"/>
+    <adjacentRight ref="3526" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11481"/>
+  </lanelet>
+  <lanelet id="3530">
+    <leftBound>
+      <point>
+        <x>24.0519</x>
+        <y>-27.72</y>
+      </point>
+      <point>
+        <x>21.12</x>
+        <y>-26.2618</y>
+      </point>
+      <point>
+        <x>18.1881</x>
+        <y>-24.8035</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>25.6764</x>
+        <y>-24.4209</y>
+      </point>
+      <point>
+        <x>22.6983</x>
+        <y>-22.9225</y>
+      </point>
+      <point>
+        <x>19.7201</x>
+        <y>-21.4241</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </rightBound>
+    <predecessor ref="3524"/>
+    <successor ref="3618"/>
+    <successor ref="3668"/>
+    <adjacentRight ref="3532" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>18.1881</x>
+        <y>-24.8035</y>
+      </point>
+      <point>
+        <x>19.7201</x>
+        <y>-21.4241</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficSignRef ref="11538"/>
+      <trafficLightRef ref="11528"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11482"/>
+    <trafficSignRef ref="11538"/>
+    <trafficLightRef ref="11528"/>
+  </lanelet>
+  <lanelet id="3618">
+    <leftBound>
+      <point>
+        <x>18.1881</x>
+        <y>-24.8035</y>
+      </point>
+      <point>
+        <x>15.1658</x>
+        <y>-23.286</y>
+      </point>
+      <point>
+        <x>12.1435</x>
+        <y>-21.7684</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>19.7201</x>
+        <y>-21.4241</y>
+      </point>
+      <point>
+        <x>16.7349</x>
+        <y>-19.9286</y>
+      </point>
+      <point>
+        <x>13.7498</x>
+        <y>-18.433</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3530"/>
+    <successor ref="3660"/>
+    <adjacentRight ref="3620" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11483"/>
+  </lanelet>
+  <lanelet id="3660">
+    <leftBound>
+      <point>
+        <x>12.1435</x>
+        <y>-21.7684</y>
+      </point>
+      <point>
+        <x>9.3421</x>
+        <y>-20.3617</y>
+      </point>
+      <point>
+        <x>6.5867</x>
+        <y>-18.9797</y>
+      </point>
+      <point>
+        <x>3.9364</x>
+        <y>-17.648</y>
+      </point>
+      <point>
+        <x>1.2192</x>
+        <y>-16.286</y>
+      </point>
+      <point>
+        <x>-1.7013</x>
+        <y>-14.8152</y>
+      </point>
+      <point>
+        <x>-4.4625</x>
+        <y>-13.426</y>
+      </point>
+      <point>
+        <x>-7.149</x>
+        <y>-12.077</y>
+      </point>
+      <point>
+        <x>-9.9679</x>
+        <y>-10.6608</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>13.7498</x>
+        <y>-18.433</y>
+      </point>
+      <point>
+        <x>10.9422</x>
+        <y>-17.0263</y>
+      </point>
+      <point>
+        <x>8.1765</x>
+        <y>-15.6406</y>
+      </point>
+      <point>
+        <x>5.5307</x>
+        <y>-14.315</y>
+      </point>
+      <point>
+        <x>2.8145</x>
+        <y>-12.9541</y>
+      </point>
+      <point>
+        <x>-0.0686</x>
+        <y>-11.5097</y>
+      </point>
+      <point>
+        <x>-2.8449</x>
+        <y>-10.1187</y>
+      </point>
+      <point>
+        <x>-5.5381</x>
+        <y>-8.7693</y>
+      </point>
+      <point>
+        <x>-8.3123</x>
+        <y>-7.3794</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3618"/>
+    <successor ref="3638"/>
+    <adjacentRight ref="3662" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11484"/>
+  </lanelet>
+  <lanelet id="3638">
+    <leftBound>
+      <point>
+        <x>-9.9679</x>
+        <y>-10.6608</y>
+      </point>
+      <point>
+        <x>-14.6034</x>
+        <y>-8.3648</y>
+      </point>
+      <point>
+        <x>-19.239</x>
+        <y>-6.0687</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-8.3123</x>
+        <y>-7.3794</y>
+      </point>
+      <point>
+        <x>-13.0944</x>
+        <y>-5.01</y>
+      </point>
+      <point>
+        <x>-17.8764</x>
+        <y>-2.6407</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3660"/>
+    <predecessor ref="3670"/>
+    <successor ref="3481"/>
+    <adjacentRight ref="3640" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11485"/>
+  </lanelet>
+  <lanelet id="3481">
+    <leftBound>
+      <point>
+        <x>-19.239</x>
+        <y>-6.0687</y>
+      </point>
+      <point>
+        <x>-29.1971</x>
+        <y>-0.7262</y>
+      </point>
+      <point>
+        <x>-37.8436</x>
+        <y>4.4438</y>
+      </point>
+      <point>
+        <x>-38.8435</x>
+        <y>5.0441</y>
+      </point>
+      <point>
+        <x>-47.417</x>
+        <y>10.1913</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-17.8764</x>
+        <y>-2.6407</y>
+      </point>
+      <point>
+        <x>-27.4817</x>
+        <y>2.5121</y>
+      </point>
+      <point>
+        <x>-36.1281</x>
+        <y>7.6821</y>
+      </point>
+      <point>
+        <x>-37.1874</x>
+        <y>8.318</y>
+      </point>
+      <point>
+        <x>-45.7611</x>
+        <y>13.4648</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3638"/>
+    <adjacentRight ref="3484" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11486"/>
+  </lanelet>
+  <lanelet id="3668">
+    <leftBound>
+      <point>
+        <x>18.1881</x>
+        <y>-24.8035</y>
+      </point>
+      <point>
+        <x>15.246</x>
+        <y>-24.1929</y>
+      </point>
+      <point>
+        <x>12.18</x>
+        <y>-23.7525</y>
+      </point>
+      <point>
+        <x>9.7349</x>
+        <y>-23.4682</y>
+      </point>
+      <point>
+        <x>7.5884</x>
+        <y>-23.2839</y>
+      </point>
+      <point>
+        <x>5.6421</x>
+        <y>-23.1641</y>
+      </point>
+      <point>
+        <x>4.2878</x>
+        <y>-23.2758</y>
+      </point>
+      <point>
+        <x>2.8394</x>
+        <y>-23.4784</y>
+      </point>
+      <point>
+        <x>1.2421</x>
+        <y>-23.8251</y>
+      </point>
+      <point>
+        <x>-0.2204</x>
+        <y>-24.2531</y>
+      </point>
+      <point>
+        <x>-1.4951</x>
+        <y>-24.9715</y>
+      </point>
+      <point>
+        <x>-2.6543</x>
+        <y>-25.8191</y>
+      </point>
+      <point>
+        <x>-3.8811</x>
+        <y>-27.054</y>
+      </point>
+      <point>
+        <x>-6.9913</x>
+        <y>-30.034</y>
+      </point>
+      <point>
+        <x>-11.4147</x>
+        <y>-34.4778</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>19.7201</x>
+        <y>-21.4241</y>
+      </point>
+      <point>
+        <x>15.9881</x>
+        <y>-19.8173</y>
+      </point>
+      <point>
+        <x>13.1858</x>
+        <y>-18.644</y>
+      </point>
+      <point>
+        <x>10.6396</x>
+        <y>-17.4331</y>
+      </point>
+      <point>
+        <x>7.9554</x>
+        <y>-17.0103</y>
+      </point>
+      <point>
+        <x>5.498</x>
+        <y>-16.9602</y>
+      </point>
+      <point>
+        <x>3.7799</x>
+        <y>-17.1052</y>
+      </point>
+      <point>
+        <x>1.2878</x>
+        <y>-17.3162</y>
+      </point>
+      <point>
+        <x>-0.3231</x>
+        <y>-17.5242</y>
+      </point>
+      <point>
+        <x>-2.7562</x>
+        <y>-17.7229</y>
+      </point>
+      <point>
+        <x>-5.0989</x>
+        <y>-18.5185</y>
+      </point>
+      <point>
+        <x>-7.0115</x>
+        <y>-20.1711</y>
+      </point>
+      <point>
+        <x>-8.664</x>
+        <y>-22.7554</y>
+      </point>
+      <point>
+        <x>-10.9544</x>
+        <y>-27.1309</y>
+      </point>
+      <point>
+        <x>-14.0816</x>
+        <y>-33.0779</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3530"/>
+    <successor ref="3536"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11487"/>
+  </lanelet>
+  <lanelet id="3502">
+    <leftBound>
+      <point>
+        <x>50.8953</x>
+        <y>-36.8442</y>
+      </point>
+      <point>
+        <x>41.9192</x>
+        <y>-32.4365</y>
+      </point>
+      <point>
+        <x>36.9225</x>
+        <y>-29.9829</y>
+      </point>
+      <point>
+        <x>31.587</x>
+        <y>-27.3629</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>52.519</x>
+        <y>-33.5393</y>
+      </point>
+      <point>
+        <x>43.5273</x>
+        <y>-29.1635</y>
+      </point>
+      <point>
+        <x>38.4246</x>
+        <y>-26.6803</y>
+      </point>
+      <point>
+        <x>33.0713</x>
+        <y>-24.0752</y>
+      </point>
+    </rightBound>
+    <successor ref="3526"/>
+    <successor ref="3528"/>
+    <adjacentLeft ref="3499" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11488"/>
+  </lanelet>
+  <lanelet id="3526">
+    <leftBound>
+      <point>
+        <x>31.587</x>
+        <y>-27.3629</y>
+      </point>
+      <point>
+        <x>28.6317</x>
+        <y>-25.8919</y>
+      </point>
+      <point>
+        <x>25.6764</x>
+        <y>-24.4209</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>33.0713</x>
+        <y>-24.0752</y>
+      </point>
+      <point>
+        <x>30.1146</x>
+        <y>-22.6062</y>
+      </point>
+      <point>
+        <x>27.1579</x>
+        <y>-21.1372</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3502"/>
+    <successor ref="3532"/>
+    <adjacentLeft ref="3524" drivingDir="same"/>
+    <adjacentRight ref="3528" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11489"/>
+  </lanelet>
+  <lanelet id="3532">
+    <leftBound>
+      <point>
+        <x>25.6764</x>
+        <y>-24.4209</y>
+      </point>
+      <point>
+        <x>22.6983</x>
+        <y>-22.9225</y>
+      </point>
+      <point>
+        <x>19.7201</x>
+        <y>-21.4241</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>27.1579</x>
+        <y>-21.1372</y>
+      </point>
+      <point>
+        <x>24.1959</x>
+        <y>-19.6908</y>
+      </point>
+      <point>
+        <x>21.2339</x>
+        <y>-18.2445</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </rightBound>
+    <predecessor ref="3526"/>
+    <successor ref="3620"/>
+    <adjacentLeft ref="3530" drivingDir="same"/>
+    <adjacentRight ref="3534" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>19.7201</x>
+        <y>-21.4241</y>
+      </point>
+      <point>
+        <x>21.2339</x>
+        <y>-18.2445</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficLightRef ref="11528"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11490"/>
+    <trafficLightRef ref="11528"/>
+  </lanelet>
+  <lanelet id="3620">
+    <leftBound>
+      <point>
+        <x>19.7201</x>
+        <y>-21.4241</y>
+      </point>
+      <point>
+        <x>16.7349</x>
+        <y>-19.9286</y>
+      </point>
+      <point>
+        <x>13.7498</x>
+        <y>-18.433</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>21.2339</x>
+        <y>-18.2445</y>
+      </point>
+      <point>
+        <x>18.2416</x>
+        <y>-16.7819</y>
+      </point>
+      <point>
+        <x>15.2492</x>
+        <y>-15.3194</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3532"/>
+    <successor ref="3662"/>
+    <adjacentLeft ref="3618" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11491"/>
+  </lanelet>
+  <lanelet id="3662">
+    <leftBound>
+      <point>
+        <x>13.7498</x>
+        <y>-18.433</y>
+      </point>
+      <point>
+        <x>10.9422</x>
+        <y>-17.0263</y>
+      </point>
+      <point>
+        <x>8.1765</x>
+        <y>-15.6406</y>
+      </point>
+      <point>
+        <x>5.5307</x>
+        <y>-14.315</y>
+      </point>
+      <point>
+        <x>2.8145</x>
+        <y>-12.9541</y>
+      </point>
+      <point>
+        <x>-0.0686</x>
+        <y>-11.5097</y>
+      </point>
+      <point>
+        <x>-2.8449</x>
+        <y>-10.1187</y>
+      </point>
+      <point>
+        <x>-5.5381</x>
+        <y>-8.7693</y>
+      </point>
+      <point>
+        <x>-8.3123</x>
+        <y>-7.3794</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>15.2492</x>
+        <y>-15.3194</y>
+      </point>
+      <point>
+        <x>12.4237</x>
+        <y>-13.9384</y>
+      </point>
+      <point>
+        <x>9.6358</x>
+        <y>-12.5758</y>
+      </point>
+      <point>
+        <x>6.9828</x>
+        <y>-11.279</y>
+      </point>
+      <point>
+        <x>4.2548</x>
+        <y>-9.9456</y>
+      </point>
+      <point>
+        <x>1.3945</x>
+        <y>-8.5476</y>
+      </point>
+      <point>
+        <x>-1.4068</x>
+        <y>-7.1783</y>
+      </point>
+      <point>
+        <x>-4.1177</x>
+        <y>-5.8533</y>
+      </point>
+      <point>
+        <x>-6.8647</x>
+        <y>-4.5106</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3620"/>
+    <successor ref="3640"/>
+    <adjacentLeft ref="3660" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11492"/>
+  </lanelet>
+  <lanelet id="3640">
+    <leftBound>
+      <point>
+        <x>-8.3123</x>
+        <y>-7.3794</y>
+      </point>
+      <point>
+        <x>-13.0944</x>
+        <y>-5.01</y>
+      </point>
+      <point>
+        <x>-17.8764</x>
+        <y>-2.6407</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-6.8647</x>
+        <y>-4.5106</y>
+      </point>
+      <point>
+        <x>-11.9162</x>
+        <y>-2.0586</y>
+      </point>
+      <point>
+        <x>-16.9676</x>
+        <y>0.3935</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3662"/>
+    <successor ref="3484"/>
+    <adjacentLeft ref="3638" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11493"/>
+  </lanelet>
+  <lanelet id="3484">
+    <leftBound>
+      <point>
+        <x>-17.8764</x>
+        <y>-2.6407</y>
+      </point>
+      <point>
+        <x>-27.4817</x>
+        <y>2.5121</y>
+      </point>
+      <point>
+        <x>-36.1281</x>
+        <y>7.6821</y>
+      </point>
+      <point>
+        <x>-37.1874</x>
+        <y>8.318</y>
+      </point>
+      <point>
+        <x>-45.7611</x>
+        <y>13.4648</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-16.9676</x>
+        <y>0.3935</y>
+      </point>
+      <point>
+        <x>-26.1432</x>
+        <y>5.3248</y>
+      </point>
+      <point>
+        <x>-34.7897</x>
+        <y>10.4948</y>
+      </point>
+      <point>
+        <x>-35.7843</x>
+        <y>11.0918</y>
+      </point>
+      <point>
+        <x>-44.3583</x>
+        <y>16.2382</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3640"/>
+    <adjacentLeft ref="3481" drivingDir="same"/>
+    <adjacentRight ref="3487" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11494"/>
+  </lanelet>
+  <lanelet id="3528">
+    <leftBound>
+      <point>
+        <x>31.587</x>
+        <y>-27.3629</y>
+      </point>
+      <point>
+        <x>29.3724</x>
+        <y>-24.2501</y>
+      </point>
+      <point>
+        <x>27.1579</x>
+        <y>-21.1372</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>33.0713</x>
+        <y>-24.0752</y>
+      </point>
+      <point>
+        <x>30.863</x>
+        <y>-21.1662</y>
+      </point>
+      <point>
+        <x>28.6547</x>
+        <y>-18.2572</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3502"/>
+    <successor ref="3534"/>
+    <adjacentLeft ref="3526" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11495"/>
+  </lanelet>
+  <lanelet id="3534">
+    <leftBound>
+      <point>
+        <x>27.1579</x>
+        <y>-21.1372</y>
+      </point>
+      <point>
+        <x>24.1959</x>
+        <y>-19.6908</y>
+      </point>
+      <point>
+        <x>21.2339</x>
+        <y>-18.2445</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>28.6547</x>
+        <y>-18.2572</y>
+      </point>
+      <point>
+        <x>25.6371</x>
+        <y>-16.8141</y>
+      </point>
+      <point>
+        <x>22.6196</x>
+        <y>-15.371</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3528"/>
+    <successor ref="3602"/>
+    <adjacentLeft ref="3532" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>21.2339</x>
+        <y>-18.2445</y>
+      </point>
+      <point>
+        <x>22.6196</x>
+        <y>-15.371</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficLightRef ref="11528"/>
+      <trafficLightRef ref="11529"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11496"/>
+    <trafficLightRef ref="11528"/>
+    <trafficLightRef ref="11529"/>
+  </lanelet>
+  <lanelet id="3602">
+    <leftBound>
+      <point>
+        <x>21.2339</x>
+        <y>-18.2445</y>
+      </point>
+      <point>
+        <x>18.8908</x>
+        <y>-16.6649</y>
+      </point>
+      <point>
+        <x>17.5209</x>
+        <y>-15.1373</y>
+      </point>
+      <point>
+        <x>16.4965</x>
+        <y>-13.2453</y>
+      </point>
+      <point>
+        <x>15.9068</x>
+        <y>-11.2056</y>
+      </point>
+      <point>
+        <x>15.8376</x>
+        <y>-9.5426</y>
+      </point>
+      <point>
+        <x>16.2734</x>
+        <y>-7.1481</y>
+      </point>
+      <point>
+        <x>17.0829</x>
+        <y>-4.5741</y>
+      </point>
+      <point>
+        <x>18.1799</x>
+        <y>-1.8811</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>22.6196</x>
+        <y>-15.371</y>
+      </point>
+      <point>
+        <x>21.2575</x>
+        <y>-14.3823</y>
+      </point>
+      <point>
+        <x>20.3273</x>
+        <y>-13.4765</y>
+      </point>
+      <point>
+        <x>19.4963</x>
+        <y>-12.1105</y>
+      </point>
+      <point>
+        <x>18.9311</x>
+        <y>-10.5328</y>
+      </point>
+      <point>
+        <x>18.8845</x>
+        <y>-9.4549</y>
+      </point>
+      <point>
+        <x>19.1736</x>
+        <y>-7.5969</y>
+      </point>
+      <point>
+        <x>20.0663</x>
+        <y>-5.4204</y>
+      </point>
+      <point>
+        <x>21.0673</x>
+        <y>-3.2377</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3534"/>
+    <successor ref="3456"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11497"/>
+  </lanelet>
+  <lanelet id="3456">
+    <leftBound>
+      <point>
+        <x>18.1799</x>
+        <y>-1.8811</y>
+      </point>
+      <point>
+        <x>21.9879</x>
+        <y>5.5519</y>
+      </point>
+      <point>
+        <x>25.6522</x>
+        <y>13.2254</y>
+      </point>
+      <point>
+        <x>29.061</x>
+        <y>20.3178</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>21.0673</x>
+        <y>-3.2377</y>
+      </point>
+      <point>
+        <x>24.4509</x>
+        <y>3.7165</y>
+      </point>
+      <point>
+        <x>28.4933</x>
+        <y>11.8772</y>
+      </point>
+      <point>
+        <x>31.8098</x>
+        <y>19.0016</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3602"/>
+    <predecessor ref="3616"/>
+    <successor ref="3462"/>
+    <adjacentLeft ref="3454" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11498"/>
+  </lanelet>
+  <lanelet id="3462">
+    <leftBound>
+      <point>
+        <x>29.061</x>
+        <y>20.3178</y>
+      </point>
+      <point>
+        <x>30.9853</x>
+        <y>24.107</y>
+      </point>
+      <point>
+        <x>32.9096</x>
+        <y>27.8963</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>31.8098</x>
+        <y>19.0016</y>
+      </point>
+      <point>
+        <x>33.7648</x>
+        <y>22.7751</y>
+      </point>
+      <point>
+        <x>35.7198</x>
+        <y>26.5486</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3456"/>
+    <successor ref="3470"/>
+    <adjacentLeft ref="3460" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11499"/>
+  </lanelet>
+  <lanelet id="3470">
+    <leftBound>
+      <point>
+        <x>32.9096</x>
+        <y>27.8963</y>
+      </point>
+      <point>
+        <x>36.3472</x>
+        <y>34.7711</y>
+      </point>
+      <point>
+        <x>40.8195</x>
+        <y>43.7152</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>35.7198</x>
+        <y>26.5486</y>
+      </point>
+      <point>
+        <x>39.065</x>
+        <y>33.3759</y>
+      </point>
+      <point>
+        <x>43.4649</x>
+        <y>42.3558</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3462"/>
+    <adjacentLeft ref="3467" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11500"/>
+  </lanelet>
+  <lanelet id="3561">
+    <leftBound>
+      <point>
+        <x>-31.2935</x>
+        <y>-82.5966</y>
+      </point>
+      <point>
+        <x>-26.953</x>
+        <y>-73.5878</y>
+      </point>
+      <point>
+        <x>-25.1754</x>
+        <y>-69.8984</y>
+      </point>
+      <point>
+        <x>-20.9831</x>
+        <y>-61.523</y>
+      </point>
+      <point>
+        <x>-16.4448</x>
+        <y>-52.4564</y>
+      </point>
+      <point>
+        <x>-12.2267</x>
+        <y>-44.0295</y>
+      </point>
+      <point>
+        <x>-8.284</x>
+        <y>-36.1211</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-28.5346</x>
+        <y>-83.9562</y>
+      </point>
+      <point>
+        <x>-24.0586</x>
+        <y>-75.0139</y>
+      </point>
+      <point>
+        <x>-22.2276</x>
+        <y>-71.3559</y>
+      </point>
+      <point>
+        <x>-18.0353</x>
+        <y>-62.9805</y>
+      </point>
+      <point>
+        <x>-13.497</x>
+        <y>-53.9139</y>
+      </point>
+      <point>
+        <x>-9.3704</x>
+        <y>-45.3934</y>
+      </point>
+      <point>
+        <x>-5.5806</x>
+        <y>-37.5402</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </rightBound>
+    <successor ref="3671"/>
+    <adjacentRight ref="3564" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>-8.284</x>
+        <y>-36.1211</y>
+      </point>
+      <point>
+        <x>-5.5806</x>
+        <y>-37.5402</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficSignRef ref="11535"/>
+      <trafficLightRef ref="11522"/>
+      <trafficLightRef ref="11523"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11501"/>
+    <trafficSignRef ref="11535"/>
+    <trafficLightRef ref="11522"/>
+    <trafficLightRef ref="11523"/>
+  </lanelet>
+  <lanelet id="3671">
+    <leftBound>
+      <point>
+        <x>-8.284</x>
+        <y>-36.1211</y>
+      </point>
+      <point>
+        <x>-6.3503</x>
+        <y>-32.5525</y>
+      </point>
+      <point>
+        <x>-5.5643</x>
+        <y>-28.9009</y>
+      </point>
+      <point>
+        <x>-4.896</x>
+        <y>-25.8811</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-5.5806</x>
+        <y>-37.5402</y>
+      </point>
+      <point>
+        <x>-3.6989</x>
+        <y>-33.6518</y>
+      </point>
+      <point>
+        <x>-1.9899</x>
+        <y>-29.7826</y>
+      </point>
+      <point>
+        <x>-0.531</x>
+        <y>-26.6483</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3561"/>
+    <successor ref="3670"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11502"/>
+  </lanelet>
+  <lanelet id="3670">
+    <leftBound>
+      <point>
+        <x>-4.896</x>
+        <y>-25.8811</y>
+      </point>
+      <point>
+        <x>-4.6415</x>
+        <y>-23.3417</y>
+      </point>
+      <point>
+        <x>-4.7989</x>
+        <y>-21.3543</y>
+      </point>
+      <point>
+        <x>-5.1672</x>
+        <y>-18.9792</y>
+      </point>
+      <point>
+        <x>-5.5537</x>
+        <y>-17.3348</y>
+      </point>
+      <point>
+        <x>-6.4755</x>
+        <y>-15.2827</y>
+      </point>
+      <point>
+        <x>-7.3974</x>
+        <y>-13.7845</y>
+      </point>
+      <point>
+        <x>-8.5824</x>
+        <y>-12.3058</y>
+      </point>
+      <point>
+        <x>-9.9679</x>
+        <y>-10.6608</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-0.531</x>
+        <y>-26.6483</y>
+      </point>
+      <point>
+        <x>0.1166</x>
+        <y>-23.6091</y>
+      </point>
+      <point>
+        <x>0.1078</x>
+        <y>-20.9467</y>
+      </point>
+      <point>
+        <x>-0.4391</x>
+        <y>-18.0766</y>
+      </point>
+      <point>
+        <x>-0.7259</x>
+        <y>-15.9488</y>
+      </point>
+      <point>
+        <x>-1.8671</x>
+        <y>-13.0087</y>
+      </point>
+      <point>
+        <x>-3.6146</x>
+        <y>-10.8603</y>
+      </point>
+      <point>
+        <x>-6.0296</x>
+        <y>-8.9024</y>
+      </point>
+      <point>
+        <x>-8.3123</x>
+        <y>-7.3794</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3671"/>
+    <successor ref="3638"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11502"/>
+  </lanelet>
+  <lanelet id="3564">
+    <leftBound>
+      <point>
+        <x>-28.5346</x>
+        <y>-83.9562</y>
+      </point>
+      <point>
+        <x>-24.0586</x>
+        <y>-75.0139</y>
+      </point>
+      <point>
+        <x>-22.2276</x>
+        <y>-71.3559</y>
+      </point>
+      <point>
+        <x>-18.0353</x>
+        <y>-62.9805</y>
+      </point>
+      <point>
+        <x>-13.497</x>
+        <y>-53.9139</y>
+      </point>
+      <point>
+        <x>-9.3704</x>
+        <y>-45.3934</y>
+      </point>
+      <point>
+        <x>-5.5806</x>
+        <y>-37.5402</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-26.0085</x>
+        <y>-85.201</y>
+      </point>
+      <point>
+        <x>-21.5325</x>
+        <y>-76.2587</y>
+      </point>
+      <point>
+        <x>-19.7737</x>
+        <y>-72.7449</y>
+      </point>
+      <point>
+        <x>-15.5814</x>
+        <y>-64.3695</y>
+      </point>
+      <point>
+        <x>-11.043</x>
+        <y>-55.3028</y>
+      </point>
+      <point>
+        <x>-6.825</x>
+        <y>-46.8759</y>
+      </point>
+      <point>
+        <x>-2.92</x>
+        <y>-38.9367</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <successor ref="3628"/>
+    <adjacentLeft ref="3561" drivingDir="same"/>
+    <adjacentRight ref="3567" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>-5.5806</x>
+        <y>-37.5402</y>
+      </point>
+      <point>
+        <x>-2.92</x>
+        <y>-38.9367</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficLightRef ref="11523"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11503"/>
+    <trafficLightRef ref="11523"/>
+  </lanelet>
+  <lanelet id="3628">
+    <leftBound>
+      <point>
+        <x>-5.5806</x>
+        <y>-37.5402</y>
+      </point>
+      <point>
+        <x>-2.9489</x>
+        <y>-32.0395</y>
+      </point>
+      <point>
+        <x>-0.3172</x>
+        <y>-26.5388</y>
+      </point>
+      <lineMarking>broad_dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-2.92</x>
+        <y>-38.9367</y>
+      </point>
+      <point>
+        <x>-0.2974</x>
+        <y>-33.4312</y>
+      </point>
+      <point>
+        <x>2.3251</x>
+        <y>-27.9257</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3564"/>
+    <successor ref="3648"/>
+    <adjacentRight ref="3630" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11504"/>
+  </lanelet>
+  <lanelet id="3648">
+    <leftBound>
+      <point>
+        <x>-0.3172</x>
+        <y>-26.5388</y>
+      </point>
+      <point>
+        <x>1.1643</x>
+        <y>-23.4423</y>
+      </point>
+      <point>
+        <x>2.5599</x>
+        <y>-20.5251</y>
+      </point>
+      <point>
+        <x>3.9364</x>
+        <y>-17.648</y>
+      </point>
+      <point>
+        <x>5.5307</x>
+        <y>-14.315</y>
+      </point>
+      <point>
+        <x>6.9828</x>
+        <y>-11.279</y>
+      </point>
+      <lineMarking>broad_dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>2.3251</x>
+        <y>-27.9257</y>
+      </point>
+      <point>
+        <x>3.8114</x>
+        <y>-24.8057</y>
+      </point>
+      <point>
+        <x>5.2127</x>
+        <y>-21.8642</y>
+      </point>
+      <point>
+        <x>6.5867</x>
+        <y>-18.9797</y>
+      </point>
+      <point>
+        <x>8.1765</x>
+        <y>-15.6406</y>
+      </point>
+      <point>
+        <x>9.6358</x>
+        <y>-12.5758</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3628"/>
+    <successor ref="3612"/>
+    <adjacentRight ref="3650" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11505"/>
+  </lanelet>
+  <lanelet id="3612">
+    <leftBound>
+      <point>
+        <x>6.9828</x>
+        <y>-11.279</y>
+      </point>
+      <point>
+        <x>9.8836</x>
+        <y>-5.2146</y>
+      </point>
+      <point>
+        <x>12.7843</x>
+        <y>0.8498</y>
+      </point>
+      <lineMarking>broad_solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>9.6358</x>
+        <y>-12.5758</y>
+      </point>
+      <point>
+        <x>12.5227</x>
+        <y>-6.5125</y>
+      </point>
+      <point>
+        <x>15.4096</x>
+        <y>-0.4492</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3648"/>
+    <successor ref="3452"/>
+    <adjacentRight ref="3614" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11506"/>
+  </lanelet>
+  <lanelet id="3567">
+    <leftBound>
+      <point>
+        <x>-26.0085</x>
+        <y>-85.201</y>
+      </point>
+      <point>
+        <x>-21.5325</x>
+        <y>-76.2587</y>
+      </point>
+      <point>
+        <x>-19.7737</x>
+        <y>-72.7449</y>
+      </point>
+      <point>
+        <x>-15.5814</x>
+        <y>-64.3695</y>
+      </point>
+      <point>
+        <x>-11.043</x>
+        <y>-55.3028</y>
+      </point>
+      <point>
+        <x>-6.825</x>
+        <y>-46.8759</y>
+      </point>
+      <point>
+        <x>-2.92</x>
+        <y>-38.9367</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-23.1568</x>
+        <y>-86.606</y>
+      </point>
+      <point>
+        <x>-18.6807</x>
+        <y>-77.6638</y>
+      </point>
+      <point>
+        <x>-16.886</x>
+        <y>-74.0784</y>
+      </point>
+      <point>
+        <x>-12.6937</x>
+        <y>-65.703</y>
+      </point>
+      <point>
+        <x>-8.1554</x>
+        <y>-56.6363</y>
+      </point>
+      <point>
+        <x>-3.9373</x>
+        <y>-48.2094</y>
+      </point>
+      <point>
+        <x>-0.2028</x>
+        <y>-40.3815</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <successor ref="3630"/>
+    <adjacentLeft ref="3564" drivingDir="same"/>
+    <adjacentRight ref="3570" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>-2.92</x>
+        <y>-38.9367</y>
+      </point>
+      <point>
+        <x>-0.2028</x>
+        <y>-40.3815</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficLightRef ref="11523"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11507"/>
+    <trafficLightRef ref="11523"/>
+  </lanelet>
+  <lanelet id="3630">
+    <leftBound>
+      <point>
+        <x>-2.92</x>
+        <y>-38.9367</y>
+      </point>
+      <point>
+        <x>-0.2974</x>
+        <y>-33.4312</y>
+      </point>
+      <point>
+        <x>2.3251</x>
+        <y>-27.9257</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-0.2028</x>
+        <y>-40.3815</y>
+      </point>
+      <point>
+        <x>2.4142</x>
+        <y>-34.8638</y>
+      </point>
+      <point>
+        <x>5.0312</x>
+        <y>-29.3462</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3567"/>
+    <successor ref="3650"/>
+    <adjacentLeft ref="3628" drivingDir="same"/>
+    <adjacentRight ref="3632" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11508"/>
+  </lanelet>
+  <lanelet id="3650">
+    <leftBound>
+      <point>
+        <x>2.3251</x>
+        <y>-27.9257</y>
+      </point>
+      <point>
+        <x>3.8114</x>
+        <y>-24.8057</y>
+      </point>
+      <point>
+        <x>5.2127</x>
+        <y>-21.8642</y>
+      </point>
+      <point>
+        <x>6.5867</x>
+        <y>-18.9797</y>
+      </point>
+      <point>
+        <x>8.1765</x>
+        <y>-15.6406</y>
+      </point>
+      <point>
+        <x>9.6358</x>
+        <y>-12.5758</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>5.0312</x>
+        <y>-29.3462</y>
+      </point>
+      <point>
+        <x>6.5364</x>
+        <y>-26.2092</y>
+      </point>
+      <point>
+        <x>7.9566</x>
+        <y>-23.2493</y>
+      </point>
+      <point>
+        <x>9.3421</x>
+        <y>-20.3617</y>
+      </point>
+      <point>
+        <x>10.9422</x>
+        <y>-17.0263</y>
+      </point>
+      <point>
+        <x>12.4237</x>
+        <y>-13.9384</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3630"/>
+    <successor ref="3614"/>
+    <adjacentLeft ref="3648" drivingDir="same"/>
+    <adjacentRight ref="3652" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11509"/>
+  </lanelet>
+  <lanelet id="3614">
+    <leftBound>
+      <point>
+        <x>9.6358</x>
+        <y>-12.5758</y>
+      </point>
+      <point>
+        <x>12.5227</x>
+        <y>-6.5125</y>
+      </point>
+      <point>
+        <x>15.4096</x>
+        <y>-0.4492</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>12.4237</x>
+        <y>-13.9384</y>
+      </point>
+      <point>
+        <x>15.3018</x>
+        <y>-7.9098</y>
+      </point>
+      <point>
+        <x>18.1799</x>
+        <y>-1.8811</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3650"/>
+    <successor ref="3454"/>
+    <adjacentLeft ref="3612" drivingDir="same"/>
+    <adjacentRight ref="3616" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11510"/>
+  </lanelet>
+  <lanelet id="3454">
+    <leftBound>
+      <point>
+        <x>15.4096</x>
+        <y>-0.4492</y>
+      </point>
+      <point>
+        <x>19.3218</x>
+        <y>7.2516</y>
+      </point>
+      <point>
+        <x>23.014</x>
+        <y>14.7093</y>
+      </point>
+      <point>
+        <x>26.4829</x>
+        <y>21.6778</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>18.1799</x>
+        <y>-1.8811</y>
+      </point>
+      <point>
+        <x>21.9879</x>
+        <y>5.5519</y>
+      </point>
+      <point>
+        <x>25.6522</x>
+        <y>13.2254</y>
+      </point>
+      <point>
+        <x>29.061</x>
+        <y>20.3178</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3614"/>
+    <successor ref="3460"/>
+    <adjacentLeft ref="3452" drivingDir="same"/>
+    <adjacentRight ref="3456" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11511"/>
+  </lanelet>
+  <lanelet id="3460">
+    <leftBound>
+      <point>
+        <x>26.4829</x>
+        <y>21.6778</y>
+      </point>
+      <point>
+        <x>28.3767</x>
+        <y>25.4982</y>
+      </point>
+      <point>
+        <x>30.2705</x>
+        <y>29.3187</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>29.061</x>
+        <y>20.3178</y>
+      </point>
+      <point>
+        <x>30.9853</x>
+        <y>24.107</y>
+      </point>
+      <point>
+        <x>32.9096</x>
+        <y>27.8963</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3454"/>
+    <successor ref="3467"/>
+    <adjacentLeft ref="3458" drivingDir="same"/>
+    <adjacentRight ref="3462" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11512"/>
+  </lanelet>
+  <lanelet id="3467">
+    <leftBound>
+      <point>
+        <x>30.2705</x>
+        <y>29.3187</y>
+      </point>
+      <point>
+        <x>33.6639</x>
+        <y>36.1486</y>
+      </point>
+      <point>
+        <x>38.1134</x>
+        <y>45.1041</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>32.9096</x>
+        <y>27.8963</y>
+      </point>
+      <point>
+        <x>36.3472</x>
+        <y>34.7711</y>
+      </point>
+      <point>
+        <x>40.8195</x>
+        <y>43.7152</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </rightBound>
+    <predecessor ref="3460"/>
+    <adjacentLeft ref="3464" drivingDir="same"/>
+    <adjacentRight ref="3470" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11513"/>
+  </lanelet>
+  <lanelet id="3570">
+    <leftBound>
+      <point>
+        <x>-23.1568</x>
+        <y>-86.606</y>
+      </point>
+      <point>
+        <x>-18.6807</x>
+        <y>-77.6638</y>
+      </point>
+      <point>
+        <x>-16.886</x>
+        <y>-74.0784</y>
+      </point>
+      <point>
+        <x>-12.6937</x>
+        <y>-65.703</y>
+      </point>
+      <point>
+        <x>-8.1554</x>
+        <y>-56.6363</y>
+      </point>
+      <point>
+        <x>-3.9373</x>
+        <y>-48.2094</y>
+      </point>
+      <point>
+        <x>-0.2028</x>
+        <y>-40.3815</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-20.5692</x>
+        <y>-87.881</y>
+      </point>
+      <point>
+        <x>-16.0931</x>
+        <y>-78.9388</y>
+      </point>
+      <point>
+        <x>-14.3936</x>
+        <y>-75.5436</y>
+      </point>
+      <point>
+        <x>-10.2013</x>
+        <y>-67.1682</y>
+      </point>
+      <point>
+        <x>-5.663</x>
+        <y>-58.1015</y>
+      </point>
+      <point>
+        <x>-1.445</x>
+        <y>-49.6746</y>
+      </point>
+      <point>
+        <x>2.5635</x>
+        <y>-41.8533</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </rightBound>
+    <successor ref="3632"/>
+    <successor ref="3678"/>
+    <adjacentLeft ref="3567" drivingDir="same"/>
+    <adjacentRight ref="3573" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>-0.2028</x>
+        <y>-40.3815</y>
+      </point>
+      <point>
+        <x>2.5635</x>
+        <y>-41.8533</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficLightRef ref="11523"/>
+      <trafficLightRef ref="11524"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11514"/>
+    <trafficLightRef ref="11523"/>
+    <trafficLightRef ref="11524"/>
+  </lanelet>
+  <lanelet id="3632">
+    <leftBound>
+      <point>
+        <x>-0.2028</x>
+        <y>-40.3815</y>
+      </point>
+      <point>
+        <x>2.4142</x>
+        <y>-34.8638</y>
+      </point>
+      <point>
+        <x>5.0312</x>
+        <y>-29.3462</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>2.5635</x>
+        <y>-41.8533</y>
+      </point>
+      <point>
+        <x>5.1795</x>
+        <y>-36.3252</y>
+      </point>
+      <point>
+        <x>7.7955</x>
+        <y>-30.7972</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3570"/>
+    <successor ref="3652"/>
+    <adjacentLeft ref="3630" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11515"/>
+  </lanelet>
+  <lanelet id="3652">
+    <leftBound>
+      <point>
+        <x>5.0312</x>
+        <y>-29.3462</y>
+      </point>
+      <point>
+        <x>6.5364</x>
+        <y>-26.2092</y>
+      </point>
+      <point>
+        <x>7.9566</x>
+        <y>-23.2493</y>
+      </point>
+      <point>
+        <x>9.3421</x>
+        <y>-20.3617</y>
+      </point>
+      <point>
+        <x>10.9422</x>
+        <y>-17.0263</y>
+      </point>
+      <point>
+        <x>12.4237</x>
+        <y>-13.9384</y>
+      </point>
+      <lineMarking>dashed</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>7.7955</x>
+        <y>-30.7972</y>
+      </point>
+      <point>
+        <x>9.3156</x>
+        <y>-27.6407</y>
+      </point>
+      <point>
+        <x>10.751</x>
+        <y>-24.6601</y>
+      </point>
+      <point>
+        <x>12.1435</x>
+        <y>-21.7684</y>
+      </point>
+      <point>
+        <x>13.7498</x>
+        <y>-18.433</y>
+      </point>
+      <point>
+        <x>15.2492</x>
+        <y>-15.3194</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3632"/>
+    <successor ref="3616"/>
+    <adjacentLeft ref="3650" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11516"/>
+  </lanelet>
+  <lanelet id="3616">
+    <leftBound>
+      <point>
+        <x>12.4237</x>
+        <y>-13.9384</y>
+      </point>
+      <point>
+        <x>15.3018</x>
+        <y>-7.9098</y>
+      </point>
+      <point>
+        <x>18.1799</x>
+        <y>-1.8811</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>15.2492</x>
+        <y>-15.3194</y>
+      </point>
+      <point>
+        <x>18.1582</x>
+        <y>-9.2785</y>
+      </point>
+      <point>
+        <x>21.0673</x>
+        <y>-3.2377</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3652"/>
+    <successor ref="3456"/>
+    <adjacentLeft ref="3614" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11517"/>
+  </lanelet>
+  <lanelet id="3678">
+    <leftBound>
+      <point>
+        <x>-0.2028</x>
+        <y>-40.3815</y>
+      </point>
+      <point>
+        <x>2.3633</x>
+        <y>-37.5508</y>
+      </point>
+      <point>
+        <x>5.2711</x>
+        <y>-35.4123</y>
+      </point>
+      <point>
+        <x>8.0433</x>
+        <y>-34.3045</y>
+      </point>
+      <point>
+        <x>11.1073</x>
+        <y>-33.6317</y>
+      </point>
+      <point>
+        <x>14.2752</x>
+        <y>-33.4579</y>
+      </point>
+      <point>
+        <x>17.3462</x>
+        <y>-33.4527</y>
+      </point>
+      <point>
+        <x>20.6684</x>
+        <y>-33.8075</y>
+      </point>
+      <point>
+        <x>23.8455</x>
+        <y>-34.8932</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>2.5635</x>
+        <y>-41.8533</y>
+      </point>
+      <point>
+        <x>4.6554</x>
+        <y>-40.3038</y>
+      </point>
+      <point>
+        <x>6.9275</x>
+        <y>-39.0302</y>
+      </point>
+      <point>
+        <x>9.3432</x>
+        <y>-38.0528</y>
+      </point>
+      <point>
+        <x>11.8637</x>
+        <y>-37.3874</y>
+      </point>
+      <point>
+        <x>14.4487</x>
+        <y>-37.0447</y>
+      </point>
+      <point>
+        <x>17.0564</x>
+        <y>-37.0301</y>
+      </point>
+      <point>
+        <x>19.785</x>
+        <y>-37.2844</y>
+      </point>
+      <point>
+        <x>22.1731</x>
+        <y>-37.9812</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </rightBound>
+    <predecessor ref="3570"/>
+    <successor ref="3492"/>
+    <adjacentRight ref="3680" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11518"/>
+  </lanelet>
+  <lanelet id="3573">
+    <leftBound>
+      <point>
+        <x>-20.5692</x>
+        <y>-87.881</y>
+      </point>
+      <point>
+        <x>-16.0931</x>
+        <y>-78.9388</y>
+      </point>
+      <point>
+        <x>-14.3936</x>
+        <y>-75.5436</y>
+      </point>
+      <point>
+        <x>-10.2013</x>
+        <y>-67.1682</y>
+      </point>
+      <point>
+        <x>-5.663</x>
+        <y>-58.1015</y>
+      </point>
+      <point>
+        <x>-1.445</x>
+        <y>-49.6746</y>
+      </point>
+      <point>
+        <x>2.5635</x>
+        <y>-41.8533</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-17.3806</x>
+        <y>-89.4524</y>
+      </point>
+      <point>
+        <x>-12.9608</x>
+        <y>-80.4822</y>
+      </point>
+      <point>
+        <x>-11.3495</x>
+        <y>-77.212</y>
+      </point>
+      <point>
+        <x>-7.0265</x>
+        <y>-68.4383</y>
+      </point>
+      <point>
+        <x>-2.6879</x>
+        <y>-59.633</y>
+      </point>
+      <point>
+        <x>1.6913</x>
+        <y>-51.138</y>
+      </point>
+      <point>
+        <x>6.0538</x>
+        <y>-43.6611</y>
+      </point>
+    </rightBound>
+    <successor ref="3680"/>
+    <adjacentLeft ref="3570" drivingDir="same"/>
+    <stopLine>
+      <point>
+        <x>2.5635</x>
+        <y>-41.8533</y>
+      </point>
+      <point>
+        <x>6.0538</x>
+        <y>-43.6611</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+      <trafficLightRef ref="11523"/>
+      <trafficLightRef ref="11524"/>
+    </stopLine>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11519"/>
+    <trafficLightRef ref="11523"/>
+    <trafficLightRef ref="11524"/>
+  </lanelet>
+  <lanelet id="3680">
+    <leftBound>
+      <point>
+        <x>2.5635</x>
+        <y>-41.8533</y>
+      </point>
+      <point>
+        <x>4.6554</x>
+        <y>-40.3038</y>
+      </point>
+      <point>
+        <x>6.9275</x>
+        <y>-39.0302</y>
+      </point>
+      <point>
+        <x>9.3432</x>
+        <y>-38.0528</y>
+      </point>
+      <point>
+        <x>11.8637</x>
+        <y>-37.3874</y>
+      </point>
+      <point>
+        <x>14.4487</x>
+        <y>-37.0447</y>
+      </point>
+      <point>
+        <x>17.0564</x>
+        <y>-37.0301</y>
+      </point>
+      <point>
+        <x>19.785</x>
+        <y>-37.2844</y>
+      </point>
+      <point>
+        <x>22.1731</x>
+        <y>-37.9812</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>6.0538</x>
+        <y>-43.6611</y>
+      </point>
+      <point>
+        <x>7.0409</x>
+        <y>-42.6243</y>
+      </point>
+      <point>
+        <x>8.4775</x>
+        <y>-41.8045</y>
+      </point>
+      <point>
+        <x>9.9835</x>
+        <y>-41.1005</y>
+      </point>
+      <point>
+        <x>12.3347</x>
+        <y>-40.5475</y>
+      </point>
+      <point>
+        <x>14.5403</x>
+        <y>-40.4291</y>
+      </point>
+      <point>
+        <x>16.7439</x>
+        <y>-40.58</y>
+      </point>
+      <point>
+        <x>18.701</x>
+        <y>-40.949</y>
+      </point>
+      <point>
+        <x>20.5994</x>
+        <y>-41.5494</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3573"/>
+    <successor ref="3495"/>
+    <adjacentLeft ref="3678" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11520"/>
+  </lanelet>
+  <lanelet id="3495">
+    <leftBound>
+      <point>
+        <x>22.1731</x>
+        <y>-37.9812</y>
+      </point>
+      <point>
+        <x>30.9476</x>
+        <y>-42.3065</y>
+      </point>
+      <point>
+        <x>35.8761</x>
+        <y>-44.736</y>
+      </point>
+      <point>
+        <x>44.8455</x>
+        <y>-49.1574</y>
+      </point>
+      <lineMarking>solid</lineMarking>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>20.5994</x>
+        <y>-41.5494</y>
+      </point>
+      <point>
+        <x>29.2795</x>
+        <y>-45.8142</y>
+      </point>
+      <point>
+        <x>34.1666</x>
+        <y>-48.2153</y>
+      </point>
+      <point>
+        <x>43.1418</x>
+        <y>-52.6249</y>
+      </point>
+    </rightBound>
+    <predecessor ref="3680"/>
+    <adjacentLeft ref="3492" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+    <trafficSignRef ref="11521"/>
+  </lanelet>
+  <trafficSign id="11431">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>22.1583</x>
+        <y>53.2958</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11432">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>13.989</x>
+        <y>37.3822</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11433">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>7.1675</x>
+        <y>31.1229</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11434">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-0.7324</x>
+        <y>7.643</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11435">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>20.5994</x>
+        <y>-41.5494</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11436">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>22.1583</x>
+        <y>53.2958</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11437">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>13.989</x>
+        <y>37.3822</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11438">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>7.1675</x>
+        <y>31.1229</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11439">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-0.7324</x>
+        <y>7.643</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11440">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>20.5994</x>
+        <y>-41.5494</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11441">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>22.1583</x>
+        <y>53.2958</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11442">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>13.989</x>
+        <y>37.3822</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11443">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>7.1675</x>
+        <y>31.1229</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11444">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-0.7324</x>
+        <y>7.643</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11445">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-6.8647</x>
+        <y>-4.5106</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11446">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-14.2797</x>
+        <y>-19.2096</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11447">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-19.7689</x>
+        <y>-30.0926</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11448">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>22.1583</x>
+        <y>53.2958</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11449">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>13.989</x>
+        <y>37.3822</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11450">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>7.1675</x>
+        <y>31.1229</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11451">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-0.7324</x>
+        <y>7.643</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11452">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-6.8647</x>
+        <y>-4.5106</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11453">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-14.2797</x>
+        <y>-19.2096</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11454">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-19.7689</x>
+        <y>-30.0926</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11455">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>22.1583</x>
+        <y>53.2958</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11456">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>13.989</x>
+        <y>37.3822</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11457">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>7.1675</x>
+        <y>31.1229</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11458">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-0.7324</x>
+        <y>7.643</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11459">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-6.8647</x>
+        <y>-4.5106</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11460">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-14.2797</x>
+        <y>-19.2096</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11461">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-19.7689</x>
+        <y>-30.0926</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11462">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>13.989</x>
+        <y>37.3822</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11463">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>7.1675</x>
+        <y>31.1229</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11464">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-4.068</x>
+        <y>9.5523</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11465">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-14.4418</x>
+        <y>6.2672</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11466">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-52.5315</x>
+        <y>0.1383</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11467">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-20.3774</x>
+        <y>-8.9457</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11468">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>21.0673</x>
+        <y>-3.2377</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11469">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>31.8098</x>
+        <y>19.0016</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11470">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>35.7198</x>
+        <y>26.5486</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11471">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-52.5315</x>
+        <y>0.1383</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11472">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-23.239</x>
+        <y>-14.5069</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11473">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-14.2797</x>
+        <y>-19.2096</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11474">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>7.7955</x>
+        <y>-30.7972</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11475">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-52.5315</x>
+        <y>0.1383</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11476">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-23.239</x>
+        <y>-14.5069</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11477">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-23.239</x>
+        <y>-14.5069</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11478">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-14.2797</x>
+        <y>-19.2096</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11479">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>7.7955</x>
+        <y>-30.7972</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11480">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>52.519</x>
+        <y>-33.5393</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11481">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>33.0713</x>
+        <y>-24.0752</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11482">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>28.6547</x>
+        <y>-18.2572</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11483">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>21.2339</x>
+        <y>-18.2445</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11484">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>15.2492</x>
+        <y>-15.3194</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11485">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-6.8647</x>
+        <y>-4.5106</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11486">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-14.4418</x>
+        <y>6.2672</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11487">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>19.7201</x>
+        <y>-21.4241</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11488">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>52.519</x>
+        <y>-33.5393</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11489">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>33.0713</x>
+        <y>-24.0752</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11490">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>28.6547</x>
+        <y>-18.2572</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11491">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>21.2339</x>
+        <y>-18.2445</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11492">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>15.2492</x>
+        <y>-15.3194</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11493">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-6.8647</x>
+        <y>-4.5106</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11494">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-14.4418</x>
+        <y>6.2672</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11495">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>33.0713</x>
+        <y>-24.0752</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11496">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>28.6547</x>
+        <y>-18.2572</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11497">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>22.6196</x>
+        <y>-15.371</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11498">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>21.0673</x>
+        <y>-3.2377</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11499">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>31.8098</x>
+        <y>19.0016</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11500">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>35.7198</x>
+        <y>26.5486</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11501">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-17.3806</x>
+        <y>-89.4524</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11502">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-5.5806</x>
+        <y>-37.5402</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11503">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-17.3806</x>
+        <y>-89.4524</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11504">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>2.5635</x>
+        <y>-41.8533</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11505">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>7.7955</x>
+        <y>-30.7972</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11506">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>15.2492</x>
+        <y>-15.3194</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11507">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-17.3806</x>
+        <y>-89.4524</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11508">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>2.5635</x>
+        <y>-41.8533</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11509">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>7.7955</x>
+        <y>-30.7972</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11510">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>15.2492</x>
+        <y>-15.3194</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11511">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>21.0673</x>
+        <y>-3.2377</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11512">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>31.8098</x>
+        <y>19.0016</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11513">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>35.7198</x>
+        <y>26.5486</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11514">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-17.3806</x>
+        <y>-89.4524</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11515">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>2.5635</x>
+        <y>-41.8533</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11516">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>7.7955</x>
+        <y>-30.7972</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11517">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>15.2492</x>
+        <y>-15.3194</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11518">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>6.0538</x>
+        <y>-43.6611</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11519">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-17.3806</x>
+        <y>-89.4524</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11520">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>13.4112</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>6.0538</x>
+        <y>-43.6611</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11521">
+    <trafficSignElement>
+      <trafficSignID>R2-1</trafficSignID>
+      <additionalValue>11.176</additionalValue>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>20.5994</x>
+        <y>-41.5494</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11535">
+    <trafficSignElement>
+      <trafficSignID>R3-4</trafficSignID>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>6.0538</x>
+        <y>-43.6611</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11536">
+    <trafficSignElement>
+      <trafficSignID>R3-4</trafficSignID>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-23.239</x>
+        <y>-14.5069</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11537">
+    <trafficSignElement>
+      <trafficSignID>R3-4</trafficSignID>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>-4.068</x>
+        <y>9.5523</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficSign id="11538">
+    <trafficSignElement>
+      <trafficSignID>R3-4</trafficSignID>
+    </trafficSignElement>
+    <position>
+      <point>
+        <x>22.6196</x>
+        <y>-15.371</y>
+      </point>
+    </position>
+    <virtual>false</virtual>
+  </trafficSign>
+  <trafficLight id="11522">
+    <cycle>
+      <cycleElement>
+        <duration>170</duration>
+        <color>green</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>30</duration>
+        <color>yellow</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>800</duration>
+        <color>red</color>
+      </cycleElement>
+      <timeOffset>790</timeOffset>
+    </cycle>
+    <position>
+      <point>
+        <x>17.0538</x>
+        <y>-47.6611</y>
+      </point>
+    </position>
+    <direction>left</direction>
+    <active>true</active>
+  </trafficLight>
+  <trafficLight id="11523">
+    <cycle>
+      <cycleElement>
+        <duration>310</duration>
+        <color>green</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>40</duration>
+        <color>yellow</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>650</duration>
+        <color>red</color>
+      </cycleElement>
+      <timeOffset>1000</timeOffset>
+    </cycle>
+    <position>
+      <point>
+        <x>17.0538</x>
+        <y>-47.6611</y>
+      </point>
+    </position>
+    <direction>straightRight</direction>
+    <active>true</active>
+  </trafficLight>
+  <trafficLight id="11524">
+    <cycle>
+      <cycleElement>
+        <duration>220</duration>
+        <color>green</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>40</duration>
+        <color>yellow</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>740</duration>
+        <color>inactive</color>
+      </cycleElement>
+      <timeOffset>1360</timeOffset>
+    </cycle>
+    <position>
+      <point>
+        <x>17.0538</x>
+        <y>-47.6611</y>
+      </point>
+    </position>
+    <direction>right</direction>
+    <active>true</active>
+  </trafficLight>
+  <trafficLight id="11525">
+    <cycle>
+      <cycleElement>
+        <duration>110</duration>
+        <color>green</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>40</duration>
+        <color>yellow</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>850</duration>
+        <color>red</color>
+      </cycleElement>
+      <timeOffset>1630</timeOffset>
+    </cycle>
+    <position>
+      <point>
+        <x>-27.9462</x>
+        <y>-20.661</y>
+      </point>
+    </position>
+    <active>true</active>
+  </trafficLight>
+  <trafficLight id="11526">
+    <cycle>
+      <cycleElement>
+        <duration>310</duration>
+        <color>green</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>40</duration>
+        <color>yellow</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>650</duration>
+        <color>red</color>
+      </cycleElement>
+      <timeOffset>1000</timeOffset>
+    </cycle>
+    <position>
+      <point>
+        <x>-9.9462</x>
+        <y>17.3389</y>
+      </point>
+    </position>
+    <direction>straightRight</direction>
+    <active>true</active>
+  </trafficLight>
+  <trafficLight id="11527">
+    <cycle>
+      <cycleElement>
+        <duration>170</duration>
+        <color>green</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>30</duration>
+        <color>yellow</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>800</duration>
+        <color>red</color>
+      </cycleElement>
+      <timeOffset>790</timeOffset>
+    </cycle>
+    <position>
+      <point>
+        <x>-9.9462</x>
+        <y>17.3389</y>
+      </point>
+    </position>
+    <direction>left</direction>
+    <active>true</active>
+  </trafficLight>
+  <trafficLight id="11528">
+    <cycle>
+      <cycleElement>
+        <duration>220</duration>
+        <color>green</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>40</duration>
+        <color>yellow</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>740</duration>
+        <color>red</color>
+      </cycleElement>
+      <timeOffset>1360</timeOffset>
+    </cycle>
+    <position>
+      <point>
+        <x>27.0538</x>
+        <y>-7.661</y>
+      </point>
+    </position>
+    <active>true</active>
+  </trafficLight>
+  <trafficLight id="11529">
+    <cycle>
+      <cycleElement>
+        <duration>170</duration>
+        <color>green</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>30</duration>
+        <color>yellow</color>
+      </cycleElement>
+      <cycleElement>
+        <duration>800</duration>
+        <color>inactive</color>
+      </cycleElement>
+      <timeOffset>790</timeOffset>
+    </cycle>
+    <position>
+      <point>
+        <x>27.0538</x>
+        <y>-7.661</y>
+      </point>
+    </position>
+    <direction>right</direction>
+    <active>true</active>
+  </trafficLight>
+  <intersection id="11530">
+    <incoming id="11531">
+      <incomingLanelet ref="3561"/>
+      <incomingLanelet ref="3564"/>
+      <incomingLanelet ref="3567"/>
+      <incomingLanelet ref="3570"/>
+      <incomingLanelet ref="3573"/>
+      <successorsRight ref="3680"/>
+      <successorsRight ref="3678"/>
+      <successorsStraight ref="3632"/>
+      <successorsStraight ref="3628"/>
+      <successorsStraight ref="3630"/>
+      <successorsLeft ref="3671"/>
+      <isLeftOf ref="11532"/>
+    </incoming>
+    <incoming id="11532">
+      <incomingLanelet ref="3473"/>
+      <incomingLanelet ref="3476"/>
+      <incomingLanelet ref="3479"/>
+      <successorsRight ref="3600"/>
+      <successorsStraight ref="3634"/>
+      <successorsStraight ref="3636"/>
+      <successorsLeft ref="3673"/>
+      <isLeftOf ref="11533"/>
+    </incoming>
+    <incoming id="11533">
+      <incomingLanelet ref="3440"/>
+      <incomingLanelet ref="3442"/>
+      <incomingLanelet ref="3444"/>
+      <incomingLanelet ref="3446"/>
+      <incomingLanelet ref="3448"/>
+      <incomingLanelet ref="3450"/>
+      <successorsRight ref="3604"/>
+      <successorsStraight ref="3608"/>
+      <successorsStraight ref="3610"/>
+      <successorsStraight ref="3606"/>
+      <successorsLeft ref="3665"/>
+      <successorsLeft ref="3667"/>
+      <isLeftOf ref="11534"/>
+    </incoming>
+    <incoming id="11534">
+      <incomingLanelet ref="3530"/>
+      <incomingLanelet ref="3532"/>
+      <incomingLanelet ref="3534"/>
+      <successorsRight ref="3602"/>
+      <successorsStraight ref="3618"/>
+      <successorsStraight ref="3620"/>
+      <successorsLeft ref="3668"/>
+      <isLeftOf ref="11531"/>
+    </incoming>
+  </intersection>
+</commonRoad>
