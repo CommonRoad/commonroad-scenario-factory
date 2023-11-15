@@ -10,7 +10,6 @@ import signal
 import libsumo
 import numpy as np
 from commonroad.common.file_reader import CommonRoadFileReader
-from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
 from interactive_scenarios.default import InteractiveSumoConfigDefault
 from scenario_factory.config_files.scenario_config import ScenarioConfig
 from scenario_factory.scenario_checker import DeleteScenario
@@ -66,7 +65,7 @@ if __name__ == "__main__":
 
     # load files
     filenames = list(Path(scenario_directory).rglob("*.xml"))
-    # filenames = [file for file in filenames if 'BEL' in str(file)]
+    filenames = [file for file in filenames if 'DEU' not in str(file)]
     # random.shuffle(filenames)
 
     solution_folder = os.path.join(scenario_config.output_folder, timestr, "solutions")
