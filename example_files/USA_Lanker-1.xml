@@ -1,18 +1,18 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<commonRoad timeStepSize="0.1" commonRoadVersion="2020a" author="Lukas Braunstorfer, Marat Faizov, Markus Koschi, Alexander Zhu" affiliation="Technical University of Munich, Germany" source="Next Generation Simulation (NGSIM) and OpenStreetMaps (OSM)" benchmarkID="USA_Lanker-1" date="2023-11-10">
+<commonRoad timeStepSize="0.1" commonRoadVersion="2020a" author="Lukas Braunstorfer, Marat Faizov, Markus Koschi, Alexander Zhu" affiliation="Technical University of Munich, Germany" source="Next Generation Simulation (NGSIM) and OpenStreetMaps (OSM)" benchmarkID="USA_Lanker-1" date="2023-11-15">
   <location>
     <geoNameId>5404794</geoNameId>
     <gpsLatitude>34.139045</gpsLatitude>
     <gpsLongitude>-118.362223</gpsLongitude>
   </location>
   <scenarioTags>
-    <oncoming_traffic/>
-    <multi_lane/>
-    <speed_limit/>
-    <intersection/>
     <comfort/>
     <urban/>
     <lane_following/>
+    <oncoming_traffic/>
+    <intersection/>
+    <speed_limit/>
+    <multi_lane/>
   </scenarioTags>
   <lanelet id="3419">
     <leftBound>

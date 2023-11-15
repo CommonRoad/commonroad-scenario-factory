@@ -1,16 +1,16 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<commonRoad timeStepSize="0.1" commonRoadVersion="2020a" author="Matthias Althoff, Sebastian Lutz" affiliation="Technical University of Munich, Germany" source="Bing Maps" benchmarkID="DEU_Hhr-1" date="2023-11-10">
+<commonRoad timeStepSize="0.1" commonRoadVersion="2020a" author="Matthias Althoff, Sebastian Lutz" affiliation="Technical University of Munich, Germany" source="Bing Maps" benchmarkID="DEU_Hhr-1" date="2023-11-15">
   <location>
     <geoNameId>-999</geoNameId>
     <gpsLatitude>999.0</gpsLatitude>
     <gpsLongitude>999.0</gpsLongitude>
   </location>
   <scenarioTags>
-    <race_track/>
-    <no_oncoming_traffic/>
     <lane_following/>
-    <single_lane/>
+    <race_track/>
     <evasive/>
+    <no_oncoming_traffic/>
+    <single_lane/>
   </scenarioTags>
   <lanelet id="40896">
     <leftBound>

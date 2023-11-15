@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<commonRoad timeStepSize="0.1" commonRoadVersion="2020a" author="Edmond Irani Liu, Fabian Höltke, Moritz Klischat" affiliation="Technical University of Munich, Germany" source="OpenStreetMaps" benchmarkID="HRV_Pula-3" date="2023-11-10">
+<commonRoad timeStepSize="0.1" commonRoadVersion="2020a" author="Edmond Irani Liu, Fabian Höltke, Moritz Klischat" affiliation="Technical University of Munich, Germany" source="OpenStreetMaps" benchmarkID="HRV_Pula-3" date="2023-11-15">
   <location>
     <geoNameId>3192224</geoNameId>
     <gpsLatitude>44.86833</gpsLatitude>

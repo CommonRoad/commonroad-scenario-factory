@@ -643,7 +643,8 @@ class GenerateCRScenarios:
             commonroad_scenario = self.list_cr_scenarios[k]
             commonroad_scenario.scenario_id.obstacle_behavior = "I"
             dir_name = os.path.join(self.output_dir_name, str(commonroad_scenario.scenario_id))
-            os.makedirs(dir_name, exist_ok=False)
+            if not os.path.exists(dir_name):
+                os.makedirs(dir_name, exist_ok=False)
             # copy sumo files
             net_file = str(commonroad_scenario.scenario_id) + ".net.xml"
             shutil.copy(sumo_net_path, os.path.join(dir_name, net_file))

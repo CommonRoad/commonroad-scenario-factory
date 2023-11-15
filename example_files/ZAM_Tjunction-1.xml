@@ -1,16 +1,16 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<commonRoad timeStepSize="0.1" commonRoadVersion="2020a" author="Moritz Klischat" affiliation="Technical University of Munich" source="Specification-based scenario synthesis" benchmarkID="ZAM_Tjunction-1" date="2023-11-10">
+<commonRoad timeStepSize="0.1" commonRoadVersion="2020a" author="Moritz Klischat" affiliation="Technical University of Munich" source="Specification-based scenario synthesis" benchmarkID="ZAM_Tjunction-1" date="2023-11-15">
   <location>
     <geoNameId>-999</geoNameId>
     <gpsLatitude>999.0</gpsLatitude>
     <gpsLongitude>999.0</gpsLongitude>
   </location>
   <scenarioTags>
-    <oncoming_traffic/>
-    <two_lane/>
-    <intersection/>
     <urban/>
+    <two_lane/>
     <turn_left/>
+    <oncoming_traffic/>
+    <intersection/>
   </scenarioTags>
   <lanelet id="50195">
     <leftBound>
