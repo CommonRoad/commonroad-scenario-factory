@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "commonroad-scenario-factory"
+version = "0.1.0"
+description = "Automated scenario generation for CommonRoad based on SUMO traffic simulations."
+authors = ["Florian Finkeldei <florian.finkeldei@tum.de>"]
+readme = "README.md"
+packages = [{include = "commonroad_scenario_factory"}]
+
+[tool.poetry.dependencies]
+python = "3.10.*"
+commonroad-io = "^2023.3"
+commonroad-drivability-checker = "^2023.1"
+libsumo = "^1.19.0"
+pandas = "^2.1.3"
+sumocr = {git = "git@gitlab.lrz.de:cps/sumo-interface.git"}  # TODO does this work with Docker?
+
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.4.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
