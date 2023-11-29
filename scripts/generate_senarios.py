@@ -10,7 +10,7 @@ import signal
 import libsumo
 import numpy as np
 from commonroad.common.file_reader import CommonRoadFileReader
-from interactive_scenarios.default import InteractiveSumoConfigDefault
+from sumocr.sumo_config.default import InteractiveSumoConfigDefault
 from scenario_factory.config_files.scenario_config import ScenarioConfig
 from scenario_factory.scenario_checker import DeleteScenario
 from scenario_factory.scenario_util import init_logging
