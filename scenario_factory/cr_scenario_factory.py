@@ -34,11 +34,11 @@ from commonroad.visualization.drawable import IDrawable
 from commonroad.visualization.mp_renderer import MPRenderer
 from commonroad_dc.collision.collision_detection.pycrcc_collision_dispatch import create_collision_checker
 from commonroad_dc.pycrcc import RectOBB
-from cr_scenario_features.features import changes_lane, get_obstacle_state_list
-from cr_scenario_features.models.scenario_model import ScenarioModel
+from scenario_factory.scenario_features.features import changes_lane, get_obstacle_state_list
+from scenario_factory.scenario_features.models.scenario_model import ScenarioModel
 from crdesigner.map_conversion.sumo_map.config import SumoConfig, EGO_ID_START
 from crdesigner.map_conversion.sumo_map.cr2sumo.converter import CR2SumoMapConverter
-from interactive_scenarios.default import InteractiveSumoConfigDefault, ParamType
+from sumocr.sumo_config.default import InteractiveSumoConfigDefault, ParamType
 from scenario_factory.config_files.scenario_config import ScenarioConfig
 from scenario_factory.enums import EgoSelectionCriterion
 from scenario_factory.scenario_checker import check_collision

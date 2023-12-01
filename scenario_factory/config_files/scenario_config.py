@@ -6,7 +6,7 @@ import scenario_factory
 from scenario_factory.enums import EgoSelectionCriterion
 
 
-class ScenarioConfig():
+class ScenarioConfig:
     # logging level for logging module
     logging_level = 'DEBUG'  # select DEBUG, INFO, WARNING, ERROR, CRITICAL
 
