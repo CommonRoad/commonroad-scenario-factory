@@ -4,16 +4,19 @@ version = "0.1.0"
 description = "Automated scenario generation for CommonRoad based on SUMO traffic simulations."
 authors = ["Florian Finkeldei <florian.finkeldei@tum.de>"]
 readme = "README.md"
-packages = [{include = "commonroad_scenario_factory"}]
+packages = [{include = "scenario_factory"}]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.11"
+python = "^3.8"
 commonroad-io = "^2023.3"
 commonroad-drivability-checker = "^2023.1"
 libsumo = "^1.19.0"
-pandas = "^2.1.3"
-commonroad-scenario-designer = "^0.8.0"
-sumocr = { git = "git@gitlab.lrz.de:cps/sumo-interface.git", branch = "update_python_versions" }
+pandas = [
+    {version = "^2.0", python = "3.8"},
+    {version = "^2.1", python = "^3.9"}
+]
+commonroad-scenario-designer = {git = "git@gitlab.lrz.de:cps/commonroad-scenario-designer.git", branch = "unfix_sumocr_version"}
+sumocr = {git = "git@gitlab.lrz.de:cps/sumo-interface.git", branch = "update_python_versions"}
 
 
 [tool.poetry.group.test.dependencies]
