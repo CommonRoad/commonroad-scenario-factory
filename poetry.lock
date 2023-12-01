@@ -219,43 +219,39 @@ version = "0.8.0"
 description = "Toolbox for Map Conversion and Scenario Creation for Autonomous Vehicles"
 optional = false
 python-versions = ">=3.8,<3.11"
-files = []
-develop = false
+files = [
+    {file = "commonroad_scenario_designer-0.8.0-py3-none-any.whl", hash = "sha256:6a2c15dd27e59abe233637d464b77dd17dcc44f59c35d5e30050104fde82484d"},
+    {file = "commonroad_scenario_designer-0.8.0.tar.gz", hash = "sha256:8746a97be470d41983df0db0c3fc97b07f76c85ebc0b121e0cf6f55790a26669"},
+]
 
 [package.dependencies]
 antlr4-python3-runtime = "4.9.3"
-commonroad-drivability-checker = {version = "2023.1", markers = "sys_platform == \"linux\""}
+commonroad-drivability-checker = "2023.1"
 commonroad-io = "2023.3"
-iso3166 = "^2.1.1"
-lxml = "^4.9.2"
+iso3166 = ">=2.1.1,<3.0.0"
+lxml = ">=4.9.2,<5.0.0"
 matplotlib = ">=3.6.0"
-mercantile = "^1.2.1"
-networkx = "^3.0"
-numpy = "^1.24.2"
-omegaconf = "^2.3.0"
-ordered-set = "^4.1.0"
-pygeodesy = "^23.3.23"
-pymetis = {version = ">=2020.1", markers = "sys_platform == \"linux\""}
-pyproj = "^3.4.1"
+mercantile = ">=1.2.1,<2.0.0"
+networkx = ">=3.0,<4.0"
+numpy = ">=1.24.2,<2.0.0"
+omegaconf = ">=2.3.0,<3.0.0"
+ordered-set = ">=4.1.0,<5.0.0"
+pygeodesy = ">=23.3.23,<24.0.0"
+pymetis = ">=2020.1"
+pyproj = ">=3.4.1,<4.0.0"
 pyqt5 = ">=5.15.9"
 PyQt5-Qt5 = [
     {version = "<5.15.11", markers = "sys_platform == \"linux\" or sys_platform == \"win64\""},
-    {version = "=5.15.11", markers = "sys_platform == \"darwin\""},
+    {version = "5.15.11", markers = "sys_platform == \"darwin\""},
 ]
 pyyaml = "6.0"
 shapely = ">=2.0.1"
 similaritymeasures = ">=0.4.4"
 sumocr = "2023.2"
-typer = "^0.9.0"
-typing-extensions = "^4.8.0"
-urllib3 = "^2.0.3"
-utm = "^0.7.0"
-
-[package.source]
-type = "git"
-url = "git@gitlab.lrz.de:cps/commonroad-scenario-designer.git"
-reference = "HEAD"
-resolved_reference = "ee865b86d524b08cfa0fe201d120f2ef50f650bf"
+typer = ">=0.9.0,<0.10.0"
+typing-extensions = ">=4.8.0,<5.0.0"
+urllib3 = ">=2.0.3,<3.0.0"
+utm = ">=0.7.0,<0.8.0"
 
 [[package]]
 name = "commonroad-vehicle-models"
@@ -562,6 +558,24 @@ files = [
 ]
 
 [[package]]
+name = "importlib-resources"
+version = "6.1.1"
+description = "Read resources from Python packages"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "importlib_resources-6.1.1-py3-none-any.whl", hash = "sha256:e8bf90d8213b486f428c9c39714b920041cb02c184686a3dee24905aaa8105d6"},
+    {file = "importlib_resources-6.1.1.tar.gz", hash = "sha256:3893a00122eafde6894c59914446a512f728a0c1a45f9bb9b63721b6bacf0b4a"},
+]
+
+[package.dependencies]
+zipp = {version = ">=3.1.0", markers = "python_version < \"3.10\""}
+
+[package.extras]
+docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (<7.2.5)", "sphinx (>=3.5)", "sphinx-lint"]
+testing = ["pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-mypy (>=0.9.1)", "pytest-ruff", "zipp (>=3.17)"]
+
+[[package]]
 name = "iniconfig"
 version = "2.0.0"
 description = "brain-dead simple config-ini parsing"
@@ -594,6 +608,7 @@ prompt-toolkit = ">=3.0.41,<3.1.0"
 pygments = ">=2.4.0"
 stack-data = "*"
 traitlets = ">=5"
+typing-extensions = {version = "*", markers = "python_version < \"3.10\""}
 
 [package.extras]
 all = ["black", "curio", "docrepr", "exceptiongroup", "ipykernel", "ipyparallel", "ipywidgets", "matplotlib", "matplotlib (!=3.2.0)", "nbconvert", "nbformat", "notebook", "numpy (>=1.22)", "pandas", "pickleshare", "pytest (<7)", "pytest (<7.1)", "pytest-asyncio (<0.22)", "qtconsole", "setuptools (>=18.5)", "sphinx (>=1.3)", "sphinx-rtd-theme", "stack-data", "testpath", "trio", "typing-extensions"]
@@ -936,6 +951,7 @@ files = [
 contourpy = ">=1.0.1"
 cycler = ">=0.10"
 fonttools = ">=4.22.0"
+importlib-resources = {version = ">=3.2.0", markers = "python_version < \"3.10\""}
 kiwisolver = ">=1.3.1"
 numpy = ">=1.21,<2"
 packaging = ">=20.0"
@@ -1843,12 +1859,14 @@ tests = ["cython", "littleutils", "pygments", "pytest", "typeguard"]
 
 [[package]]
 name = "sumocr"
-version = "2023.1"
+version = "2023.2"
 description = "Python tool to interface with the SUMO traffic simulator"
 optional = false
 python-versions = ">=3.7"
-files = []
-develop = false
+files = [
+    {file = "sumocr-2023.2-py3-none-any.whl", hash = "sha256:b42eff97b3c64c77e27b6cdfcc91a7eb4245a775ee9fbb8c5a923f3fc7e86114"},
+    {file = "sumocr-2023.2.tar.gz", hash = "sha256:b3db5892b5762aa49d0ad263371430828edc5744ad9b7c6cc1efe3c92c8961f2"},
+]
 
 [package.dependencies]
 commonroad-io = ">=2022.3"
@@ -1865,14 +1883,8 @@ Pillow = ">=7.0.0"
 shapely = ">=1.7.0"
 
 [package.extras]
-doc = ["graphviz (>=0.3)", "ipython (>=6.5.0)", "sphinx (>=1.3.6)", "sphinx-autodoc-typehints (>=1.3.0)", "sphinx-gallery (>=0.2.0)", "sphinx_rtd_theme (>=0.4.1)"]
+doc = ["graphviz (>=0.3)", "ipython (>=6.5.0)", "sphinx (>=1.3.6)", "sphinx-autodoc-typehints (>=1.3.0)", "sphinx-gallery (>=0.2.0)", "sphinx-rtd-theme (>=0.4.1)"]
 tests = ["lxml (>=4.2.5)", "pytest (>=3.8.0)"]
-
-[package.source]
-type = "git"
-url = "git@gitlab.lrz.de:cps/sumo-interface.git"
-reference = "HEAD"
-resolved_reference = "5c2e9cc980a30290e47911905b86741d83fbbbb6"
 
 [[package]]
 name = "sumolib"
@@ -2044,7 +2056,22 @@ docs = ["Sphinx (>=6.0)", "sphinx-rtd-theme (>=1.1.0)"]
 optional = ["python-socks", "wsaccel"]
 test = ["websockets"]
 
+[[package]]
+name = "zipp"
+version = "3.17.0"
+description = "Backport of pathlib-compatible object wrapper for zip files"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "zipp-3.17.0-py3-none-any.whl", hash = "sha256:0e923e726174922dce09c53c59ad483ff7bbb8e572e00c7f7c46b88556409f31"},
+    {file = "zipp-3.17.0.tar.gz", hash = "sha256:84e64a1c28cf7e91ed2078bb8cc8c259cb19b76942096c8d7b84947690cabaf0"},
+]
+
+[package.extras]
+docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (<7.2.5)", "sphinx (>=3.5)", "sphinx-lint"]
+testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-ignore-flaky", "pytest-mypy (>=0.9.1)", "pytest-ruff"]
+
 [metadata]
 lock-version = "2.0"
-python-versions = "3.10.*"
-content-hash = "49edcad58a8ddf1fd91b7ba596ab635556d58e08ce64aeb271a91c72803d072e"
+python-versions = ">=3.9,<3.11"
+content-hash = "776b66882dd1d15a1e234554ab6a40ca2e5c540def8a06ce514bd628eaa891c1"
