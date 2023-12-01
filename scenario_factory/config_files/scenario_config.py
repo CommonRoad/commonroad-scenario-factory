@@ -10,7 +10,7 @@ class ScenarioConfig:
     # logging level for logging module
     logging_level = 'DEBUG'  # select DEBUG, INFO, WARNING, ERROR, CRITICAL
 
-    _scenario_directory = os.path.dirname(scenario_factory.__file__) + "/../example_files/"
+    _scenario_directory = os.path.dirname(scenario_factory.__file__) + "/../output/osm/DEU_Garching"  # "/../example_files/commonroad/"
     _output_folder = os.path.dirname(scenario_factory.__file__) + "/../output/"
 
     # GENERAL ##########################################################################################################
@@ -55,7 +55,7 @@ class ScenarioConfig:
 
     # TURNING DETECTION
     turning_detection_threshold: float = np.deg2rad(60)  # [deg] when orientation differs above threshold, a turn is detected
-    turning_detection_threshold_time:float = np.deg2rad(6.0)  # threshold to find time step (difference to lagged signal)
+    turning_detection_threshold_time: float = np.deg2rad(6.0)  # threshold to find time step (difference to lagged signal)
 
     # ACCELERATION DETECTION
     acceleration_detection_threshold: float = 2.0  # [m/s**2]

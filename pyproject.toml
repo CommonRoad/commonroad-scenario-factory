@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "scenario_factory"}]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 commonroad-io = "^2023.3"
 commonroad-drivability-checker = "^2023.1"
 libsumo = "^1.19.0"
@@ -17,6 +17,7 @@ pandas = [
 ]
 commonroad-scenario-designer = {git = "git@gitlab.lrz.de:cps/commonroad-scenario-designer.git", branch = "unfix_sumocr_version"}
 sumocr = {git = "git@gitlab.lrz.de:cps/sumo-interface.git", branch = "update_python_versions"}
+scikit-learn = "^1.3.2"
 
 
 [tool.poetry.group.test.dependencies]

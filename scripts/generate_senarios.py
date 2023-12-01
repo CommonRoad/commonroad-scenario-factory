@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
     # load files
     filenames = list(Path(scenario_directory).rglob("*.xml"))
-    filenames = [file for file in filenames if 'DEU' not in str(file)]
+    # filenames = [file for file in filenames if 'DEU' not in str(file)]
     # random.shuffle(filenames)
 
     solution_folder = os.path.join(scenario_config.output_folder, timestr, "solutions")
