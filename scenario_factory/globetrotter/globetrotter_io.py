@@ -101,5 +101,5 @@ def save_intersections(intersections: List[Intersection], output_dir: str, name:
 
     for i, intersection in enumerate(intersections):
         intersection.intersection_to_xml(
-            os.path.join(output_dir, f"{name}-{i}.xml")
+            os.path.join(output_dir, f"{name}-{i+1}.xml")
         )
