@@ -11,6 +11,7 @@ osm_file = pathlib.Path(scenario_factory.__file__).parent.joinpath("../files/osm
 commonroad_file = pathlib.Path(scenario_factory.__file__).parent.joinpath("../output/osm/DEU_Garching.xml")
 commonroad_file.parent.mkdir(parents=True, exist_ok=True)
 
+# convert to cr
 osm2commonroad(osm_file, commonroad_file)
 
 # find intersections
