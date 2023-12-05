@@ -36,4 +36,4 @@ def compute_bounding_box_coordinates(lat: float, lon: float, radius: float) -> T
     return west, south, east, north
 
 
-update_cities_file(Path("0_cities_selected.csv"), 1.0, True)
+update_cities_file(Path("0_cities_selected.csv"), 2.0, True)
