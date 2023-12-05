@@ -28,12 +28,12 @@ def compute_bounding_box_coordinates(lat: float, lon: float, radius: float) -> T
     """
     radius_earth = 6.371*1e3
     dist_degree = radius / radius_earth * 180/math.pi
-    west = lon - dist_degree / np.cos(lat)
+    west = lon - dist_degree / np.cos(np.deg2rad(lat))
     south = lat - dist_degree
-    east = lon + dist_degree / np.cos(lat)
+    east = lon + dist_degree / np.cos(np.deg2rad(lat))
     north = lat + dist_degree
 
     return west, south, east, north
 
 
-update_cities_file(Path("cities_selected.csv"), 5.0)
+update_cities_file(Path("0_cities_selected.csv"), 1.0, True)
