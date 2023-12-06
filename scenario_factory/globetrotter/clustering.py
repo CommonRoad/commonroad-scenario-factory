@@ -120,6 +120,22 @@ def relevant_traffic_lights(traffic_lights: List[TrafficLight], lanelets: List[L
     return [traffic_lights_dict[referenced_traffic_light] for referenced_traffic_light in referenced_traffic_lights]
 
 
+def relevant_intersections(intersections: List[Intersection], lanelets: List[Lanelet]) -> List[Intersection]:
+    referenced_intersections = set()
+    lanelet_ids = set()
+    for lanelet in lanelets:
+        lanelet_ids.add(lanelet.lanelet_id)
+
+    for intersection in intersections:
+        for incoming in intersection.incomings:
+            for lt_id in incoming.incoming_lanelets:
+                if lt_id in lanelet_ids:
+                    referenced_intersections.add(intersection)
+                    break
+
+    return list(referenced_intersections)
+
+
 def cut_area(scenario, center, max_distance) -> Scenario:
     """
     Create new scenario from old scenario, based on center and radius
@@ -139,14 +155,19 @@ def cut_area(scenario, center, max_distance) -> Scenario:
     lanelets_not_none = [i for i in lanelets if i is not None]
     traffic_lights = relevant_traffic_lights(scenario.lanelet_network.traffic_lights, lanelets_not_none)
     traffic_signs = relevant_traffic_signs(scenario.lanelet_network.traffic_signs, lanelets_not_none)
+    intersections = relevant_intersections(scenario.lanelet_network.intersections, lanelets_not_none)
 
     # create new scenario
     cut_lanelet_scenario = commonroad.scenario.scenario.Scenario(0.1)
     cut_lanelet_network = scenario.lanelet_network.create_from_lanelet_list(lanelets_not_none, cleanup_ids=False)
-    cut_lanelet_network.cleanup_lanelet_references()
+#    cut_lanelet_network.cleanup_lanelet_references()
     cut_lanelet_scenario.replace_lanelet_network(cut_lanelet_network)
     cut_lanelet_scenario.add_objects(traffic_lights)
     cut_lanelet_scenario.add_objects(traffic_signs)
+    cut_lanelet_scenario.add_objects(intersections)
+    cut_lanelet_scenario.lanelet_network.cleanup_lanelet_references()
+    cut_lanelet_scenario.lanelet_network.cleanup_traffic_light_references()
+    cut_lanelet_scenario.lanelet_network.cleanup_traffic_sign_references()
     print(f"Detected {len(traffic_lights)} traffic lights")
     print(f"Detected {len(traffic_signs)} traffic signs")
 

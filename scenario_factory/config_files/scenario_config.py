@@ -10,7 +10,7 @@ class ScenarioConfig:
     # logging level for logging module
     logging_level = 'DEBUG'  # select DEBUG, INFO, WARNING, ERROR, CRITICAL
 
-    _scenario_directory = os.path.dirname(scenario_factory.__file__) + "/../files/globetrotter/DEU_Aschaffenburg"  # "/../output/osm/DEU_Garching"
+    _scenario_directory = os.path.dirname(scenario_factory.__file__) + "/../files/globetrotter/"
     _output_folder = os.path.dirname(scenario_factory.__file__) + "/../output/"
 
     # GENERAL ##########################################################################################################
@@ -34,8 +34,8 @@ class ScenarioConfig:
 
     # Tags in cr scenario file
     author = 'Florian Finkeldei'
-    affiliation = 'Technical University of Munich, Germany'
-    source = 'OpenStreetMaps, SUMO Traffic Simulator'
+    affiliation = 'TUM - Cyber-Physical Systems'
+    source = 'OpenStreetMap, SUMO Traffic Simulator'
     tags = ['simulated']
 
     # EGO VEHICLE SELECTION ############################################################################################

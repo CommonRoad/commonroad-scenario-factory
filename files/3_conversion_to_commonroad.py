@@ -9,6 +9,7 @@ from crdesigner.map_conversion.osm2cr.converter_modules.utility.geonamesID impor
 from scenario_factory.globetrotter.globetrotter_io import osm2commonroad
 from multiprocessing import Pool
 from commonroad.common.writer.file_writer_interface import OverwriteExistingFile
+from commonroad.scenario.traffic_sign import TrafficSignIDZamunda
 
 
 def convert_osm_file(osm_file: Path) -> None:
@@ -47,6 +48,11 @@ def convert_osm_file(osm_file: Path) -> None:
     for traffic_sign in scenario.lanelet_network.traffic_signs:
         if traffic_sign.traffic_sign_id not in referenced_traffic_signs:
             scenario.lanelet_network.remove_traffic_sign(traffic_sign.traffic_sign_id)
+
+    for traffic_sign in scenario.lanelet_network.traffic_signs:
+        for tse in traffic_sign.traffic_sign_elements:
+            if tse.traffic_sign_element_id == TrafficSignIDZamunda.YIELD:
+                tse.additional_values = []
 
     # scenario_repaired, repair_result = verify_and_repair_scenario(scenario)
     scenario_repaired = scenario

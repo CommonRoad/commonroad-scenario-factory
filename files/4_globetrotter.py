@@ -6,12 +6,7 @@ commonroad_files = Path("commonroad").glob('*.xml')
 
 for commonroad_file in commonroad_files:
     print(f"======== {commonroad_file.stem} ========")
-    # try:
     scenario, forking_points = commonroad_parse(commonroad_file)
-    # except AssertionError as e:
-    #     print(e)
-    #     continue
-
     intersections, clustering_result = generate_intersections(scenario, forking_points)
 
     output_dir = commonroad_file.parent.joinpath("..", "globetrotter", commonroad_file.stem)
