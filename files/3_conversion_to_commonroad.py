@@ -53,13 +53,12 @@ def convert_osm_file(osm_file: Path) -> None:
 
     scenario_repaired.scenario_id = f"ZAM_{osm_file.stem.split('_')[-1]}-0_0_T-0"
 
-
     # map saving
     cr_fw = (CommonRoadFileWriter(
         scenario_repaired,
         None,
         "Florian Finkeldei",
-        "TUM – Cyber-Physical Systems",
+        "TUM - Cyber-Physical Systems",
         "Open Street Map",
         [],
         location

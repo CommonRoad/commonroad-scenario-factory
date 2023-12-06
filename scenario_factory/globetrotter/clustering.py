@@ -1,10 +1,11 @@
-import math
 from typing import List, Tuple
 
 import commonroad
 import numpy as np
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.traffic_light import TrafficLight
+from commonroad.scenario.traffic_sign import TrafficSign
+from commonroad.scenario.lanelet import Lanelet
 from scipy.spatial import distance
 from sklearn.cluster import AgglomerativeClustering
 
@@ -91,24 +92,32 @@ def centroids_and_distances(labels, points):
     return centroids, distances, clusters
 
 
-def inside(x: float, y: float, cx: float, cy: float, r: float) -> bool:
-    return math.sqrt((x - cx) ** 2 + (y - cy) ** 2) <= r
+def relevant_traffic_signs(traffic_signs: List[TrafficSign], lanelets: List[Lanelet]) -> List[TrafficSign]:
+    referenced_traffic_signs = set()
+
+    for lanelet in lanelets:
+        for traffic_sign in lanelet.traffic_signs:
+            referenced_traffic_signs.add(traffic_sign)
+
+    traffic_signs_dict = {}
+    for traffic_sign in traffic_signs:
+        traffic_signs_dict[traffic_sign.traffic_sign_id] = traffic_sign
+
+    return [traffic_signs_dict[referenced_traffic_sign] for referenced_traffic_sign in referenced_traffic_signs]
 
 
-def traffic_lights_in_proximity(
-    traffic_lights: List[TrafficLight], center, radius
-) -> List[TrafficLight]:
-    return [
-        traffic_light
-        for traffic_light in traffic_lights
-        if inside(
-            traffic_light.position[0],
-            traffic_light.position[1],
-            center[0],
-            center[1],
-            radius,
-        )
-    ]
+def relevant_traffic_lights(traffic_lights: List[TrafficLight], lanelets: List[Lanelet]) -> List[TrafficLight]:
+    referenced_traffic_lights = set()
+
+    for lanelet in lanelets:
+        for traffic_light in lanelet.traffic_lights:
+            referenced_traffic_lights.add(traffic_light)
+
+    traffic_lights_dict = {}
+    for traffic_light in traffic_lights:
+        traffic_lights_dict[traffic_light.traffic_light_id] = traffic_light
+
+    return [traffic_lights_dict[referenced_traffic_light] for referenced_traffic_light in referenced_traffic_lights]
 
 
 def cut_area(scenario, center, max_distance) -> Scenario:
@@ -128,25 +137,30 @@ def cut_area(scenario, center, max_distance) -> Scenario:
     net = scenario.lanelet_network
     lanelets = net.lanelets_in_proximity(center, radius)  # TODO debug cases where lanelets contains none entries
     lanelets_not_none = [i for i in lanelets if i is not None]
-    traffic_lights = traffic_lights_in_proximity(
-        scenario.lanelet_network.traffic_lights, center, radius
-    )
+    traffic_lights = relevant_traffic_lights(scenario.lanelet_network.traffic_lights, lanelets_not_none)
+    traffic_signs = relevant_traffic_signs(scenario.lanelet_network.traffic_signs, lanelets_not_none)
 
     # create new scenario
     cut_lanelet_scenario = commonroad.scenario.scenario.Scenario(0.1)
-    cut_lanelet_network = scenario.lanelet_network.create_from_lanelet_list(lanelets_not_none)
+    cut_lanelet_network = scenario.lanelet_network.create_from_lanelet_list(lanelets_not_none, cleanup_ids=False)
+    cut_lanelet_network.cleanup_lanelet_references()
     cut_lanelet_scenario.replace_lanelet_network(cut_lanelet_network)
     cut_lanelet_scenario.add_objects(traffic_lights)
+    cut_lanelet_scenario.add_objects(traffic_signs)
     print(f"Detected {len(traffic_lights)} traffic lights")
+    print(f"Detected {len(traffic_signs)} traffic signs")
 
     return cut_lanelet_scenario
 
 
-def create_intersection(scenario, center, max_distance, points):
+def create_intersection(scenario: Scenario, center: np.ndarray, max_distance: float, points: list) -> Intersection:
     """
     Method to create intersection object
 
-    :param1 args: required arguments
+    :param points:
+    :param max_distance:
+    :param center:
+    :param scenario:
     :return: New intersection object
     """
     scenario_new = cut_area(scenario, center, max_distance)
