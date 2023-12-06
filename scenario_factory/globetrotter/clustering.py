@@ -21,13 +21,13 @@ def find_clusters_agglomerative(points: np.ndarray) -> AgglomerativeClustering:
 
     points = np.array(list(points))
 
-    affinity = "euclidean"
+    metric = "euclidean"
     linkage = "single"
     distance_treshold = 35
 
     # cluster using SciKit's Agglomerative Clustering implementation
     cluster = AgglomerativeClustering(
-        affinity=affinity,
+        metric=metric,
         linkage=linkage,
         distance_threshold=distance_treshold,
         n_clusters=None,
@@ -126,14 +126,15 @@ def cut_area(scenario, center, max_distance) -> Scenario:
     radius = max_distance + intersection_cut_margin
 
     net = scenario.lanelet_network
-    lanelets = net.lanelets_in_proximity(center, radius)
+    lanelets = net.lanelets_in_proximity(center, radius)  # TODO debug cases where lanelets contains none entries
+    lanelets_not_none = [i for i in lanelets if i is not None]
     traffic_lights = traffic_lights_in_proximity(
         scenario.lanelet_network.traffic_lights, center, radius
     )
 
     # create new scenario
     cut_lanelet_scenario = commonroad.scenario.scenario.Scenario(0.1)
-    cut_lanelet_network = scenario.lanelet_network.create_from_lanelet_list(lanelets)
+    cut_lanelet_network = scenario.lanelet_network.create_from_lanelet_list(lanelets_not_none)
     cut_lanelet_scenario.replace_lanelet_network(cut_lanelet_network)
     cut_lanelet_scenario.add_objects(traffic_lights)
     print(f"Detected {len(traffic_lights)} traffic lights")
