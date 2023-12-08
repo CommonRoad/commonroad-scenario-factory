@@ -512,6 +512,8 @@ class GenerateCRScenarios:
     def write_cr_file_and_video(self, scenario_counter, create_video=False, check_validity=True):
         """
         Write commonroad scenario file and create corresponding videos.
+        :param check_validity:
+        :param create_video:
         :param scenario_counter: counter for generated scenarios from the i-th map
         :return: nothing
         """

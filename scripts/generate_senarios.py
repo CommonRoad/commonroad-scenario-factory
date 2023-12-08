@@ -64,7 +64,7 @@ scenario_config = ScenarioConfig()
 scenario_directory = scenario_config.scenario_directory
 
 # load files
-filenames = list(Path(scenario_directory).rglob("*.xml"))
+filenames = list(Path(scenario_directory).rglob("ESP_Vigo*.xml"))
 # filenames = [file for file in filenames if 'DEU' not in str(file)]
 # random.shuffle(filenames)
 
@@ -73,6 +73,7 @@ os.makedirs(solution_folder, exist_ok=False)
 
 # start logging, choose logging levels logging.INFO, logging.CRITICAL, logging.DEBUG
 logger = init_logging(__name__, logging.DEBUG)
+unhandled_errors = dict()
 
 
 def create_scenarios(args):
@@ -96,7 +97,7 @@ def create_scenarios(args):
     map_nr = int(split_map_name[2])
     obtained_scenario_number = 0
 
-    try:
+    if True: # try:
         with timeout(seconds=300):
             # conversion from CommonRoad to SUMO map
             scenario_path = dir_name + "/"  # + location_name + '-' + str(map_nr)
@@ -185,21 +186,26 @@ def create_scenarios(args):
 
                     scenario_counter_prev = scenario_counter
                     scenario_counter = cr_scenarios.create_cr_scenarios(map_nr, scenario_counter)
+                    scenario_nr_added = 0
                     if CREATE_NON_INTERACTIVE:
-                        scenario_nr_added = cr_scenarios.write_cr_file_and_video(scenario_counter_prev, CREATE_VIDEO,
-                                                                               check_validity=False)
+                        scenario_nr_added += cr_scenarios.write_cr_file_and_video(
+                            scenario_counter_prev,
+                            CREATE_VIDEO,
+                            check_validity=False)  # TODO set True
+
                     if CREATE_INTERACTIVE:
-                        scenario_nr_added = cr_scenarios.write_interactive_scenarios_and_videos(scenario_counter_prev,
-                                                                                              sumo_sim.ids_cr2sumo[
-                                                                                                  SUMO_VEHICLE_PREFIX],
-                                                                                              sumo_net_path=sumo_net_copy,
-                                                                                              rou_files=rou_files,
-                                                                                              config=sumo_conf_tmp,
-                                                                                              default_config=InteractiveSumoConfigDefault(),
-                                                                                              create_video=CREATE_VIDEO,
-                                                                                              check_validity=False)
+                        scenario_nr_added += cr_scenarios.write_interactive_scenarios_and_videos(
+                            scenario_counter_prev,
+                            sumo_sim.ids_cr2sumo[SUMO_VEHICLE_PREFIX],
+                            sumo_net_path=sumo_net_copy,
+                            rou_files=rou_files,
+                            config=sumo_conf_tmp,
+                            default_config=InteractiveSumoConfigDefault(),
+                            create_video=CREATE_VIDEO,
+                            check_validity=False)  # TODO set True
 
                     obtained_scenario_number += scenario_nr_added
+
             except TimeoutError:
                 logger.warning(f'Timeout during simulation/extraction, continue with next scenario.')
                 try:
@@ -207,8 +213,10 @@ def create_scenarios(args):
                 except:
                     pass
 
+    """
     except Exception as e:
         print(e)
+        unhandled_errors[cr_file] = traceback.format_exc()
         logger.warning(f'UNEXPECTED ERROR, continue with next scenario: {traceback.format_exc()}')
         try:
             sumo_sim.stop()
@@ -217,9 +225,10 @@ def create_scenarios(args):
         return obtained_scenario_number, cr_file
 
     return obtained_scenario_number, cr_file
+    """
 
-
-pool = Pool(processes=12)
+"""
+pool = Pool(processes=18)
 res0 = pool.map(create_scenarios, zip(filenames, [deepcopy(sumo_config) for _ in range(len(filenames))]))
 
 res = {}
@@ -230,10 +239,13 @@ for r in res0:
 res = {r[1]: r[0] for r in res0}
 
 logger.info(f'obtained_scenario_number: {sum(list(res.values()))}')
+
+print(f"unhandled errors: {unhandled_errors}")
 """
 
-for file in filenames:
-    create_scenarios((file, SumoConfig()))
-# path = Path("/home/florian/git/sumocr-scenario-generation/files/globetrotter/ESP_Vigo/ESP_Vigo-5.xml")
-# create_scenarios((path, SumoConfig()))
-"""
+# for file in filenames:
+#     create_scenarios((file, SumoConfig()))
+
+# print(unhandled_errors)
+path = Path("/home/florian/git/sumocr-scenario-generation/files/globetrotter/ESP_Vigo/ESP_Vigo-3.xml")
+create_scenarios((path, SumoConfig()))

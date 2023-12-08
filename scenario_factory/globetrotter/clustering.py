@@ -10,6 +10,7 @@ from scipy.spatial import distance
 from sklearn.cluster import AgglomerativeClustering
 
 from scenario_factory.globetrotter.intersection import Intersection
+from copy import deepcopy
 
 
 def find_clusters_agglomerative(points: np.ndarray) -> AgglomerativeClustering:
@@ -111,7 +112,8 @@ def relevant_traffic_lights(traffic_lights: List[TrafficLight], lanelets: List[L
 
     for lanelet in lanelets:
         for traffic_light in lanelet.traffic_lights:
-            referenced_traffic_lights.add(traffic_light)
+            if len(lanelet.successor) > 0:
+                referenced_traffic_lights.add(traffic_light)
 
     traffic_lights_dict = {}
     for traffic_light in traffic_lights:
@@ -131,7 +133,6 @@ def relevant_intersections(intersections: List[Intersection], lanelets: List[Lan
             for lt_id in incoming.incoming_lanelets:
                 if lt_id in lanelet_ids:
                     referenced_intersections.add(intersection)
-                    break
 
     return list(referenced_intersections)
 
@@ -160,14 +161,31 @@ def cut_area(scenario, center, max_distance) -> Scenario:
     # create new scenario
     cut_lanelet_scenario = commonroad.scenario.scenario.Scenario(0.1)
     cut_lanelet_network = scenario.lanelet_network.create_from_lanelet_list(lanelets_not_none, cleanup_ids=False)
-#    cut_lanelet_network.cleanup_lanelet_references()
     cut_lanelet_scenario.replace_lanelet_network(cut_lanelet_network)
     cut_lanelet_scenario.add_objects(traffic_lights)
     cut_lanelet_scenario.add_objects(traffic_signs)
-    cut_lanelet_scenario.add_objects(intersections)
+    cut_lanelet_scenario.add_objects(deepcopy(intersections))
     cut_lanelet_scenario.lanelet_network.cleanup_lanelet_references()
     cut_lanelet_scenario.lanelet_network.cleanup_traffic_light_references()
     cut_lanelet_scenario.lanelet_network.cleanup_traffic_sign_references()
+
+    # clean-up intersections
+    remove_intersection = set()
+    for intersection in cut_lanelet_scenario.lanelet_network.intersections:
+        remove_incoming = set()
+        for incoming in intersection.incomings:
+            if len(incoming.incoming_lanelets) < 1 or len(incoming.successors_straight) + len(incoming.successors_left) + len(incoming.successors_right) < 1:
+                remove_incoming.add(incoming)
+
+        for incoming in remove_incoming:
+            intersection.incomings.remove(incoming)
+
+        if len(intersection.incomings) < 1:
+            remove_intersection.add(intersection)
+
+    for intersection in remove_intersection:
+        cut_lanelet_scenario.lanelet_network.remove_intersection(intersection)
+
     print(f"Detected {len(traffic_lights)} traffic lights")
     print(f"Detected {len(traffic_signs)} traffic signs")
 

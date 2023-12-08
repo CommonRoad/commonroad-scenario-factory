@@ -75,5 +75,3 @@ def convert_osm_file(osm_file: Path) -> None:
 osm_files = Path("extracted_maps").glob('*.osm')
 for osm_file in osm_files:
     convert_osm_file(osm_file)
-# pool = Pool(1)  # os.cpu_count())
-# pool.map(convert_osm_file, osm_files)
