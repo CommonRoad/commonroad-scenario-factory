@@ -12,7 +12,7 @@ commonroad-io = "^2023.3"
 commonroad-drivability-checker = "^2023.1"
 libsumo = "^1.19.0"
 pandas = "^2.0"
-commonroad-scenario-designer = {git = "git@gitlab.lrz.de:cps/commonroad-scenario-designer.git", branch = "develop"}
+commonroad-scenario-designer = {git = "git@gitlab.lrz.de:cps/commonroad-scenario-designer.git", branch = "geonamesID"}
 sumocr = "^2023.4"
 scikit-learn = "^1.3.2"
 

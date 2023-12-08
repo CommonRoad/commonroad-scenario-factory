@@ -30,7 +30,7 @@ from crdesigner.map_conversion.sumo_map.config import SumoConfig
 from sumocr.sumo_config.default import SUMO_VEHICLE_PREFIX
 
 
-class timeout:
+class Timeout:
     def __init__(self, seconds=1, error_message='Timeout'):
         self.seconds = seconds
         self.error_message = error_message
@@ -64,7 +64,7 @@ scenario_config = ScenarioConfig()
 scenario_directory = scenario_config.scenario_directory
 
 # load files
-filenames = list(Path(scenario_directory).rglob("ESP_Vigo*.xml"))
+filenames = list(Path(scenario_directory).rglob("*.xml"))
 # filenames = [file for file in filenames if 'DEU' not in str(file)]
 # random.shuffle(filenames)
 
@@ -97,8 +97,8 @@ def create_scenarios(args):
     map_nr = int(split_map_name[2])
     obtained_scenario_number = 0
 
-    if True: # try:
-        with timeout(seconds=300):
+    try:
+        with Timeout(seconds=300):
             # conversion from CommonRoad to SUMO map
             scenario_path = dir_name + "/"  # + location_name + '-' + str(map_nr)
             scenario_orig, _ = CommonRoadFileReader(cr_file).open()
@@ -125,7 +125,7 @@ def create_scenarios(args):
         scenario_counter = 0
         for i_scenario in range(scenario_config.scen_per_map):
             try:
-                with (timeout(seconds=300)):
+                with (Timeout(seconds=300)):
                     sumo_conf_tmp = deepcopy(sumo_conf)
                     scenario_name = location_name + '-' + str(map_nr) + "_" + str(i_scenario + 1)
                     scenario_dir_name = os.path.join(dir_name, scenario_name)
@@ -213,7 +213,6 @@ def create_scenarios(args):
                 except:
                     pass
 
-    """
     except Exception as e:
         print(e)
         unhandled_errors[cr_file] = traceback.format_exc()
@@ -225,9 +224,9 @@ def create_scenarios(args):
         return obtained_scenario_number, cr_file
 
     return obtained_scenario_number, cr_file
-    """
 
-"""
+
+# """
 pool = Pool(processes=18)
 res0 = pool.map(create_scenarios, zip(filenames, [deepcopy(sumo_config) for _ in range(len(filenames))]))
 
@@ -249,3 +248,4 @@ print(f"unhandled errors: {unhandled_errors}")
 # print(unhandled_errors)
 path = Path("/home/florian/git/sumocr-scenario-generation/files/globetrotter/ESP_Vigo/ESP_Vigo-3.xml")
 create_scenarios((path, SumoConfig()))
+"""

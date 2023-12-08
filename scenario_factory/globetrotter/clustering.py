@@ -15,9 +15,9 @@ from copy import deepcopy
 
 def find_clusters_agglomerative(points: np.ndarray) -> AgglomerativeClustering:
     """
-    Find intersections using Agglomerative Clustering
+    Find intersections using agglomerative clustering
 
-    :param1 points: forking points used for the clustering process
+    :param points: forking points used for the clustering process
     :return: Cluster with labeled forking points
     """
 
@@ -44,8 +44,8 @@ def get_distance_to_outer_point(center, cluster):
     Euclidean distance between center and outer point
     See https://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
 
-    :param1 center: The center coordinate
-    :param2 cluster: forking points part of the intersection
+    :param center: The center coordinate
+    :param cluster: forking points part of the intersection
     :return: Max distance between outer forking point and center
     """
 
@@ -65,8 +65,8 @@ def centroids_and_distances(labels, points):
     """
     Create dictionaries with points assigned to each cluster, the clusters' centers and max distances in each cluster
 
-    :param1 labels: The resulting labels from the clustering process for each forking point
-    :param2 points: forking points
+    :param labels: The resulting labels from the clustering process for each forking point
+    :param points: forking points
     :return: Cluster, center and max_distance dictionaries
     """
 
@@ -141,9 +141,9 @@ def cut_area(scenario, center, max_distance) -> Scenario:
     """
     Create new scenario from old scenario, based on center and radius
 
-    :param1 scenario: Old scenario
-    :param2 center: Center of new scenario
-    :param3 max_distance: Cut radius
+    :param scenario: Original scenario
+    :param center: Center of new scenario
+    :param max_distance: Cut radius
     :return: New Scenario only containing desired intersection
     """
     center = np.array(list(center))
@@ -161,6 +161,7 @@ def cut_area(scenario, center, max_distance) -> Scenario:
     # create new scenario
     cut_lanelet_scenario = commonroad.scenario.scenario.Scenario(0.1)
     cut_lanelet_network = scenario.lanelet_network.create_from_lanelet_list(lanelets_not_none, cleanup_ids=False)
+    cut_lanelet_scenario.location = scenario.location
     cut_lanelet_scenario.replace_lanelet_network(cut_lanelet_network)
     cut_lanelet_scenario.add_objects(traffic_lights)
     cut_lanelet_scenario.add_objects(traffic_signs)

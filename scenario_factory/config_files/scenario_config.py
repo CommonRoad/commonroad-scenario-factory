@@ -15,7 +15,7 @@ class ScenarioConfig:
 
     # GENERAL ##########################################################################################################
     # Number of scenarios generated from one map
-    scen_per_map = 10
+    scen_per_map = 4
 
     # Number of planning problems generated from one scenario
     planning_pro_per_scen = 2

@@ -45,6 +45,7 @@ from scenario_factory.scenario_checker import check_collision
 from scenario_factory.scenario_util import apply_smoothing_filter, find_first_greater, sort_by_list, \
     get_state_at_time, select_by_vehicle_type
 from sumocr.sumo_config import DefaultConfig
+from pathlib import Path
 
 
 class StateList(list):
@@ -509,9 +510,10 @@ class GenerateCRScenarios:
             if id_remove in obstacles_copy:
                 del obstacles_copy[id_remove]
 
-    def write_cr_file_and_video(self, scenario_counter, create_video=False, check_validity=True):
+    def write_cr_file_and_video(self, scenario_counter, output_path: Path, create_video=False, check_validity=True):
         """
         Write commonroad scenario file and create corresponding videos.
+        :param output_path:
         :param check_validity:
         :param create_video:
         :param scenario_counter: counter for generated scenarios from the i-th map
@@ -532,7 +534,7 @@ class GenerateCRScenarios:
             # write cr file without ego
             commonroad_scenario.scenario_id.prediction_id = 1
             commonroad_scenario.scenario_id.obstacle_behavior = "T"
-            filename = os.path.join(self.output_dir_name, str(commonroad_scenario.scenario_id) + '.xml')
+            filename = output_path.joinpath(str(commonroad_scenario.scenario_id) + '.xml')
             self.write_final_cr_file(filename, commonroad_scenario, planning_problem_set, check_validity)
             self.logger.info(f"Commonroad scenario file created for {k + 1 + scenario_counter}th planning problem")
 

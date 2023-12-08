@@ -1,15 +1,14 @@
-import os
 from pathlib import Path
 from commonroad.common.file_writer import CommonRoadFileWriter
 from commonroad.scenario.scenario import Location
-from crdesigner.verification_repairing.map_verification_repairing import verify_and_repair_scenario
 from crdesigner.map_conversion.osm2cr.converter_modules.converter import GraphScenario
-from crdesigner.map_conversion.osm2cr.converter_modules.cr_operations.export import convert_to_scenario, create_scenario_intermediate, sanitize
+from crdesigner.map_conversion.osm2cr.converter_modules.cr_operations.export import create_scenario_intermediate
 from crdesigner.map_conversion.osm2cr.converter_modules.utility.geonamesID import get_geonamesID
-from scenario_factory.globetrotter.globetrotter_io import osm2commonroad
-from multiprocessing import Pool
 from commonroad.common.writer.file_writer_interface import OverwriteExistingFile
 from commonroad.scenario.traffic_sign import TrafficSignIDZamunda
+from crdesigner.map_conversion.osm2cr.converter_modules.utility.labeling_create_tree import create_tree_from_file
+
+geonames_tree = create_tree_from_file()
 
 
 def convert_osm_file(osm_file: Path) -> None:
@@ -23,7 +22,7 @@ def convert_osm_file(osm_file: Path) -> None:
     location = Location(
         gps_latitude=graph.center_point[0],
         gps_longitude=graph.center_point[1],
-        geo_name_id=get_geonamesID(graph.center_point[0], graph.center_point[1]),
+        geo_name_id=get_geonamesID(graph.center_point[0], graph.center_point[1], geonames_tree),
         geo_transformation=None,
     )
 
@@ -66,7 +65,7 @@ def convert_osm_file(osm_file: Path) -> None:
         "Florian Finkeldei",
         "TUM - Cyber-Physical Systems",
         "Open Street Map",
-        [],
+        set(),
         location
     ))
     cr_fw.write_scenario_to_file(str(commonroad_file), OverwriteExistingFile.ALWAYS)
