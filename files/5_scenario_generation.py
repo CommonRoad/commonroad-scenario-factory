@@ -26,6 +26,7 @@ create_interactive = True
 filenames = Path("globetrotter").rglob("*.xml")
 output_path = Path("output")
 
+# """
 for file in filenames:
     create_scenarios(
         file,
@@ -36,10 +37,9 @@ for file in filenames:
         create_noninteractive,
         create_interactive
     )
-
 """
-pool = Pool(processes=16)
-res0 = pool.map(create_scenarios, zip(filenames, [deepcopy(sumo_config) for _ in range(len(filenames))]))
+pool = Pool(processes=12)
+res0 = pool.starmap(create_scenarios, [(filename, deepcopy(sumo_config), deepcopy(scenario_config), scenarios_per_map, output_path, create_noninteractive, create_interactive) for filename in filenames])
 
 res = {}
 for r in res0:
