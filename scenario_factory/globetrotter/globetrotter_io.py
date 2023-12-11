@@ -16,8 +16,8 @@ from crdesigner.map_conversion.osm2cr.converter_modules.graph_operations import 
 from crdesigner.map_conversion.osm2cr.converter_modules.utility.geonamesID import (
     get_geonamesID,
 )
-
 from scenario_factory.globetrotter.intersection import Intersection
+from pathlib import Path
 
 
 def save_as_cr(graph: rg.Graph, file_path: str) -> None:
@@ -47,18 +47,18 @@ def save_as_cr(graph: rg.Graph, file_path: str) -> None:
     file_writer.write_to_file(file_path, OverwriteExistingFile.ALWAYS)
 
 
-def osm2commonroad(osm_path: str, commonroad_xml_path: str) -> None:
-    scenario = converter.GraphScenario(osm_path)
+def osm2commonroad(osm_path: Path, commonroad_xml_path: Path) -> None:
+    scenario = converter.GraphScenario(str(osm_path))
 
     # Note: We really want to call scenario.save_as_cr(commonroad_xml_path)
     # However this removes some traffic signs we want to keep, therefore
     # save_as_cr is a hotfix that does the same thing but w/o removing the traffic signs
 
     # scenario.save_as_cr(commonroad_xml_path)
-    save_as_cr(scenario.graph, commonroad_xml_path)
+    save_as_cr(scenario.graph, str(commonroad_xml_path))
 
 
-def commonroad_parse(commonroad_xml_path: str) -> Tuple[Scenario, np.ndarray]:
+def commonroad_parse(commonroad_xml_path: Path) -> Tuple[Scenario, np.ndarray]:
     """
     Get scenario and forking points from a CommonRoad XML file.
 
@@ -87,7 +87,7 @@ def commonroad_parse(commonroad_xml_path: str) -> Tuple[Scenario, np.ndarray]:
     return scenario, forking_points
 
 
-def save_intersections(intersections: List[Intersection], output_dir: str, name: str) -> None:
+def save_intersections(intersections: List[Intersection], output_dir: Path, name: str) -> None:
     """
     Save intersections a CommonRoad XML files
 

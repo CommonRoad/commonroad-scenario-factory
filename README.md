@@ -18,7 +18,7 @@ The scenario generation proceeds in three steps:
 - Third, traffic is simulated on the extracted lanelet networks.
 
 ## Get CommonRoad LaneletNetwork files
-Using the osmium tool, maps of e.g., a certain city can be extracted from large-scale maps (see also [OSM-README](example_files/osm/README.md)). 
+Using the osmium tool, maps of e.g., a certain city can be extracted from large-scale maps (see also [OSM-README](files/example/README.md)). 
 Parameters are directly set as part of the osmium extract command. 
 
 ## Choose relevant maps with globetrotter

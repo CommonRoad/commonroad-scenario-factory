@@ -7,18 +7,16 @@ from scenario_factory.globetrotter.globetrotter_io import commonroad_parse, osm2
 
 
 # write commonroad file
-osm_file = pathlib.Path(scenario_factory.__file__).parent.joinpath("../example_files/osm/campus_garching.osm")
-commonroad_file = pathlib.Path(scenario_factory.__file__).parent.joinpath("../output/osm/DEU_Garching.xml")
+osm_file = pathlib.Path(scenario_factory.__file__).parent.joinpath("../files/example/campus_garching.osm")
+commonroad_file = pathlib.Path(scenario_factory.__file__).parent.joinpath("../output/DEU_Garching.xml")
 commonroad_file.parent.mkdir(parents=True, exist_ok=True)
 
+# convert to cr
 osm2commonroad(osm_file, commonroad_file)
-
-# visualization
-scenario, forking_points = commonroad_parse(commonroad_file)
-plot_scenario(scenario)
 
 # find intersections
 scenario, forking_points = commonroad_parse(commonroad_file)
+plot_scenario(scenario)
 
 intersections, clustering_result = generate_intersections(scenario, forking_points)
 

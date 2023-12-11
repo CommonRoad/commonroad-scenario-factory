@@ -45,6 +45,7 @@ from scenario_factory.scenario_checker import check_collision
 from scenario_factory.scenario_util import apply_smoothing_filter, find_first_greater, sort_by_list, \
     get_state_at_time, select_by_vehicle_type
 from sumocr.sumo_config import DefaultConfig
+from pathlib import Path
 
 
 class StateList(list):
@@ -184,9 +185,14 @@ class GenerateCRScenarios:
 
         for i_sc, obstacles in enumerate(list_obstacles):
             scenario_counter += 1
-            scenario_id = ScenarioID.from_benchmark_id(
-                self.conf_scenario.map_name + "-" + str(map_nr) + "_" + str(scenario_counter),
-                scenario_version="2020a")
+            scenario_id = ScenarioID(
+                cooperative=False,
+                country_id=self.conf_scenario.map_name.split('_')[0],
+                map_name=self.conf_scenario.map_name.split('_')[1].split('-')[0],
+                map_id=int(self.conf_scenario.map_name.split('_')[1].split('-')[1]),
+                configuration_id=scenario_counter,
+                scenario_version="2020a"
+            )
             scenario_id.obstacle_behavior = "I"  # TODO must be checked whether interactive or which type of obstacle prediction
             scenario_id.prediction_id = 1
             cr_scenario = Scenario(self.scenario.dt,
@@ -509,9 +515,12 @@ class GenerateCRScenarios:
             if id_remove in obstacles_copy:
                 del obstacles_copy[id_remove]
 
-    def write_cr_file_and_video(self, scenario_counter, create_video=False, check_validity=True):
+    def write_cr_file_and_video(self, scenario_counter, output_path: Path, create_video=False, check_validity=True):
         """
         Write commonroad scenario file and create corresponding videos.
+        :param output_path:
+        :param check_validity:
+        :param create_video:
         :param scenario_counter: counter for generated scenarios from the i-th map
         :return: nothing
         """
@@ -530,7 +539,7 @@ class GenerateCRScenarios:
             # write cr file without ego
             commonroad_scenario.scenario_id.prediction_id = 1
             commonroad_scenario.scenario_id.obstacle_behavior = "T"
-            filename = os.path.join(self.output_dir_name, str(commonroad_scenario.scenario_id) + '.xml')
+            filename = output_path.joinpath(str(commonroad_scenario.scenario_id) + '.xml')
             self.write_final_cr_file(filename, commonroad_scenario, planning_problem_set, check_validity)
             self.logger.info(f"Commonroad scenario file created for {k + 1 + scenario_counter}th planning problem")
 
@@ -631,27 +640,29 @@ class GenerateCRScenarios:
         assert found is True, f"No vehicle found with id {vehicle_id} in file {path_in}"
         tree.write(path_out, xml_declaration=True, encoding="utf-8")
 
-    def write_interactive_scenarios_and_videos(self, scenario_counter,
+    def write_interactive_scenarios_and_videos(self,
+                                               scenario_counter: int,
                                                ids_cr2sumo: Dict[int, str],
-                                               sumo_net_path: str,
+                                               sumo_net_path: Path,
                                                rou_files: Dict[str, str],
                                                config: SumoConfig,
                                                default_config: InteractiveSumoConfigDefault,
-                                               create_video=True, check_validity=False):
+                                               create_video: bool,
+                                               check_validity: bool,
+                                               output_path: Path):
         generated_scenarios = 0
         for k in range(len(self.list_cr_scenarios)):
             commonroad_scenario = self.list_cr_scenarios[k]
             commonroad_scenario.scenario_id.obstacle_behavior = "I"
-            dir_name = os.path.join(self.output_dir_name, str(commonroad_scenario.scenario_id))
-            if not os.path.exists(dir_name):
-                os.makedirs(dir_name, exist_ok=False)
+            dir_name = output_path.joinpath(str(commonroad_scenario.scenario_id))
+            dir_name.mkdir(parents=True, exist_ok=True)
             # copy sumo files
             net_file = str(commonroad_scenario.scenario_id) + ".net.xml"
-            shutil.copy(sumo_net_path, os.path.join(dir_name, net_file))
+            shutil.copy(sumo_net_path, dir_name.joinpath(net_file))
             rou_files_new = {}
             deleted_vehicle = False
             for veh_type, rou_file in rou_files.items():
-                rou_file_new = os.path.join(dir_name, str(commonroad_scenario.scenario_id) + f".{veh_type}.rou.xml")
+                rou_file_new = dir_name.joinpath(str(commonroad_scenario.scenario_id) + f".{veh_type}.rou.xml")
                 if veh_type == "vehicle":
                     self.make_vehicle_in_route_file(rou_file, rou_file_new, ids_cr2sumo[self.ego_ids_list[k]])
                     deleted_vehicle = True

@@ -6,8 +6,8 @@ from copy import deepcopy
 
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.common.file_writer import CommonRoadFileWriter
-from crdesigner.map_validation_repairing.repairing.map_repairer import MapRepairer
-from crdesigner.map_validation_repairing.validation.map_validation import MapValidation
+from crdesigner.verification_repairing.repairing.map_repairer import MapRepairer
+from crdesigner.verification_repairing.verification.map_verifier import MapVerifier
 from evaluate_solutions import timeout
 from scenario_factory.scenario_util import iter_scenario_from_folder, iter_scenario_paths_from_folder
 
@@ -35,7 +35,7 @@ if __name__ == "__main__":
                 try:
                     print("-----------\nCheck!")
                     print(scenario.scenario_id)
-                    invalid = MapValidation(scenario.scenario_id, scenario.lanelet_network).validate(1)
+                    invalid = MapVerifier(scenario.scenario_id, scenario.lanelet_network).validate(1)
                     print("Found Problems!" if len(invalid) != 0 else "No problems, continue!")
                 except Exception as e:
                     traceback.print_exc()
@@ -56,7 +56,7 @@ if __name__ == "__main__":
                         CommonRoadFileWriter(scenario_orig, planning_problem_set=None).write_scenario_to_file(out_path)
                         return
 
-                    invalid = MapValidation(scenario.scenario_id, scenario.lanelet_network).validate(1)
+                    invalid = MapVerifier(scenario.scenario_id, scenario.lanelet_network).validate(1)
                     print("FAILED" if len(invalid) != 0 else "WORKED!")
                     print(invalid)
 

@@ -231,8 +231,8 @@ class Intersection:
         """
 
         author = "Florian Finkeldei"
-        affiliation = "TUM"
-        source = "Globetrotter / OpenStreetMaps"
+        affiliation = "TUM - Cyber-Physical Systems"
+        source = "OpenStreetMap"
         planning_problem_set = PlanningProblemSet()
 
         tag = self.tag if hasattr(self, "tag") else {Tag.INTERSECTION}

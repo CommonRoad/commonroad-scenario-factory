@@ -17,12 +17,14 @@ class DeleteScenario(RuntimeError):
     pass
 
 
-def check_collision(obstacles:Dict[int, Obstacle], return_colliding_ids:bool=False, get_all=False,
-                    max_collisions=None) -> Union[bool, Tuple[bool, Set[int]]]:
+def check_collision(
+        obstacles: Dict[int, Obstacle],
+        return_colliding_ids: bool = False,
+        get_all: bool = False,
+        max_collisions: int = None
+) -> Union[bool, Tuple[bool, Set[int]]]:
     """
     Returns true if vehicles in scenario collide.
-    :param scenario:
-    :return:
     """
     obstacle_list = []
     obs_ids = []

@@ -1,3 +1,9 @@
 .idea/
 output/*
 __pycache__
+
+*.osm.pbf
+*.osm
+*.xml
+*.p
+*.cfg

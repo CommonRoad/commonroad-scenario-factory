@@ -1,33 +1,35 @@
-import math
 from typing import List, Tuple
 
 import commonroad
 import numpy as np
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.traffic_light import TrafficLight
+from commonroad.scenario.traffic_sign import TrafficSign
+from commonroad.scenario.lanelet import Lanelet
 from scipy.spatial import distance
 from sklearn.cluster import AgglomerativeClustering
 
 from scenario_factory.globetrotter.intersection import Intersection
+from copy import deepcopy
 
 
 def find_clusters_agglomerative(points: np.ndarray) -> AgglomerativeClustering:
     """
-    Find intersections using Agglomerative Clustering
+    Find intersections using agglomerative clustering
 
-    :param1 points: forking points used for the clustering process
+    :param points: forking points used for the clustering process
     :return: Cluster with labeled forking points
     """
 
     points = np.array(list(points))
 
-    affinity = "euclidean"
+    metric = "euclidean"
     linkage = "single"
     distance_treshold = 35
 
     # cluster using SciKit's Agglomerative Clustering implementation
     cluster = AgglomerativeClustering(
-        affinity=affinity,
+        metric=metric,
         linkage=linkage,
         distance_threshold=distance_treshold,
         n_clusters=None,
@@ -42,8 +44,8 @@ def get_distance_to_outer_point(center, cluster):
     Euclidean distance between center and outer point
     See https://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
 
-    :param1 center: The center coordinate
-    :param2 cluster: forking points part of the intersection
+    :param center: The center coordinate
+    :param cluster: forking points part of the intersection
     :return: Max distance between outer forking point and center
     """
 
@@ -63,8 +65,8 @@ def centroids_and_distances(labels, points):
     """
     Create dictionaries with points assigned to each cluster, the clusters' centers and max distances in each cluster
 
-    :param1 labels: The resulting labels from the clustering process for each forking point
-    :param2 points: forking points
+    :param labels: The resulting labels from the clustering process for each forking point
+    :param points: forking points
     :return: Cluster, center and max_distance dictionaries
     """
 
@@ -91,33 +93,57 @@ def centroids_and_distances(labels, points):
     return centroids, distances, clusters
 
 
-def inside(x: float, y: float, cx: float, cy: float, r: float) -> bool:
-    return math.sqrt((x - cx) ** 2 + (y - cy) ** 2) <= r
+def relevant_traffic_signs(traffic_signs: List[TrafficSign], lanelets: List[Lanelet]) -> List[TrafficSign]:
+    referenced_traffic_signs = set()
+
+    for lanelet in lanelets:
+        for traffic_sign in lanelet.traffic_signs:
+            referenced_traffic_signs.add(traffic_sign)
+
+    traffic_signs_dict = {}
+    for traffic_sign in traffic_signs:
+        traffic_signs_dict[traffic_sign.traffic_sign_id] = traffic_sign
+
+    return [traffic_signs_dict[referenced_traffic_sign] for referenced_traffic_sign in referenced_traffic_signs]
 
 
-def traffic_lights_in_proximity(
-    traffic_lights: List[TrafficLight], center, radius
-) -> List[TrafficLight]:
-    return [
-        traffic_light
-        for traffic_light in traffic_lights
-        if inside(
-            traffic_light.position[0],
-            traffic_light.position[1],
-            center[0],
-            center[1],
-            radius,
-        )
-    ]
+def relevant_traffic_lights(traffic_lights: List[TrafficLight], lanelets: List[Lanelet]) -> List[TrafficLight]:
+    referenced_traffic_lights = set()
+
+    for lanelet in lanelets:
+        for traffic_light in lanelet.traffic_lights:
+            if len(lanelet.successor) > 0:
+                referenced_traffic_lights.add(traffic_light)
+
+    traffic_lights_dict = {}
+    for traffic_light in traffic_lights:
+        traffic_lights_dict[traffic_light.traffic_light_id] = traffic_light
+
+    return [traffic_lights_dict[referenced_traffic_light] for referenced_traffic_light in referenced_traffic_lights]
+
+
+def relevant_intersections(intersections: List[Intersection], lanelets: List[Lanelet]) -> List[Intersection]:
+    referenced_intersections = set()
+    lanelet_ids = set()
+    for lanelet in lanelets:
+        lanelet_ids.add(lanelet.lanelet_id)
+
+    for intersection in intersections:
+        for incoming in intersection.incomings:
+            for lt_id in incoming.incoming_lanelets:
+                if lt_id in lanelet_ids:
+                    referenced_intersections.add(intersection)
+
+    return list(referenced_intersections)
 
 
 def cut_area(scenario, center, max_distance) -> Scenario:
     """
     Create new scenario from old scenario, based on center and radius
 
-    :param1 scenario: Old scenario
-    :param2 center: Center of new scenario
-    :param3 max_distance: Cut radius
+    :param scenario: Original scenario
+    :param center: Center of new scenario
+    :param max_distance: Cut radius
     :return: New Scenario only containing desired intersection
     """
     center = np.array(list(center))
@@ -126,26 +152,55 @@ def cut_area(scenario, center, max_distance) -> Scenario:
     radius = max_distance + intersection_cut_margin
 
     net = scenario.lanelet_network
-    lanelets = net.lanelets_in_proximity(center, radius)
-    traffic_lights = traffic_lights_in_proximity(
-        scenario.lanelet_network.traffic_lights, center, radius
-    )
+    lanelets = net.lanelets_in_proximity(center, radius)  # TODO debug cases where lanelets contains none entries
+    lanelets_not_none = [i for i in lanelets if i is not None]
+    traffic_lights = relevant_traffic_lights(scenario.lanelet_network.traffic_lights, lanelets_not_none)
+    traffic_signs = relevant_traffic_signs(scenario.lanelet_network.traffic_signs, lanelets_not_none)
+    intersections = relevant_intersections(scenario.lanelet_network.intersections, lanelets_not_none)
 
     # create new scenario
     cut_lanelet_scenario = commonroad.scenario.scenario.Scenario(0.1)
-    cut_lanelet_network = scenario.lanelet_network.create_from_lanelet_list(lanelets)
+    cut_lanelet_network = scenario.lanelet_network.create_from_lanelet_list(lanelets_not_none, cleanup_ids=False)
+    cut_lanelet_scenario.location = scenario.location
     cut_lanelet_scenario.replace_lanelet_network(cut_lanelet_network)
     cut_lanelet_scenario.add_objects(traffic_lights)
+    cut_lanelet_scenario.add_objects(traffic_signs)
+    cut_lanelet_scenario.add_objects(deepcopy(intersections))
+    cut_lanelet_scenario.lanelet_network.cleanup_lanelet_references()
+    cut_lanelet_scenario.lanelet_network.cleanup_traffic_light_references()
+    cut_lanelet_scenario.lanelet_network.cleanup_traffic_sign_references()
+
+    # clean-up intersections
+    remove_intersection = set()
+    for intersection in cut_lanelet_scenario.lanelet_network.intersections:
+        remove_incoming = set()
+        for incoming in intersection.incomings:
+            if len(incoming.incoming_lanelets) < 1 or len(incoming.successors_straight) + len(incoming.successors_left) + len(incoming.successors_right) < 1:
+                remove_incoming.add(incoming)
+
+        for incoming in remove_incoming:
+            intersection.incomings.remove(incoming)
+
+        if len(intersection.incomings) < 1:
+            remove_intersection.add(intersection)
+
+    for intersection in remove_intersection:
+        cut_lanelet_scenario.lanelet_network.remove_intersection(intersection)
+
     print(f"Detected {len(traffic_lights)} traffic lights")
+    print(f"Detected {len(traffic_signs)} traffic signs")
 
     return cut_lanelet_scenario
 
 
-def create_intersection(scenario, center, max_distance, points):
+def create_intersection(scenario: Scenario, center: np.ndarray, max_distance: float, points: list) -> Intersection:
     """
     Method to create intersection object
 
-    :param1 args: required arguments
+    :param points:
+    :param max_distance:
+    :param center:
+    :param scenario:
     :return: New intersection object
     """
     scenario_new = cut_area(scenario, center, max_distance)
