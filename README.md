@@ -17,6 +17,12 @@ The scenario generation proceeds in three steps:
 - Second, relevant intersections are chosen using the globetrotter tool.
 - Third, traffic is simulated on the extracted lanelet networks.
 
+# Hands on
+Theoretical instructions can be found below. 
+
+Go to the [files](files) folder and execute the scripts 1 to 5 one after another. With the default settings, the generated scenarios should be stored in the [output](files/output) folder.
+
+# Theoretical instructions
 ## Get CommonRoad LaneletNetwork files
 Using the osmium tool, maps of e.g., a certain city can be extracted from large-scale maps (see also [OSM-README](files/example/README.md)). 
 Parameters are directly set as part of the osmium extract command. 
