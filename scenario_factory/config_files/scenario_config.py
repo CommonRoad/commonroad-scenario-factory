@@ -8,23 +8,23 @@ from scenario_factory.enums import EgoSelectionCriterion
 
 class ScenarioConfig:
     # logging level for logging module
-    logging_level = 'DEBUG'  # select DEBUG, INFO, WARNING, ERROR, CRITICAL
+    logging_level = 'WARNING'  # select DEBUG, INFO, WARNING, ERROR, CRITICAL
 
     _scenario_directory = os.path.dirname(scenario_factory.__file__) + "/../files/globetrotter/"
     _output_folder = os.path.dirname(scenario_factory.__file__) + "/../output/"
 
     # GENERAL ##########################################################################################################
     # Number of scenarios generated from one map
-    scen_per_map = 4
+    scen_per_map = 8
 
     # Number of planning problems generated from one scenario
-    planning_pro_per_scen = 2
+    planning_pro_per_scen = 8
 
     # Define the goal state of the planning problem with a lanelet (if False: define with a state)
     planning_pro_with_lanelet = True
 
     # scenario length (time of CR scenario -> set simulation duration in sumo_config)
-    cr_scenario_time_steps = 100
+    cr_scenario_time_steps = 150
 
     # vehicles are deleted from final scenario if not within sensor_range once
     sensor_range = 90
