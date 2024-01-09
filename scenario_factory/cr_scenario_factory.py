@@ -26,8 +26,9 @@ from commonroad.geometry.shape import Rectangle
 from commonroad.planning.goal import GoalRegion
 from commonroad.planning.planning_problem import PlanningProblemSet, PlanningProblem
 from commonroad.prediction.prediction import TrajectoryPrediction
+from commonroad.scenario.traffic_sign_interpreter import TrafficSignInterpreter
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
-from commonroad.scenario.scenario import Scenario, LaneletNetwork, ScenarioID
+from commonroad.scenario.scenario import Scenario, LaneletNetwork, ScenarioID, Underground, Environment, Location
 from commonroad.scenario.state import InitialState, State
 from commonroad.scenario.trajectory import Trajectory
 from commonroad.visualization.drawable import IDrawable
@@ -314,7 +315,9 @@ class GenerateCRScenarios:
                 for i, state in enumerate(state_list):
                     state.time_step = i + 1
 
-                initial_state = InitialState(time_step=initial_state.time_step, position=initial_state.position, orientation=initial_state.orientation, velocity=initial_state.velocity, acceleration=initial_state.acceleration)
+                initial_state = InitialState(time_step=initial_state.time_step, position=initial_state.position,
+                                             orientation=initial_state.orientation, velocity=initial_state.velocity,
+                                             acceleration=initial_state.acceleration)
                 new_obs[obs_id] = DynamicObstacle(copy.deepcopy(obs.obstacle_id), obs.obstacle_type,
                                                   obstacle_shape=obs.obstacle_shape,
                                                   initial_state=initial_state,
@@ -373,7 +376,8 @@ class GenerateCRScenarios:
             goal_orientation = last_state.orientation
 
             goal_state = InitialState(time_step=Interval(last_state.time_step - 1, last_state.time_step),
-                                      position=Rectangle(length=6, width=2, center=goal_center, orientation=goal_orientation))
+                                      position=Rectangle(length=6, width=2, center=goal_center,
+                                                         orientation=goal_orientation))
             state_list = [goal_state]
             goal_region = GoalRegion(state_list)
 
