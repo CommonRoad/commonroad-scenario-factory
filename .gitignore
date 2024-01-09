@@ -1,5 +1,6 @@
 .idea/
 output/*
+output_*
 __pycache__
 
 *.osm.pbf
@@ -7,3 +8,4 @@ __pycache__
 *.xml
 *.p
 *.cfg
+*.tar.gz
