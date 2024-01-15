@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "scenario_factory"}]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.10"
 commonroad-io = "^2023.3"
 commonroad-drivability-checker = "^2023.1"
 libsumo = "^1.19.0"

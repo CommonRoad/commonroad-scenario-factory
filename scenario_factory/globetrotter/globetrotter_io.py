@@ -10,8 +10,8 @@ from commonroad.scenario.scenario import Location, Scenario
 from crdesigner.map_conversion.osm2cr.converter_modules.cr_operations.export import (
     create_scenario_intermediate,
 )
-from crdesigner.map_conversion.osm2cr.converter_modules.graph_operations import (
-    road_graph as rg,
+from crdesigner.map_conversion.osm2cr.converter_modules.graph_operations.road_graph import (
+    _graph as rg,
 )
 from crdesigner.map_conversion.osm2cr.converter_modules.utility.geonamesID import (
     get_geonamesID,

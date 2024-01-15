@@ -18,7 +18,7 @@ def convert_osm_file(osm_file: Path) -> None:
 
     graph = GraphScenario(str(osm_file)).graph
     scenario, intermediate_format = create_scenario_intermediate(graph)
-    problemset = intermediate_format.get_dummy_planning_problem_set()
+    # problemset = intermediate_format.get_dummy_planning_problem_set()
     location = Location(
         gps_latitude=graph.center_point[0],
         gps_longitude=graph.center_point[1],
