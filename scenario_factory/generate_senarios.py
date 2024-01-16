@@ -141,19 +141,20 @@ def create_scenarios(
                     sumo_sim.stop()
                     # logger.info("stopped sumo simulation")
                     scenario = sumo_sim.commonroad_scenarios_all_time_steps()
-                    logging.info(f"obtained cr scenario wit {len(scenario.dynamic_obstacles)} obstacles")
+                    logging.info(f"obtained cr scenario with {len(scenario.dynamic_obstacles)} obstacles")
 
                     scenario.scenario_id = orig_map_name
                     scenario_config.map_name = orig_map_name
                     scenario.location = scenario_orig.location
-                    scenario.tags = scenario_orig.tags
-                    scenario.tags.add(Tag.SIMULATED)  # TODO general (lanelet network based tags should be written here – latest)
+                    # scenario.tags = scenario_orig.tags
+                    scenario.tags.add(Tag.SIMULATED)  # TODO general all tags are ego vehicle based? (lanelet network based tags should be written here – latest)
 
                     # select ego vehicles for planning problems and postprocess final CommonRoad scenarios
                     try:
                         cr_scenarios = GenerateCRScenarios(scenario, sumo_conf_tmp.simulation_steps,
                                                            sumo_conf_tmp.scenario_name,
                                                            scenario_config, scenario_dir_name, solution_folder)
+
                     except DeleteScenario:
                         shutil.rmtree(scenario_dir_name)
                         logging.warning(f'Remove scenario with to many collisions!')
