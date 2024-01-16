@@ -8,7 +8,7 @@ packages = [{include = "scenario_factory"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-commonroad-io = "^2023.3"
+commonroad-io = {git = "https://github.com/CommonRoad/commonroad-io.git", rev = "develop"}
 commonroad-drivability-checker = "^2023.1"
 libsumo = "^1.19.0"
 pandas = "^2.0"

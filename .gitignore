@@ -2,6 +2,7 @@
 output/*
 output_*
 __pycache__
+dec23_data
 
 *.osm.pbf
 *.osm
