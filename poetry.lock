@@ -240,7 +240,7 @@ tqdm = ">=4.64"
 type = "git"
 url = "https://github.com/CommonRoad/commonroad-io.git"
 reference = "develop"
-resolved_reference = "3960c2f4166cef553b1f08f29b2318501daef75c"
+resolved_reference = "1d45b9bb6a6fbb90ae65725bf006f84d2f1eddca"
 
 [[package]]
 name = "commonroad-scenario-designer"
@@ -2205,4 +2205,4 @@ test = ["websockets"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "45b603adfac0a88953b6be780fa90d9b5c47f0bc6b47b50ba20c1bef133e1ee3"
+content-hash = "a2a6bd2fd92e02939be43b9afff8435d4ff9ade804e04736a3e13179ca4e5239"
