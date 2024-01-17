@@ -23,4 +23,5 @@ testing:
     - poetry install
     - cd files
     - poetry run python 1_bounding_box_coordinates.py
+    - echo $(osmium --version)
   needs: []
