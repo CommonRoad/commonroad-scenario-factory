@@ -23,5 +23,9 @@ testing:
     - poetry install
     - cd files
     - poetry run python 1_bounding_box_coordinates.py
+    - poetry run python 2_osm_map_extraction.py
+    - poetry run python 3_conversion_to_commonroad.py
+    - poetry run python 4_globetrotter.py
+    - poetry run python 5_scenario_generation.py
     - echo $(osmium --version)
   needs: []
