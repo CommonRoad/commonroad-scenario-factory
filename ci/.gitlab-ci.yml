@@ -13,7 +13,7 @@ format_checking:
 
 testing:
   stage: test
-  image: gitlab.lrz.de:5005/cps/commonroad/sumocr-scenario-generation/sumocr:boran
+  image: gitlab.lrz.de:5005/cps/commonroad/sumocr-scenario-generation
   script:
     - echo $SUMO_HOME
     - apt-get install -y python3.10 python3-pip git
