@@ -35,7 +35,7 @@ main_pipeline_testing:
 
 unit_testing:
   stage: unit_test
-  image: gitlab.lrz.de:5005/cps/commonroad/sumocr-scenario-generation/sumocr:boran
+  image: gitlab.lrz.de:5005/cps/commonroad/sumocr-scenario-generation
   script:
     - cd scripts
     - poetry run python assign_tags.py
