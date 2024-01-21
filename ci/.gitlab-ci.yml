@@ -20,9 +20,9 @@ format_checking:
     - black --check .
   allow_failure: true
 
-testing:
+main_pipeline_testing:
   stage: main_pipeline_test
-  image: gitlab.lrz.de:5005/cps/commonroad/sumocr-scenario-generation/sumocr:boran
+  image: gitlab.lrz.de:5005/cps/commonroad/sumocr-scenario-generation
   script:
     - cd files
     - poetry run python 1_bounding_box_coordinates.py
