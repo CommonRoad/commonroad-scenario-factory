@@ -1,6 +1,7 @@
 stages:
   - linting
-  - test
+  - main_pipeline_test
+  - unit_test
   - deploy
 
 before_script:
@@ -20,7 +21,7 @@ format_checking:
   allow_failure: true
 
 testing:
-  stage: test
+  stage: main_pipeline_test
   image: gitlab.lrz.de:5005/cps/commonroad/sumocr-scenario-generation/sumocr:boran
   script:
     - cd files
@@ -31,3 +32,10 @@ testing:
     - poetry run python 5_scenario_generation.py
     - echo $(osmium --version)
   needs: []
+
+unit_testing:
+  stage: unit_test
+  image: gitlab.lrz.de:5005/cps/commonroad/sumocr-scenario-generation/sumocr:boran
+  script:
+    - cd scripts
+    - poetry run python assign_tags.py
