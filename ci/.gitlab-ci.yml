@@ -25,11 +25,11 @@ main_pipeline_testing:
   image: gitlab.lrz.de:5005/cps/commonroad/sumocr-scenario-generation
   script:
     - cd files
-    - poetry run python 1_bounding_box_coordinates.py
-    - poetry run python 2_osm_map_extraction.py
-    - poetry run python 3_conversion_to_commonroad.py
-    - poetry run python 4_globetrotter.py
-    - poetry run python 5_scenario_generation.py
+    - poetry run python n1_bounding_box_coordinates.py
+    - poetry run python n2_osm_map_extraction.py
+    - poetry run python n3_conversion_to_commonroad.py
+    - poetry run python n4_globetrotter.py
+    - poetry run python n5_scenario_generation.py
     - echo $(osmium --version)
   needs: []
 
