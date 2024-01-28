@@ -6,6 +6,7 @@ stages:
 
 before_script:
   - echo $SUMO_HOME
+  - apt-get update
   - apt-get install -y python3.10 python3-pip git
   - pip install poetry
   - poetry config virtualenvs.in-project true
