@@ -1,7 +1,10 @@
 import pytest
 import random
 from files.n1_bounding_box_coordinates import compute_bounding_box_coordinates
+from files. n1_bounding_box_coordinates import update_cities_file
 import math
+from pathlib import Path
+import pandas as pd
 
 
 def calculate_area(lat1, lon1, lat2, lon2):
@@ -17,7 +20,7 @@ def calculate_area(lat1, lon1, lat2, lon2):
 def random_params():
     lat = random.uniform(-90.0, 90.0)
     lon = random.uniform(-180.0, 180.0)
-    radius = random.uniform(0.1, 1.0)
+    radius = random.uniform(0.001, 0.3)
     return lat, lon, radius
 
 
@@ -30,3 +33,36 @@ def test_area(random_params, repeat_count):
     area_from_radius = math.pow(2 * radius, 2) / 2
     print("Area (km2):", area, "Area from radius (km2):", area_from_radius)
     assert area > area_from_radius
+
+def test_file_after_n1():
+
+    #Values for the first line
+    east = 8.8516
+    north = 53.0738
+    west = 8.8426
+    south = 53.0684
+
+    with open(Path("../files/0_cities_selected.csv"), newline='') as csvfile:
+        cities = pd.read_csv(csvfile)
+
+    first_line_cities = cities.iloc[0]
+
+    update_cities_file(Path("../files/0_cities_selected.csv"), 0.3, True)
+
+    with open(Path("../files/0_cities_selected.csv"), newline='') as csvfile:
+        cities_updated = pd.read_csv(csvfile)
+
+    first_line_cities_updated = cities_updated.iloc[0]
+
+    assert first_line_cities.Country == first_line_cities_updated.Country
+    assert first_line_cities.City == first_line_cities_updated.City
+    assert first_line_cities.Lat == first_line_cities_updated.Lat
+    assert first_line_cities.Lon == first_line_cities_updated.Lon
+    assert math.isclose(east, first_line_cities_updated.East, rel_tol=1e-3)
+    assert math.isclose(north, first_line_cities_updated.North, rel_tol=1e-3)
+    assert math.isclose(west, first_line_cities_updated.West, rel_tol=1e-3)
+    assert math.isclose(south, first_line_cities_updated.South, rel_tol=1e-3)
+
+
+
+
