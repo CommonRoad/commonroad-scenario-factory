@@ -1,4 +1,5 @@
 from pathlib import Path
+from commonroad.common.file_reader import CommonRoadFileReader
 from scenario_factory.globetrotter.globetrotter_io import commonroad_parse, save_intersections
 from scenario_factory.globetrotter.clustering import generate_intersections
 
@@ -26,7 +27,8 @@ for file in files:
     try:
         scenario, _ = CommonRoadFileReader(file).open()
         files_successful += 1
-    except:
+    except Exception as e:
+        print(e)
         files_error.append(file.stem)
 
 print(f"Files in total: {files_total}")
