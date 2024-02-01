@@ -240,7 +240,7 @@ tqdm = ">=4.64"
 type = "git"
 url = "https://github.com/CommonRoad/commonroad-io.git"
 reference = "develop"
-resolved_reference = "1d45b9bb6a6fbb90ae65725bf006f84d2f1eddca"
+resolved_reference = "48ab2a559b25f04aa79eddab000d01576316b190"
 
 [[package]]
 name = "commonroad-scenario-designer"
@@ -289,7 +289,7 @@ utm = "^0.7.0"
 type = "git"
 url = "git@gitlab.lrz.de:cps/commonroad/commonroad-scenario-designer.git"
 reference = "develop"
-resolved_reference = "24a51c669fe4a5e426af86ef63c74424c5286ce6"
+resolved_reference = "cb619f310fde92aff719927cc0d34d0170eef02d"
 
 [[package]]
 name = "commonroad-vehicle-models"
@@ -622,13 +622,13 @@ files = [
 
 [[package]]
 name = "ipython"
-version = "8.20.0"
+version = "8.21.0"
 description = "IPython: Productive Interactive Computing"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "ipython-8.20.0-py3-none-any.whl", hash = "sha256:bc9716aad6f29f36c449e30821c9dd0c1c1a7b59ddcc26931685b87b4c569619"},
-    {file = "ipython-8.20.0.tar.gz", hash = "sha256:2f21bd3fc1d51550c89ee3944ae04bbc7bc79e129ea0937da6e6c68bfdbf117a"},
+    {file = "ipython-8.21.0-py3-none-any.whl", hash = "sha256:1050a3ab8473488d7eee163796b02e511d0735cf43a04ba2a8348bd0f2eaf8a5"},
+    {file = "ipython-8.21.0.tar.gz", hash = "sha256:48fbc236fbe0e138b88773fa0437751f14c3645fb483f1d4c5dee58b37e5ce73"},
 ]
 
 [package.dependencies]
@@ -644,17 +644,17 @@ stack-data = "*"
 traitlets = ">=5"
 
 [package.extras]
-all = ["black", "curio", "docrepr", "exceptiongroup", "ipykernel", "ipyparallel", "ipywidgets", "matplotlib", "matplotlib (!=3.2.0)", "nbconvert", "nbformat", "notebook", "numpy (>=1.23)", "pandas", "pickleshare", "pytest", "pytest-asyncio (<0.22)", "qtconsole", "setuptools (>=18.5)", "sphinx (>=1.3)", "sphinx-rtd-theme", "stack-data", "testpath", "trio", "typing-extensions"]
+all = ["black", "curio", "docrepr", "exceptiongroup", "ipykernel", "ipyparallel", "ipywidgets", "matplotlib", "matplotlib (!=3.2.0)", "nbconvert", "nbformat", "notebook", "numpy (>=1.23)", "pandas", "pickleshare", "pytest (<8)", "pytest-asyncio (<0.22)", "qtconsole", "setuptools (>=18.5)", "sphinx (>=1.3)", "sphinx-rtd-theme", "stack-data", "testpath", "trio", "typing-extensions"]
 black = ["black"]
-doc = ["docrepr", "exceptiongroup", "ipykernel", "matplotlib", "pickleshare", "pytest", "pytest-asyncio (<0.22)", "setuptools (>=18.5)", "sphinx (>=1.3)", "sphinx-rtd-theme", "stack-data", "testpath", "typing-extensions"]
+doc = ["docrepr", "exceptiongroup", "ipykernel", "matplotlib", "pickleshare", "pytest (<8)", "pytest-asyncio (<0.22)", "setuptools (>=18.5)", "sphinx (>=1.3)", "sphinx-rtd-theme", "stack-data", "testpath", "typing-extensions"]
 kernel = ["ipykernel"]
 nbconvert = ["nbconvert"]
 nbformat = ["nbformat"]
 notebook = ["ipywidgets", "notebook"]
 parallel = ["ipyparallel"]
 qtconsole = ["qtconsole"]
-test = ["pickleshare", "pytest", "pytest-asyncio (<0.22)", "testpath"]
-test-extra = ["curio", "matplotlib (!=3.2.0)", "nbformat", "numpy (>=1.23)", "pandas", "pickleshare", "pytest", "pytest-asyncio (<0.22)", "testpath", "trio"]
+test = ["pickleshare", "pytest (<8)", "pytest-asyncio (<0.22)", "testpath"]
+test-extra = ["curio", "matplotlib (!=3.2.0)", "nbformat", "numpy (>=1.23)", "pandas", "pickleshare", "pytest (<8)", "pytest-asyncio (<0.22)", "testpath", "trio"]
 
 [[package]]
 name = "iso3166"
@@ -1207,6 +1207,40 @@ files = [
 dev = ["black", "mypy", "pytest"]
 
 [[package]]
+name = "osmium"
+version = "3.7.0"
+description = "Python bindings for libosmium, the data processing library for OSM data"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "osmium-3.7.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:a4898cbf594e4b0aa2cf95cb1e51dc4735bc18df9dcee0503fd1845b0560e637"},
+    {file = "osmium-3.7.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4463f106e5e8c26bd69e183348c7ff8b6f0798d4b7b91d637e634a39ba97d4de"},
+    {file = "osmium-3.7.0-cp310-cp310-win_amd64.whl", hash = "sha256:390514d151165b549c5303ca7ea0b1ee67d25349a6d33df1b66e22256575c1c3"},
+    {file = "osmium-3.7.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:e6e35e0a82fff6f8f67923deec07d40a46e228e87e2892073a3191a3375cc31d"},
+    {file = "osmium-3.7.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:950f2d73e8b5c01851b0f55c2e9335c49883af1baceac969717edc61d3e0f576"},
+    {file = "osmium-3.7.0-cp311-cp311-win_amd64.whl", hash = "sha256:4c1d210c2fec70cbeb94ed573e878566eec1f76d37b1766e7c42e56d515186f8"},
+    {file = "osmium-3.7.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:027e7dc81740270a81d186379b6ce13caf766c26bd59cbdb0362bddaaace25df"},
+    {file = "osmium-3.7.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f9797f6b0ff1c432230bd398b173b5682b4fc8d932172dfc406e612c508104b8"},
+    {file = "osmium-3.7.0-cp312-cp312-win_amd64.whl", hash = "sha256:f5872e9ee30399328f962e6d06eff5d907bda569092df3a735c0a73a9b958928"},
+    {file = "osmium-3.7.0-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:d0dbad94681d4ca6695394c4fa3af226906744827c19fe2a73114ba166622d21"},
+    {file = "osmium-3.7.0-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a7d4bdc2b900c8cbefb328c856729306bbc8261e0a87cf5a896dbbaa325a6079"},
+    {file = "osmium-3.7.0-cp36-cp36m-win_amd64.whl", hash = "sha256:c85efab123f24ce3328cbb1a500812b5969b113df5daf3d09fc38aea03939c1d"},
+    {file = "osmium-3.7.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:495f5b972b176878b3fe4c8c12335b61b597ed14b00ec819e7602017680bd9df"},
+    {file = "osmium-3.7.0-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d3272e0c7532c31e2d4db30f079232742b3893a395638761d22bf68c2bd16366"},
+    {file = "osmium-3.7.0-cp37-cp37m-win_amd64.whl", hash = "sha256:c6b87f66913d540ae6c4acc07bd73586f93a1ce1663da64b7e5fe2d4e7b4f9b8"},
+    {file = "osmium-3.7.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:dd3578a896e603b533ad775e29f7cc5047e97355a9d6d57d890fa4fa5479c72f"},
+    {file = "osmium-3.7.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c7a7e35c517b06b59879fc2b585c0cb317d02e76889b19d080c29ebf4c0e1f1a"},
+    {file = "osmium-3.7.0-cp38-cp38-win_amd64.whl", hash = "sha256:c682e3ee06234cf94d5d3fcb0ebb76044554c9f81f795b9c3951a2b432c33497"},
+    {file = "osmium-3.7.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:38fe8daeb4e12a6e7de1a44ef7fb5898d065c86944c63b89d5a78e1e74012abc"},
+    {file = "osmium-3.7.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3d50c42650ab6c84831d281dcbb5a68270a2c51c5f08d4a0fca3aabdc1446786"},
+    {file = "osmium-3.7.0-cp39-cp39-win_amd64.whl", hash = "sha256:17f25a4a5aa57770750fc9913508928e90d398e8c383f1d753721696ecf775c4"},
+    {file = "osmium-3.7.0.tar.gz", hash = "sha256:6ee7f47eb76dca498b9e032f2ab0ee06f5af03b65f8c60cd87f6de97b08caea7"},
+]
+
+[package.dependencies]
+requests = "*"
+
+[[package]]
 name = "packaging"
 version = "23.2"
 description = "Core utilities for Python packages"
@@ -1670,13 +1704,13 @@ six = ">=1.5"
 
 [[package]]
 name = "pytz"
-version = "2023.3.post1"
+version = "2023.4"
 description = "World timezone definitions, modern and historical"
 optional = false
 python-versions = "*"
 files = [
-    {file = "pytz-2023.3.post1-py2.py3-none-any.whl", hash = "sha256:ce42d816b81b68506614c11e8937d3aa9e41007ceb50bfdcb0749b921bf646c7"},
-    {file = "pytz-2023.3.post1.tar.gz", hash = "sha256:7b4fddbeb94a1eba4b557da24f19fdf9db575192544270a9101d8509f9f43d7b"},
+    {file = "pytz-2023.4-py2.py3-none-any.whl", hash = "sha256:f90ef520d95e7c46951105338d918664ebfd6f1d995bd7d153127ce90efafa6a"},
+    {file = "pytz-2023.4.tar.gz", hash = "sha256:31d4583c4ed539cd037956140d695e42c033a19e984bfce9964a3f7d59bc2b40"},
 ]
 
 [[package]]
@@ -2167,17 +2201,18 @@ files = [
 
 [[package]]
 name = "urllib3"
-version = "2.1.0"
+version = "2.2.0"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "urllib3-2.1.0-py3-none-any.whl", hash = "sha256:55901e917a5896a349ff771be919f8bd99aff50b79fe58fec595eb37bbc56bb3"},
-    {file = "urllib3-2.1.0.tar.gz", hash = "sha256:df7aa8afb0148fa78488e7899b2c59b5f4ffcfa82e6c54ccb9dd37c1d7b52d54"},
+    {file = "urllib3-2.2.0-py3-none-any.whl", hash = "sha256:ce3711610ddce217e6d113a2732fafad960a03fd0318c91faa79481e35c11224"},
+    {file = "urllib3-2.2.0.tar.gz", hash = "sha256:051d961ad0c62a94e50ecf1af379c3aba230c66c710493493560c0c223c49f20"},
 ]
 
 [package.extras]
 brotli = ["brotli (>=1.0.9)", "brotlicffi (>=0.8.0)"]
+h2 = ["h2 (>=4,<5)"]
 socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
 zstd = ["zstandard (>=0.18.0)"]
 
@@ -2221,4 +2256,4 @@ test = ["websockets"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "efe4076e7bd2ea5f9231916190b5a30b1d5894aa7c76d1edbf16da33db7e0144"
+content-hash = "a9b138cb10606d089049a7f8a84c8bb1f92061c419b1121d5bee6f4529d6aec3"

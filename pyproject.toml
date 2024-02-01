@@ -15,6 +15,7 @@ pandas = "^2.0"
 commonroad-scenario-designer = {git = "git@gitlab.lrz.de:cps/commonroad/commonroad-scenario-designer.git", branch = "develop"}
 sumocr = "^2023.4"
 scikit-learn = "^1.3.2"
+osmium = ">=2.16.0"
 
 [tool.poetry.group.test]
 optional = true

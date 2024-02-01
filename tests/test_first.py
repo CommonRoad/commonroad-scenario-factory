@@ -1,10 +1,21 @@
 import pytest
+import os
 import random
 from files.n1_bounding_box_coordinates import compute_bounding_box_coordinates
-from files. n1_bounding_box_coordinates import update_cities_file
+from files.n1_bounding_box_coordinates import update_cities_file
 import math
 from pathlib import Path
 import pandas as pd
+import osmium
+
+class NodeHandler(osmium.SimpleHandler):
+    def __init__(self):
+        super(NodeHandler, self).__init__()
+        self.nodes = []  # List to store nodes with lat and lon
+
+    def node(self, n):
+        # Store node ID, lat, and lon in the list
+        self.nodes.append({'id': n.id, 'lat': n.location.lat, 'lon': n.location.lon})
 
 
 def calculate_area(lat1, lon1, lat2, lon2):
@@ -34,9 +45,9 @@ def test_area(random_params, repeat_count):
     print("Area (km2):", area, "Area from radius (km2):", area_from_radius)
     assert area > area_from_radius
 
-def test_file_after_n1():
 
-    #Values for the first line
+def test_file_after_n1():
+    # Values for the first line
     east = 8.8516
     north = 53.0738
     west = 8.8426
@@ -63,6 +74,27 @@ def test_file_after_n1():
     assert math.isclose(west, first_line_cities_updated.West, rel_tol=1e-3)
     assert math.isclose(south, first_line_cities_updated.South, rel_tol=1e-3)
 
+def test_file_after_n2():
 
+    east = 8.8516
+    north = 53.0738
+    west = 8.8426
+    south = 53.0684
 
+    script_name = 'n2_osm_map_extraction.py'
+    command1 = f"cd ../files"
+    command2 = f"poetry run python {script_name}"
+
+    os.system(command1 + " ; " + command2)
+
+    osm_file_path = '../files/extracted_maps/DEU_Bremen.osm'
+
+    handler = NodeHandler()
+
+    reader = osmium.io.Reader(osm_file_path)
+    osmium.apply(reader, handler)
+    reader.close()
+
+    for node in handler.nodes:
+        assert (west <= node['lon'] <= east) and (south <= node['lat'] <= north)
 
