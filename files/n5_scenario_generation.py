@@ -48,4 +48,4 @@ for r in res0:
 
 res = {r[1]: r[0] for r in res0}
 
-logger.info(f'obtained_scenario_number: {sum(list(res.values()))}')
+logger.warn(f'obtained_scenario_number: {sum(list(res.values()))}')

@@ -22,21 +22,10 @@ format_checking:
   allow_failure: true
 
 main_pipeline_testing:
-  stage: main_pipeline_test
+  stage: pipeline_test
   image: gitlab.lrz.de:5005/cps/commonroad/sumocr-scenario-generation
   script:
     - cd files
-    - poetry run python n1_bounding_box_coordinates.py
-    - poetry run python n2_osm_map_extraction.py
-    - poetry run python n3_conversion_to_commonroad.py
-    - poetry run python n4_globetrotter.py
-    - poetry run python n5_scenario_generation.py
+    - poetry run pytest test_pipeline.py
     - echo $(osmium --version)
   needs: []
-
-unit_testing:
-  stage: unit_test
-  image: gitlab.lrz.de:5005/cps/commonroad/sumocr-scenario-generation
-  script:
-    - cd tests
-    - poetry run pytest test_first.py
