@@ -1,7 +1,6 @@
 stages:
   - linting
-  - main_pipeline_test
-  - unit_test
+  - pipeline_test
   - deploy
 
 before_script:
