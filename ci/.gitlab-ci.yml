@@ -24,7 +24,7 @@ main_pipeline_testing:
   stage: pipeline_test
   image: gitlab.lrz.de:5005/cps/commonroad/sumocr-scenario-generation
   script:
-    - cd files
+    - cd tests
     - poetry run pytest test_pipeline.py
     - echo $(osmium --version)
   needs: []
