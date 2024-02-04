@@ -1,5 +1,6 @@
 import pytest
 import os
+import sys
 import random
 from files.n1_bounding_box_coordinates import compute_bounding_box_coordinates
 import math
@@ -8,8 +9,9 @@ import pandas as pd
 import osmium
 import xml.etree.ElementTree as ET
 from pyproj import Proj, transform
+import logging
 
-
+#poetry run pytest test_pipeline.py --random_test for randomly selecting an example
 class NodeHandler(osmium.SimpleHandler):
     def __init__(self):
         super(NodeHandler, self).__init__()
@@ -62,48 +64,55 @@ def wgs84_to_web_mercator(lon, lat):
     return x, y
 
 
-random_test = False
-
-if random_test:
-    with open(Path("../files/0_cities_selected.csv"), newline='') as csvfile:
-        cities = pd.read_csv(csvfile)
-
-    random_line = cities.sample(n=1).iloc[0]
-
-    country = random_line.Country
-    city = random_line.City
-    lat = random_line.Lat
-    lon = random_line.Lon
-
-    east, north, west, south = calculate_bounding_box(lat, lon, radius=0.3)
-
-    east_SI, north_SI = wgs84_to_web_mercator(east, north)
-    west_SI, south_SI = wgs84_to_web_mercator(west, south)
-
-
-else:
-    # Test with hand-picked and hand-calculated example
-    country = "DEU"
-    city = "Bremen"
-    lat = 53.071054226968
-    lon = 8.847098524980682
-
-    east = 8.851588965027055
-    north = 53.07375219178576
-    west = 8.842608084934309
-    south = 53.068356262150246
-
-    # Conversion from WGS84 (GPS) to WGS84 Web Mercator
-
-    east_SI = 985354.376
-    north_SI = 6996651.749
-    west_SI = 984354.629
-    south_SI = 6995652.002
+country, city, lat, lon = None, None, None, None
+east, north, west, south = None, None, None, None
+east_SI, north_SI, west_SI, south_SI = None, None, None, None
 
 # Change error margin while testing to measure precisety
 error_margin = 0.05
 lower_bound = 1 - error_margin
 upper_bound = 1 + error_margin
+
+
+@pytest.fixture(autouse=True, scope="session")
+def calculate_input_variables(request):
+    global country, city, lat, lon, east, north, west, south, east_SI, north_SI, west_SI, south_SI
+
+    random_test = request.config.getoption("--random_test")
+    if random_test:
+        with open(Path("../files/0_cities_selected.csv"), newline='') as csvfile:
+            cities = pd.read_csv(csvfile)
+
+        random_line = cities.sample(n=1).iloc[0]
+
+        country = random_line.Country
+        city = random_line.City
+        lat = random_line.Lat
+        lon = random_line.Lon
+
+        east, north, west, south = calculate_bounding_box(lat, lon, radius=0.3)
+
+        east_SI, north_SI = wgs84_to_web_mercator(east, north)
+        west_SI, south_SI = wgs84_to_web_mercator(west, south)
+
+    else:
+        # Test with hand-picked and hand-calculated example
+        country = "DEU"
+        city = "Bremen"
+        lat = 53.071054226968
+        lon = 8.847098524980682
+
+        east = 8.851588965027055
+        north = 53.07375219178576
+        west = 8.842608084934309
+        south = 53.068356262150246
+
+        # Conversion from WGS84 (GPS) to WGS84 Web Mercator
+
+        east_SI = 985354.376
+        north_SI = 6996651.749
+        west_SI = 984354.629
+        south_SI = 6995652.002
 
 
 @pytest.fixture
@@ -115,7 +124,7 @@ def random_params():
 
 
 @pytest.mark.parametrize("repeat_count", range(50))
-def test_area(random_params, repeat_count):
+def test_area(random_params, repeat_count, request):
     lat, lon, radius = random_params
     bbox_coordinates = compute_bounding_box_coordinates(lat, lon, radius)
     west, south, east, north = bbox_coordinates
@@ -126,6 +135,7 @@ def test_area(random_params, repeat_count):
 
 
 def test_bounding_box_coordinates():
+    global east, north, west, south
     script_name = 'n1_bounding_box_coordinates.py'
     command1 = f"cd ../files"
     command2 = f"poetry run python {script_name}"
@@ -150,6 +160,8 @@ def test_bounding_box_coordinates():
 
 
 def test_osm_map_extraction():
+    global east, north, west, south, country, city
+
     script_name = 'n2_osm_map_extraction.py'
     command1 = f"cd ../files"
     command2 = f"poetry run python {script_name}"
@@ -170,6 +182,8 @@ def test_osm_map_extraction():
 
 
 def test_conversion_to_commonroad():
+    global east_SI, north_SI, west_SI, south_SI, country, city
+
     script_name = 'n3_conversion_to_commonroad.py'
     command1 = f"cd ../files"
     command2 = f"poetry run python {script_name}"
@@ -187,6 +201,8 @@ def test_conversion_to_commonroad():
 
 
 def test_globetrotter():
+    global east_SI, north_SI, west_SI, south_SI, country, city
+
     script_name = 'n4_globetrotter.py'
     command1 = f"cd ../files"
     command2 = f"poetry run python {script_name}"
