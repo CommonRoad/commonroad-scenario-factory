@@ -11,7 +11,8 @@ import xml.etree.ElementTree as ET
 from pyproj import Proj, transform
 import logging
 
-#poetry run pytest test_pipeline.py --random_test for randomly selecting an example
+
+# poetry run pytest test_pipeline.py --random_test for randomly selecting an example
 class NodeHandler(osmium.SimpleHandler):
     def __init__(self):
         super(NodeHandler, self).__init__()
@@ -20,6 +21,26 @@ class NodeHandler(osmium.SimpleHandler):
     def node(self, n):
         # Store node ID, lat, and lon in the list
         self.nodes.append({'id': n.id, 'lat': n.location.lat, 'lon': n.location.lon})
+
+def can_open_XML_file(filepath):
+    try:
+        tree = ET.parse("../files/commonroad/file.xml")
+        # If the parsing is successful, you can proceed with tree.getroot() or other operations.
+        root = tree.getroot()
+        return True
+    except Exception as e:
+        print(f"Error opening file {filepath}: {e}")
+        return False
+def traverse_and_check(directory):
+
+    for root, dirs, files in os.walk(directory):
+        # Skip subdirectories
+        if root != directory:
+            continue
+
+        for file in files:
+            filepath = os.path.join(root, file)
+            assert can_open_XML_file(filepath)
 
 
 def calculate_bounding_box(lat, lon, radius):
@@ -223,3 +244,17 @@ def test_globetrotter():
                     y = float(point.find('y').text)
                     assert (lower_bound * west_SI <= x <= upper_bound * east_SI) and (
                             lower_bound * south_SI <= y <= upper_bound * north_SI)
+
+
+def test_scenario_generation():
+    script_name = 'n5_scenario_generation.py'
+    command1 = f"cd ../files"
+    command2 = f"poetry run python {script_name}"
+    os.system(command1 + " ; " + command2)
+
+    cmd_num_of_scenario_files = "ls -1 ../files/output/intermediate | wc -l"
+    num_of_scenario_files = int(os.popen(cmd_num_of_scenario_files).read().strip())
+
+    assert num_of_scenario_files > 30
+
+    traverse_and_check("../files/output/intermediate")
