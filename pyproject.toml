@@ -17,6 +17,7 @@ sumocr = "^2023.4"
 scikit-learn = "^1.3.2"
 osmium = ">=2.16.0"
 pyproj = "^3.6.1"
+pytest-cov = "^4.1.0"
 
 [tool.poetry.group.test]
 optional = true
