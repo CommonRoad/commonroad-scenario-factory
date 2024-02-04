@@ -9,7 +9,12 @@ import pandas as pd
 import osmium
 import xml.etree.ElementTree as ET
 from pyproj import Proj, transform
+from commonroad.common.file_reader import CommonRoadFileReader
 import logging
+from scenario_factory.scenario_util import init_logging
+
+# start logging, choose logging levels logging.DEBUG, INFO, WARN, ERROR, CRITICAL
+logger = init_logging(__name__, logging.WARN)
 
 
 # poetry run pytest test_pipeline.py --random_test for randomly selecting an example
@@ -22,17 +27,17 @@ class NodeHandler(osmium.SimpleHandler):
         # Store node ID, lat, and lon in the list
         self.nodes.append({'id': n.id, 'lat': n.location.lat, 'lon': n.location.lon})
 
-def can_open_XML_file(filepath):
+
+def can_open_CR_file(filepath):
     try:
-        tree = ET.parse("../files/commonroad/file.xml")
-        # If the parsing is successful, you can proceed with tree.getroot() or other operations.
-        root = tree.getroot()
+        scenario, _ = CommonRoadFileReader(filepath).open()
         return True
     except Exception as e:
         print(f"Error opening file {filepath}: {e}")
         return False
-def traverse_and_check(directory):
 
+
+def traverse_and_check(directory):
     for root, dirs, files in os.walk(directory):
         # Skip subdirectories
         if root != directory:
@@ -40,7 +45,7 @@ def traverse_and_check(directory):
 
         for file in files:
             filepath = os.path.join(root, file)
-            assert can_open_XML_file(filepath)
+            assert can_open_CR_file(filepath)
 
 
 def calculate_bounding_box(lat, lon, radius):
@@ -83,6 +88,12 @@ def wgs84_to_web_mercator(lon, lat):
     x, y = transform(wgs84, web_mercator, lon, lat)
 
     return x, y
+
+
+def count_lines_in_file(file_path):
+    with open(file_path, 'r') as file:
+        line_count = sum(1 for line in file)
+    return line_count
 
 
 country, city, lat, lon = None, None, None, None
@@ -160,24 +171,31 @@ def test_bounding_box_coordinates():
     script_name = 'n1_bounding_box_coordinates.py'
     command1 = f"cd ../files"
     command2 = f"poetry run python {script_name}"
+    try:
+        os.system(command1 + " ; " + command2)
+    except:
+        logger.warn(f"Error while running {script_name}")
+        assert False, f"Error while running {script_name}"
 
-    os.system(command1 + " ; " + command2)
-
-    with open(Path("../files/0_cities_selected.csv"), newline='') as csvfile:
-        cities_updated = pd.read_csv(csvfile)
+    try:
+        with open(Path("../files/0_cities_selected.csv"), newline='') as csvfile:
+            cities_updated = pd.read_csv(csvfile)
+    except:
+        logger.warn("The input file can not be opened.")
+        assert False, "The input file can not be opened."
 
     selected_line = cities_updated[
         (cities_updated['Country'] == country) & (cities_updated['City'] == city) & (cities_updated['Lat'] == lat) &
         (cities_updated['Lon'] == lon)]
 
-    assert selected_line.shape[0] == 1
+    assert selected_line.shape[0] == 1, "Such input can not be found on input file, or duplicated entry on input."
 
     selected_line = selected_line.iloc[0]
 
-    assert math.isclose(east, selected_line.East, rel_tol=1e-8)
-    assert math.isclose(north, selected_line.North, rel_tol=1e-8)
-    assert math.isclose(west, selected_line.West, rel_tol=1e-8)
-    assert math.isclose(south, selected_line.South, rel_tol=1e-8)
+    assert math.isclose(east, selected_line.East, rel_tol=1e-8), "Coordinates of calculated points doesn't match."
+    assert math.isclose(north, selected_line.North, rel_tol=1e-8), "Coordinates of calculated points doesn't match."
+    assert math.isclose(west, selected_line.West, rel_tol=1e-8), "Coordinates of calculated points doesn't match."
+    assert math.isclose(south, selected_line.South, rel_tol=1e-8), "Coordinates of calculated points doesn't match."
 
 
 def test_osm_map_extraction():
@@ -187,19 +205,29 @@ def test_osm_map_extraction():
     command1 = f"cd ../files"
     command2 = f"poetry run python {script_name}"
 
-    os.system(command1 + " ; " + command2)
+    try:
+        os.system(command1 + " ; " + command2)
+    except:
+        logger.warn(f"Error while running {script_name}")
+        assert False, f"Error while running {script_name}"
 
     osm_file_path = f"../files/extracted_maps/{country}_{city}.osm"
 
     handler = NodeHandler()
 
-    reader = osmium.io.Reader(osm_file_path)
-    osmium.apply(reader, handler)
-    reader.close()
+    try:
+        reader = osmium.io.Reader(osm_file_path)
+        osmium.apply(reader, handler)
+        reader.close()
+    except:
+        logger.warn(f"Error while opening {osm_file_path}")
+        assert False, f"Error while opening {osm_file_path}"
+
+    assert count_lines_in_file(osm_file_path) > 20, f"Empty osm file {osm_file_path}"
 
     for node in handler.nodes:
         assert (lower_bound * west <= node['lon'] <= upper_bound * east) and (
-                lower_bound * south <= node['lat'] <= upper_bound * north)
+                lower_bound * south <= node['lat'] <= upper_bound * north), "The point is out of bounding box."
 
 
 def test_conversion_to_commonroad():
@@ -209,16 +237,28 @@ def test_conversion_to_commonroad():
     command1 = f"cd ../files"
     command2 = f"poetry run python {script_name}"
 
-    os.system(command1 + " ; " + command2)
+    try:
+        os.system(command1 + " ; " + command2)
+    except:
+        logger.warn(f"Error while running {script_name}")
+        assert False, f"Error while running {script_name}"
 
-    root = ET.parse(f"../files/commonroad/{country}_{city}.xml").getroot()
+    filepath = f"../files/commonroad/{country}_{city}.xml"
+
+    try:
+        root = ET.parse(filepath).getroot()
+    except:
+        logger.warn(f"Error while opening {filepath}")
+        assert False, f"Error while opening {filepath}"
+
+    assert count_lines_in_file(filepath) > 20, f"Empty file {filepath}"
 
     for lanelet in root.iter('lanelet'):
         for point in lanelet.iter('point'):
             x = float(point.find('x').text)
             y = float(point.find('y').text)
             assert (lower_bound * west_SI <= x <= upper_bound * east_SI) and (
-                    lower_bound * south_SI <= y <= upper_bound * north_SI)
+                    lower_bound * south_SI <= y <= upper_bound * north_SI), "The point is out of bounding box."
 
 
 def test_globetrotter():
@@ -227,7 +267,12 @@ def test_globetrotter():
     script_name = 'n4_globetrotter.py'
     command1 = f"cd ../files"
     command2 = f"poetry run python {script_name}"
-    os.system(command1 + " ; " + command2)
+
+    try:
+        os.system(command1 + " ; " + command2)
+    except:
+        logger.warn(f"Error while running {script_name}")
+        assert False, f"Error while running {script_name}"
 
     folder_path = f"../files/globetrotter/{country}_{city}"
 
@@ -235,26 +280,41 @@ def test_globetrotter():
         if filename.endswith('.xml'):
             file_path = os.path.join(folder_path, filename)
 
-            tree = ET.parse(file_path)
-            root = tree.getroot()
+            try:
+                tree = ET.parse(file_path)
+                root = tree.getroot()
+            except:
+                logger.warn(f"Error while opening {file_path}")
+                assert False, f"Error while opening {file_path}"
+
+            assert count_lines_in_file(file_path) > 20, f"Empty file {file_path}"
 
             for lanelet in root.iter('lanelet'):
                 for point in lanelet.iter('point'):
                     x = float(point.find('x').text)
                     y = float(point.find('y').text)
                     assert (lower_bound * west_SI <= x <= upper_bound * east_SI) and (
-                            lower_bound * south_SI <= y <= upper_bound * north_SI)
+                            lower_bound * south_SI <= y <= upper_bound * north_SI), "The point is out of bounding box."
 
 
 def test_scenario_generation():
     script_name = 'n5_scenario_generation.py'
     command1 = f"cd ../files"
     command2 = f"poetry run python {script_name}"
-    os.system(command1 + " ; " + command2)
+    try:
+        os.system(command1 + " ; " + command2)
+    except:
+        logger.warn(f"Error while running {script_name}")
+        assert False, f"Error while running {script_name}"
 
     cmd_num_of_scenario_files = "ls -1 ../files/output/intermediate | wc -l"
-    num_of_scenario_files = int(os.popen(cmd_num_of_scenario_files).read().strip())
 
-    assert num_of_scenario_files > 30
+    try:
+        num_of_scenario_files = int(os.popen(cmd_num_of_scenario_files).read().strip())
+    except:
+        logger.warn(f"Execution of cmd {cmd_num_of_scenario_files} is failed.")
+        assert False, f"Execution of cmd {cmd_num_of_scenario_files} is failed."
+
+    assert num_of_scenario_files > 30, "Scenario number must be greater than 30."
 
     traverse_and_check("../files/output/intermediate")

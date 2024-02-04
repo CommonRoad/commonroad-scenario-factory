@@ -8,6 +8,7 @@ import logging
 from scenario_factory.scenario_util import init_logging
 import numpy as np
 
+
 np.random.seed(123456)
 
 # start logging, choose logging levels logging.DEBUG, INFO, WARN, ERROR, CRITICAL
