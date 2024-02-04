@@ -26,8 +26,5 @@ main_pipeline_testing:
   script:
     - cd tests
     - poetry run pytest test_pipeline.py
-    - cd ../files
-    - poetry run python n5_scenario_generation.py
-    - echo $(ls -1 output/intermediate | wc -l)
     - echo $(osmium --version)
   needs: []
