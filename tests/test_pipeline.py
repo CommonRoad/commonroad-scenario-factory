@@ -2,7 +2,7 @@ import pytest
 import os
 import sys
 import random
-from files.n1_bounding_box_coordinates import compute_bounding_box_coordinates
+from files.script_1_bounding_box_coordinates import compute_bounding_box_coordinates
 import math
 from pathlib import Path
 import pandas as pd
@@ -168,7 +168,7 @@ def test_area(random_params, repeat_count, request):
 
 def test_bounding_box_coordinates():
     global east, north, west, south
-    script_name = 'n1_bounding_box_coordinates.py'
+    script_name = 'script_1_bounding_box_coordinates.py'
     command1 = f"cd ../files"
     command2 = f"poetry run python {script_name}"
     try:
@@ -201,7 +201,7 @@ def test_bounding_box_coordinates():
 def test_osm_map_extraction():
     global east, north, west, south, country, city
 
-    script_name = 'n2_osm_map_extraction.py'
+    script_name = 'script_2_osm_map_extraction.py'
     command1 = f"cd ../files"
     command2 = f"poetry run python {script_name}"
 
@@ -233,7 +233,7 @@ def test_osm_map_extraction():
 def test_conversion_to_commonroad():
     global east_SI, north_SI, west_SI, south_SI, country, city
 
-    script_name = 'n3_conversion_to_commonroad.py'
+    script_name = 'script_3_conversion_to_commonroad.py'
     command1 = f"cd ../files"
     command2 = f"poetry run python {script_name}"
 
@@ -264,7 +264,7 @@ def test_conversion_to_commonroad():
 def test_globetrotter():
     global east_SI, north_SI, west_SI, south_SI, country, city
 
-    script_name = 'n4_globetrotter.py'
+    script_name = 'script_4_globetrotter.py'
     command1 = f"cd ../files"
     command2 = f"poetry run python {script_name}"
 
@@ -298,7 +298,7 @@ def test_globetrotter():
 
 
 def test_scenario_generation():
-    script_name = 'n5_scenario_generation.py'
+    script_name = 'script_5_scenario_generation.py'
     command1 = f"cd ../files"
     command2 = f"poetry run python {script_name}"
     try:

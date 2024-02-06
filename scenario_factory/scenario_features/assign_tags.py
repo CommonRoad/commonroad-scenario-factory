@@ -5,7 +5,7 @@ from commonroad.common.file_writer import Tag
 from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.state import TraceState
 from commonroad.scenario.traffic_sign import SupportedTrafficSignCountry
-from commonroad.scenario.traffic_sign_interpreter import TrafficSigInterpreter
+from commonroad.scenario.traffic_sign_interpreter import TrafficSignInterpreter
 from commonroad.scenario.scenario import Lanelet, LaneletNetwork, Scenario
 from commonroad.common.util import make_valid_orientation, Interval
 from sumocr.sumo_config.default import ParamType
@@ -261,7 +261,7 @@ def identify_oncoming_traffic(lanelet_network: LaneletNetwork, states: [TraceSta
 def tag_traffic_sign(lanelet_network: LaneletNetwork, lanelets: {Lanelet}, country: SupportedTrafficSignCountry):
     tags = set()
     # traffic sign: roundabout, racetrack
-    interpreter = TrafficSigInterpreter(country, lanelet_network)
+    interpreter = TrafficSignInterpreter(country, lanelet_network)
     traffic_sign_ids = interpreter.traffic_sign_ids
     if interpreter.speed_limit(frozenset([lane.lanelet_id for lane in lanelets])) is not None:
         tags.add(Tag('speed_limit'))
