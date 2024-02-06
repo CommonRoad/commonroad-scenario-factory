@@ -26,7 +26,7 @@ from commonroad.geometry.shape import Rectangle
 from commonroad.planning.goal import GoalRegion
 from commonroad.planning.planning_problem import PlanningProblemSet, PlanningProblem
 from commonroad.prediction.prediction import TrajectoryPrediction
-from commonroad.scenario.traffic_sign_interpreter import TrafficSigInterpreter
+from commonroad.scenario.traffic_sign_interpreter import TrafficSignInterpreter
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.scenario import Scenario, LaneletNetwork, ScenarioID, Underground, Environment, Location
 from commonroad.scenario.state import InitialState, State
