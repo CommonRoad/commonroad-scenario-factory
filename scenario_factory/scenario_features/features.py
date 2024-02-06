@@ -1,21 +1,20 @@
 import argparse
 import glob
+import math
 import os
 from typing import List, Union
 
-import math
 import numpy as np
 import pandas as pd
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.geometry.shape import Shape, Circle, Rectangle, Polygon, ShapeGroup
 from commonroad.scenario.lanelet import LaneletNetwork
-from commonroad.scenario.obstacle import Obstacle, DynamicObstacle
+from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
-from commonroad.scenario.trajectory import Trajectory, State
-try:
-    from commonroad_ccosy.geometry.trapezoid_coordinate_system import create_coordinate_system_from_polyline
-except ModuleNotFoundError:
-    pass
+from commonroad.scenario.state import TraceState
+from commonroad.scenario.trajectory import State
+from commonroad_dc.geometry.geometry import CurvilinearCoordinateSystem
+
 
 SENSOR_RANGE = 100.0
 
@@ -116,7 +115,7 @@ def euclidean_distance(pos1: np.ndarray, pos2: np.ndarray) -> float:
 #     return closest_verts
 
 
-def get_curvy_distance(ego_pos, obst_pos, coord_sys):
+def get_curvy_distance(ego_pos, obst_pos, coord_sys: CurvilinearCoordinateSystem):
     ego_pos_curvy = coord_sys.convert_to_curvilinear_coords(ego_pos[0], ego_pos[1])
     obst_pos_curvy = coord_sys.convert_to_curvilinear_coords(obst_pos[0], obst_pos[1])
     return euclidean_distance(ego_pos_curvy, obst_pos_curvy)
@@ -152,7 +151,8 @@ def get_obstacles_in_lanelet(obstacles, lanelet, timestep):
     ]
 
 
-def get_leading_and_preceeding_positions_by_pos(dynamic_obstacles, lanelet, ego_state, coord_sys, sensor_range=SENSOR_RANGE):
+def get_leading_and_preceeding_positions_by_pos(dynamic_obstacles, lanelet, ego_state, coord_sys: CurvilinearCoordinateSystem,
+                                                sensor_range=SENSOR_RANGE):
     if lanelet is None: return -1, -1
     obstacles = get_obstacles_in_lanelet(dynamic_obstacles, lanelet, ego_state.time_step)
     front_obstacles = get_obstacles_in_front(ego_state, obstacles)
@@ -177,9 +177,10 @@ def get_leading_and_preceeding_positions_by_pos(dynamic_obstacles, lanelet, ego_
     return round(front_dist, 4), round(rear_dist, 4)  # TODO maybe minus for rear ones? but then what about -1?
 
 
-def get_lanelets(lanelet_network, ego_state):
-
-    ego_lanelet_ids = lanelet_network.find_lanelet_by_position([ego_state.position])[0]
+def get_lanelets(lanelet_network: LaneletNetwork, ego_state: TraceState):
+    if ego_state is not None:
+        ego_lanelet_ids = lanelet_network.find_lanelet_by_position([ego_state.position])[0]
+    else: return None, None, None
     if not ego_lanelet_ids: return None, None, None
     ego_lanelet_id = ego_lanelet_ids[0]
     ego_lanelet = lanelet_network.find_lanelet_by_id(ego_lanelet_id)
@@ -199,8 +200,8 @@ def get_lanelets(lanelet_network, ego_state):
 
 def get_leading_and_preceeding_positions(scenario, ego_vehicle, timestep, suffix):
     ego_state = get_obstacle_state_at_timestep(ego_vehicle, timestep)
-    ego_lanelet, left_lanelet, right_lanelet = get_lanelets(scenario, ego_state)
-    coord_sys = create_coordinate_system_from_polyline(ego_lanelet.center_vertices)
+    ego_lanelet, left_lanelet, right_lanelet = get_lanelets(scenario.lanelet_network, ego_state)
+    coord_sys = CurvilinearCoordinateSystem(ego_lanelet.center_vertices)
 
     # leading, preceeding
     l_pos, p_pos = get_leading_and_preceeding_positions_by_pos(scenario.dynamic_obstacles,
@@ -262,7 +263,7 @@ def get_closest_obstacle(ego_state: State, obstacles: List[DynamicObstacle]) -> 
 
 
 def get_closest_front_obstacle(scenario, ego_state):
-    ego_lanelet, _, _ = get_lanelets(scenario, ego_state)
+    ego_lanelet, _, _ = get_lanelets(scenario.lanelet_network, ego_state)
     obstacles = get_obstacles_in_lanelet(scenario.obstacles, ego_lanelet, ego_state.time_step)
     front_obstacles = get_obstacles_in_front(ego_state, obstacles)
     closest_obstacle = get_closest_obstacle(ego_state, front_obstacles)
@@ -284,8 +285,8 @@ def get_min_dhw(scenario: Scenario, ego_vehicle: DynamicObstacle, sensor_range=S
         if closest_obstacle is None: continue
 
         obstace_state = get_obstacle_state_at_timestep(closest_obstacle, ego_state.time_step)
-        ego_lanelet, _, _ = get_lanelets(scenario, ego_state)
-        curvy_coord = create_coordinate_system_from_polyline(ego_lanelet.center_vertices)
+        ego_lanelet, _, _ = get_lanelets(scenario.lanelet_network, ego_state)
+        curvy_coord = CurvilinearCoordinateSystem(ego_lanelet.center_vertices)
         dist = get_curvy_distance(ego_state.position, obstace_state.position, curvy_coord)  # distance center of gravity
 
         sensor_range = ego_state.velocity * 3 if sensor_range is None else sensor_range
@@ -318,8 +319,8 @@ def get_min_thw(scenario: Scenario, ego_vehicle: DynamicObstacle, sensor_range=S
         if closest_obstacle is None: continue
 
         obstace_state = get_obstacle_state_at_timestep(closest_obstacle, ego_state.time_step)
-        ego_lanelet, _, _ = get_lanelets(scenario, ego_state)
-        curvy_coord = create_coordinate_system_from_polyline(ego_lanelet.center_vertices)
+        ego_lanelet, _, _ = get_lanelets(scenario.lanelet_network, ego_state)
+        curvy_coord = CurvilinearCoordinateSystem(ego_lanelet.center_vertices)
         dist = get_curvy_distance(ego_state.position, obstace_state.position, curvy_coord)  # distance center of gravity
 
         sensor_range = ego_state.velocity * 3 if sensor_range is None else sensor_range
@@ -352,8 +353,8 @@ def get_min_ttc(scenario: Scenario, ego_vehicle: DynamicObstacle, sensor_range=S
         if closest_obstacle is None: continue
 
         obstace_state = get_obstacle_state_at_timestep(closest_obstacle, ego_state.time_step)
-        ego_lanelet, _, _ = get_lanelets(scenario, ego_state)
-        curvy_coord = create_coordinate_system_from_polyline(ego_lanelet.center_vertices)
+        ego_lanelet, _, _ = get_lanelets(scenario.lanelet_network, ego_state)
+        curvy_coord = CurvilinearCoordinateSystem(ego_lanelet.center_vertices)
         dist = get_curvy_distance(ego_state.position, obstace_state.position, curvy_coord)  # distance center of gravity
 
         sensor_range = ego_state.velocity * 3 if sensor_range is None else sensor_range
@@ -389,17 +390,17 @@ def changes_lane(lanelet_network, obstacle):
 
 def get_cut_in_info(scenario: Scenario, ego_vehicle: DynamicObstacle, sensor_range=SENSOR_RANGE):
     dynamic_obstacles = scenario.dynamic_obstacles
-    lc_obstacles = [(obstacle,) + changes_lane(scenario, obstacle)[1:]
-                    for obstacle in dynamic_obstacles if changes_lane(scenario, obstacle)[0]]
+    lc_obstacles = [(obstacle,) + changes_lane(scenario.lanelet_network, obstacle)[1:]
+                    for obstacle in dynamic_obstacles if changes_lane(scenario.lanelet_network, obstacle)[0]]
     sorted_lc_obstacles = sorted(lc_obstacles, key=lambda x: x[2])
 
     for obstacle, lc_dir, lc_ts in sorted_lc_obstacles:
         obst_state = get_obstacle_state_at_timestep(obstacle, lc_ts)
         ego_state = get_obstacle_state_at_timestep(ego_vehicle, lc_ts)
-        obst_lanelet, _, _ = get_lanelets(scenario, obst_state)
-        ego_lanelet, _, _ = get_lanelets(scenario, ego_state)
+        obst_lanelet, _, _ = get_lanelets(scenario.lanelet_network, obst_state)
+        ego_lanelet, _, _ = get_lanelets(scenario.lanelet_network, ego_state)
         if obst_lanelet.lanelet_id == ego_lanelet.lanelet_id and is_obstacle_in_front(ego_state, obst_state.position):
-            curvy_coord = create_coordinate_system_from_polyline(ego_lanelet.center_vertices)
+            curvy_coord = CurvilinearCoordinateSystem(ego_lanelet.center_vertices)
             ego_state_before = get_obstacle_state_at_timestep(ego_vehicle, ego_state.time_step - 1)
             front_obst_before = get_closest_front_obstacle(scenario, ego_state_before)
             if front_obst_before is None: continue
@@ -423,7 +424,7 @@ def get_feature_defaults(feature_suffix):
     return {
         feature_suffix: -1,
         'ego_v_%s' % feature_suffix: -1,
-        'ego_acc_%s' % feature_suffix: 0, # TODO what to set for default value
+        'ego_acc_%s' % feature_suffix: 0,  # TODO what to set for default value
         'l_rel_pos_%s' % feature_suffix: -1,
         'p_rel_pos_%s' % feature_suffix: -1,
         'll_rel_pos_%s' % feature_suffix: -1,
@@ -462,7 +463,7 @@ def extract_features(scenario, planning_problem_set, ego_vehicle):
         features['surr_veh_count_end'] = end_sur_veh_count
 
         # Ego Lane Change Features
-        ego_lc, ego_lc_dir, ego_lc_ts = changes_lane(scenario, ego_vehicle)
+        ego_lc, ego_lc_dir, ego_lc_ts = changes_lane(scenario.lanelet_network, ego_vehicle)
         features['ego_lane_change_ts'] = ego_lc_ts * scenario.dt if not ego_lc_ts == -1 else ego_lc_ts
         features['ego_lane_change'] = ego_lc_dir
 
@@ -502,7 +503,7 @@ def extract_features(scenario, planning_problem_set, ego_vehicle):
 
         # Ego Min TTC Time Step Features
         features.update(get_feature_defaults('min_ttc'))
-        min_ttc, min_ttc_ts = get_min_ttc(scenario, ego_vehicle)  # TODO might not be correct or accurate
+        min_ttc, min_ttc_ts = get_min_ttc(scenario, scenario.lanelet_network, ego_vehicle)  # TODO might not be correct or accurate
         # print('min_ttc_ts', min_ttc_ts)
         if min_ttc_ts > -1:
             features['min_ttc'] = min_ttc

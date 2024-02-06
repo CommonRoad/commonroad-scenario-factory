@@ -3,9 +3,14 @@ from copy import deepcopy
 import logging
 import traceback
 import signal
+from multiprocessing import Pool
+
 import libsumo
 import numpy as np
 from commonroad.common.file_reader import CommonRoadFileReader
+
+from scenario_factory.scenario_features.assign_tags import assign_tags
+from scenario_factory.scenario_util import init_logging
 from sumocr.sumo_config.default import InteractiveSumoConfigDefault
 from scenario_factory.config_files.scenario_config import ScenarioConfig
 from scenario_factory.scenario_checker import DeleteScenario
@@ -146,8 +151,7 @@ def create_scenarios(
                     scenario.scenario_id = orig_map_name
                     scenario_config.map_name = orig_map_name
                     scenario.location = scenario_orig.location
-                    # scenario.tags = scenario_orig.tags
-                    scenario.tags.add(Tag.SIMULATED)  # TODO general all tags are ego vehicle based? (lanelet network based tags should be written here – latest)
+                    scenario.tags = scenario_orig.tags
 
                     # select ego vehicles for planning problems and postprocess final CommonRoad scenarios
                     try:
@@ -182,7 +186,7 @@ def create_scenarios(
                             sumo_net_path=sumo_net_copy,
                             rou_files=rou_files,
                             config=sumo_conf_tmp,
-                            default_config=InteractiveSumoConfigDefault(),
+                            default_config= InteractiveSumoConfigDefault(),
                             create_video=False,
                             check_validity=False,  # TODO set True
                             output_path=output_interactive
@@ -207,3 +211,44 @@ def create_scenarios(
         return obtained_scenario_number, cr_file
 
     return obtained_scenario_number, cr_file
+
+
+if __name__ == "__main__":
+    # set parameters
+    CREATE_VIDEO = False
+    NUM_POOL = 6
+    CREATE_INTERACTIVE = True
+    CREATE_NON_INTERACTIVE = True
+    np.random.seed(102)
+    timestr = time.strftime("%Y%m%d-%H%M%S")
+
+    # set sumo config
+    sumo_config = SumoConfig()
+    sumo_config.highway_mode = False
+
+    # set scenario config
+    scenario_config = ScenarioConfig()
+    scenario_directory = scenario_config.scenario_directory
+
+    # load files
+    filenames = list(Path(scenario_directory).rglob("*.xml"))
+    filenames = [file for file in filenames ] #if 'DEU' not in str(file)
+    # random.shuffle(filenames)
+
+    solution_folder = os.path.join(scenario_config.output_folder, timestr, "solutions")
+    os.makedirs(solution_folder, exist_ok=False)
+
+    # start logging, choose logging levels logging.INFO, logging.CRITICAL, logging.DEBUG
+    logger = init_logging(__name__, logging.DEBUG)
+
+    pool = Pool(processes=NUM_POOL)
+    res0 = pool.map(create_scenarios, zip(filenames, [deepcopy(sumo_config) for _ in range(len(filenames))]))
+
+    res = {}
+    for r in res0:
+        if type(r) is tuple and len(r) == 2:
+            res[r[1]] = r[0]
+
+    res = {r[1]: r[0] for r in res0}
+
+    logger.info(f'obtained_scenario_number: {sum(list(res.values()))}')

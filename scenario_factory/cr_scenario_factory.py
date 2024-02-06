@@ -26,7 +26,7 @@ from commonroad.geometry.shape import Rectangle
 from commonroad.planning.goal import GoalRegion
 from commonroad.planning.planning_problem import PlanningProblemSet, PlanningProblem
 from commonroad.prediction.prediction import TrajectoryPrediction
-from commonroad.scenario.traffic_sign_interpreter import TrafficSignInterpreter
+from commonroad.scenario.traffic_sign_interpreter import TrafficSigInterpreter
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.scenario import Scenario, LaneletNetwork, ScenarioID, Underground, Environment, Location
 from commonroad.scenario.state import InitialState, State
@@ -35,6 +35,9 @@ from commonroad.visualization.drawable import IDrawable
 from commonroad.visualization.mp_renderer import MPRenderer
 from commonroad_dc.collision.collision_detection.pycrcc_collision_dispatch import create_collision_checker
 from commonroad_dc.pycrcc import RectOBB
+
+
+from scenario_factory.scenario_features.assign_tags import *
 from scenario_factory.scenario_features.features import changes_lane, get_obstacle_state_list
 from scenario_factory.scenario_features.models.scenario_model import ScenarioModel
 from crdesigner.map_conversion.sumo_map.config import SumoConfig, EGO_ID_START
@@ -598,10 +601,16 @@ class GenerateCRScenarios:
         :param planning_problem_set:
         :return:
         """
+        ''''
         if self.conf_scenario.tags is not None:
             tags = [Tag(tag) for tag in self.conf_scenario.tags]
         else:
             tags = self.conf_scenario.tags
+        '''
+        if not self.list_ego_obstacles:
+            tags = [Tag(tag) for tag in self.conf_scenario.tags]
+        else:
+            tags = assign_tags(self.list_ego_obstacles, commonroad_scenario)
 
         if planning_problem_set is not None:
             fw = CommonRoadFileWriter(commonroad_scenario, planning_problem_set, author=self.conf_scenario.author,
@@ -760,11 +769,18 @@ class GenerateCRScenarios:
                                          simulation_config: SumoConfig,
                                          interactive_base_config: InteractiveSumoConfigDefault,
                                          check_validity=False, ):
+        '''
         if self.conf_scenario.tags is not None:
             tags = [Tag(tag) for tag in self.conf_scenario.tags]
         else:
             tags = self.conf_scenario.tags
 
+        '''
+        if not self.list_ego_obstacles:
+            tags = [Tag(tag) for tag in self.conf_scenario.tags]
+        else:
+            tags = assign_tags(self.list_ego_obstacles, commonroad_scenario)
+            
         filename = os.path.join(dirname, str(commonroad_scenario.scenario_id) + '.cr.xml')
         commonroad_scenario_init_state = self.reduce_scenario(commonroad_scenario)
         fw = CommonRoadFileWriter(commonroad_scenario_init_state, planning_problem_set, self.conf_scenario.author,
@@ -781,7 +797,7 @@ class GenerateCRScenarios:
             for attr in dir(interactive_base_config):
                 if attr.startswith('__') or callable(getattr(out_config, attr)):
                     continue
-                if getattr(interactive_base_config, attr) == ParamType.NOT_SET:
+                if hasattr(interactive_base_config, attr) and getattr(interactive_base_config, attr) == ParamType.NOT_SET:
                     setattr(out_config, attr, set_attributes[attr])
                 elif attr.startswith("_abc"):
                     continue
