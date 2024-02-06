@@ -1,7 +1,16 @@
 stages:
   - linting
-  - test
+  - pipeline_test
   - deploy
+
+before_script:
+  - echo $SUMO_HOME
+  - apt-get update
+  - apt-get install -y python3.10 python3-pip git
+  - pip install poetry
+  - poetry config virtualenvs.in-project true
+  - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.lrz.de/".insteadOf "git@gitlab.lrz.de:"
+  - poetry install
 
 format_checking:
   stage: linting
@@ -11,18 +20,11 @@ format_checking:
     - black --check .
   allow_failure: true
 
-testing:
-  stage: test
+main_pipeline_testing:
+  stage: pipeline_test
   image: gitlab.lrz.de:5005/cps/commonroad/sumocr-scenario-generation
   script:
-    - echo $SUMO_HOME
-    - apt-get update
-    - apt-get install -y python3.10 python3-pip git
-    - pip install poetry
-    - poetry config virtualenvs.in-project true
-    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.lrz.de/".insteadOf "git@gitlab.lrz.de:"
-    - poetry install
-    - cd files
-    - poetry run python 1_bounding_box_coordinates.py
+    - cd tests
+    - poetry run pytest test_pipeline.py
     - echo $(osmium --version)
   needs: []

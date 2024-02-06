@@ -2,6 +2,7 @@ from pathlib import Path
 from commonroad.common.file_reader import CommonRoadFileReader
 from scenario_factory.globetrotter.globetrotter_io import commonroad_parse, save_intersections
 from scenario_factory.globetrotter.clustering import generate_intersections
+from commonroad.common.file_reader import CommonRoadFileReader
 
 commonroad_files = Path("commonroad").glob('*.xml')
 

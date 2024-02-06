@@ -8,6 +8,7 @@ import logging
 from scenario_factory.scenario_util import init_logging
 import numpy as np
 
+
 np.random.seed(123456)
 
 # start logging, choose logging levels logging.DEBUG, INFO, WARN, ERROR, CRITICAL
@@ -48,4 +49,4 @@ for r in res0:
 
 res = {r[1]: r[0] for r in res0}
 
-logger.info(f'obtained_scenario_number: {sum(list(res.values()))}')
+logger.warn(f'obtained_scenario_number: {sum(list(res.values()))}')
