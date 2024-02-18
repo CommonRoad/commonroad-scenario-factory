@@ -10,7 +10,7 @@ from commonroad.scenario.scenario import Lanelet, LaneletNetwork, Scenario
 from commonroad.common.util import make_valid_orientation, Interval
 from sumocr.sumo_config.default import ParamType
 
-from scenario_factory.scenario_features.features import changes_lane, euclidean_distance, get_cut_in_info, \
+from scenario_factory.scenario_features.features import changes_lane, is_obstacle_in_front, euclidean_distance, get_cut_in_info, \
     get_obstacle_state_list, \
     get_min_ego_acc, get_obstacle_state_at_timestep, get_lanelets, get_obstacles_in_lanelet, \
     get_min_ttc, get_min_dhw, get_min_thw
@@ -228,7 +228,7 @@ def is_emergency_braking(states: [TraceState], braking_detection_threshold: floa
 
 
 def identify_oncoming_traffic(lanelet_network: LaneletNetwork, states: [TraceState], all_obstacles,
-                              distance_threshold=5.0, orientation_threshold=np.deg2rad(90)):
+                              distance_threshold=5.0, orientation_threshold=np.deg2rad(135)):
     for ego_state in states:
         ego_lanelet, adj_left_lanelet, adj_right_lanelet = get_lanelets(lanelet_network, ego_state)
         obstacles = [obstacle for lanelet in [ego_lanelet, adj_left_lanelet, adj_right_lanelet] if lanelet is not None
@@ -244,12 +244,14 @@ def identify_oncoming_traffic(lanelet_network: LaneletNetwork, states: [TraceSta
             except IndexError:
                 continue
             other_position = other_state.position
+            if not is_obstacle_in_front(ego_state, other_position):
+                continue
             other_orientation = other_state.orientation
-
             relative_position = (other_position[0] - ego_position[0], other_position[1] - ego_position[1])
             relative_orientation = abs(other_orientation - ego_orientation)
 
             distance = math.sqrt(relative_position[0] ** 2 + relative_position[1] ** 2)
+            angle = math.atan2(relative_position[1], relative_position[0])
 
             if distance < distance_threshold and orientation_threshold < relative_orientation:
                 return True
