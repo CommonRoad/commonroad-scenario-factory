@@ -228,7 +228,7 @@ def is_emergency_braking(states: [TraceState], braking_detection_threshold: floa
 
 
 def identify_oncoming_traffic(lanelet_network: LaneletNetwork, states: [TraceState], all_obstacles,
-                              distance_threshold=5.0, orientation_threshold=np.deg2rad(135)):
+                              distance_threshold=5.0, orientation_threshold=np.deg2rad(30)):
     for ego_state in states:
         ego_lanelet, adj_left_lanelet, adj_right_lanelet = get_lanelets(lanelet_network, ego_state)
         obstacles = [obstacle for lanelet in [ego_lanelet, adj_left_lanelet, adj_right_lanelet] if lanelet is not None
@@ -236,24 +236,25 @@ def identify_oncoming_traffic(lanelet_network: LaneletNetwork, states: [TraceSta
         ego_position = ego_state.position
         ego_orientation = ego_state.orientation
 
-        oncoming_traffic = []
-
         for obstacle in obstacles:
             try:
                 other_state = obstacle.prediction.trajectory.state_list[ego_state.time_step - 1]
             except IndexError:
                 continue
+
             other_position = other_state.position
             if not is_obstacle_in_front(ego_state, other_position):
                 continue
-            other_orientation = other_state.orientation
+
             relative_position = (other_position[0] - ego_position[0], other_position[1] - ego_position[1])
-            relative_orientation = abs(other_orientation - ego_orientation)
-
             distance = math.sqrt(relative_position[0] ** 2 + relative_position[1] ** 2)
-            angle = math.atan2(relative_position[1], relative_position[0])
+            if not distance < distance_threshold
+                continue
 
-            if distance < distance_threshold and orientation_threshold < relative_orientation:
+            other_orientation = other_state.orientation         
+            relative_orientation = abs(abs(other_orientation - ego_orientation) - math.pi)
+
+            if orientation_threshold < relative_orientation:
                 return True
 
     return False
