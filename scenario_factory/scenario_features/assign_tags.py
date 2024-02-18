@@ -248,7 +248,7 @@ def identify_oncoming_traffic(lanelet_network: LaneletNetwork, states: [TraceSta
 
             relative_position = (other_position[0] - ego_position[0], other_position[1] - ego_position[1])
             distance = math.sqrt(relative_position[0] ** 2 + relative_position[1] ** 2)
-            if not distance < distance_threshold
+            if not distance < distance_threshold:
                 continue
 
             other_orientation = other_state.orientation         
