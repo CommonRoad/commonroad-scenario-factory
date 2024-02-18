@@ -124,8 +124,8 @@ def feature_wrapper_tags(scenario: Scenario, ego_vehicle: DynamicObstacle):
     return tags
 
 
-def is_critical(min_dhw, min_thw, min_ttc, dhw_threshold: float = 1.0, thw_threshold: float = 5.0,
-                ttc_threshold: float = 2.0):
+def is_critical(min_dhw, min_thw, min_ttc, dhw_threshold: float = 5.0, thw_threshold: float = 1.0,
+                ttc_threshold: float = 1.0):
     # a very simplified version using features
     # small TTC indicates a high likelihood of collision
     # small THW suggests that the ego vehicle needs to respond quickly
