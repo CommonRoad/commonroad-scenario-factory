@@ -228,7 +228,7 @@ def is_emergency_braking(states: [TraceState], braking_detection_threshold: floa
 
 
 def identify_oncoming_traffic(lanelet_network: LaneletNetwork, states: [TraceState], all_obstacles,
-                              distance_threshold=5.0):
+                              distance_threshold=5.0, orientation_threshold=np.deg2rad(90)):
     for ego_state in states:
         ego_lanelet, adj_left_lanelet, adj_right_lanelet = get_lanelets(lanelet_network, ego_state)
         obstacles = [obstacle for lanelet in [ego_lanelet, adj_left_lanelet, adj_right_lanelet] if lanelet is not None
@@ -247,12 +247,11 @@ def identify_oncoming_traffic(lanelet_network: LaneletNetwork, states: [TraceSta
             other_orientation = other_state.orientation
 
             relative_position = (other_position[0] - ego_position[0], other_position[1] - ego_position[1])
-            relative_orientation = other_orientation - ego_orientation
+            relative_orientation = abs(other_orientation - ego_orientation)
 
             distance = math.sqrt(relative_position[0] ** 2 + relative_position[1] ** 2)
-            angle = math.atan2(relative_position[1], relative_position[0])
 
-            if distance < distance_threshold and -math.pi / 4 < relative_orientation < math.pi / 4:
+            if distance < distance_threshold and orientation_threshold < relative_orientation:
                 return True
 
     return False
