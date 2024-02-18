@@ -243,8 +243,8 @@ def identify_oncoming_traffic(lanelet_network: LaneletNetwork, states: [TraceSta
                 continue
 
             other_position = other_state.position
-            if not is_obstacle_in_front(ego_state, other_position):
-                continue
+            #if not is_obstacle_in_front(ego_state, other_position):
+            #    continue
 
             relative_position = (other_position[0] - ego_position[0], other_position[1] - ego_position[1])
             distance = math.sqrt(relative_position[0] ** 2 + relative_position[1] ** 2)
