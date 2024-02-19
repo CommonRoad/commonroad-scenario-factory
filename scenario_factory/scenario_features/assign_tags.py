@@ -18,8 +18,6 @@ from scenario_factory.scenario_features.features import changes_lane, is_obstacl
 from commonroad.common.common_lanelet import LaneletType
 
 
-# from scenario_factory.scenario_checker import check_collision
-
 def assign_tags(list_ego_obstacles, scenario):
     tags = {Tag('simulated')}
     lanelet_network = scenario.lanelet_network
@@ -32,8 +30,7 @@ def assign_tags(list_ego_obstacles, scenario):
         if Tag('traffic_jam') not in tags and merging_lanes(ego_lanelets):
             tags.add(Tag('merging_lanes'))
 
-        ego_lanelets = set(ego_lanelets)
-        if lane_following(len(ego_lanelets)):
+        if lane_following(ego_vehicle):
             tags.add(Tag('lane_following'))
 
         lanelets_ego_passed_through.update(ego_lanelets)
@@ -80,9 +77,14 @@ def get_lanelets_ego_passed_through(lanelet_network: LaneletNetwork, ego_states:
         ego_lanelets.append(ego_lanelet)
     return ego_lanelets
 
+def lane_following(ego: DynamicObstacle):
+    # Alternative: num_lanelets == 1
+    assignments = ego.prediction.center_lanelet_assignment
+    if assignments is None:
+        return False
+    ids = ego.center_lanelet_ids_history
+    return bool(set(ids) & set.union(*assignments.values()))
 
-def lane_following(num_lanelets):
-    return num_lanelets == 1
 
 
 def merging_lanes(lanelets: [Lanelet]):
@@ -243,12 +245,12 @@ def identify_oncoming_traffic(lanelet_network: LaneletNetwork, states: [TraceSta
                 continue
 
             other_position = other_state.position
-            #if not is_obstacle_in_front(ego_state, other_position):
-            #    continue
+            if not is_obstacle_in_front(ego_state, other_position):
+                continue
 
             relative_position = (other_position[0] - ego_position[0], other_position[1] - ego_position[1])
             distance = math.sqrt(relative_position[0] ** 2 + relative_position[1] ** 2)
-            if not distance < distance_threshold
+            if not distance < distance_threshold:
                 continue
 
             other_orientation = other_state.orientation         
