@@ -117,7 +117,7 @@ def feature_wrapper_tags(scenario: Scenario, ego_vehicle: DynamicObstacle):
         tags.add(Tag('critical'))
     if lane_change(lc_ts):
         tags.add(Tag('lane_change'))
-    if illegal_cut_in(cut_in_ts):
+    if illegal_cut_in(cut_in_ts, ego_vehicle, dt):
         tags.add(Tag('illegal_cut_in'))
     if is_comfort(min_acc):
         tags.add(Tag('comfort'))
@@ -139,8 +139,13 @@ def lane_change(lc_ts):
     return lc_ts != -1
 
 
-def illegal_cut_in(cut_in_ts):
-    return cut_in_ts != -1
+def illegal_cut_in(cut_in_ts, ego, dt):
+    if cut_in_ts == -1:
+        return False
+    state = ego.prediction.trajectory.state_list[cut_in_ts*dt-1]
+    if state.acceleration < -2.0:
+        return True
+    return False
 
 
 def is_comfort(min_acc, acc_threshold=1.0):
@@ -240,7 +245,7 @@ def identify_oncoming_traffic(lanelet_network: LaneletNetwork, states: [TraceSta
 
         for obstacle in obstacles:
             try:
-                other_state = obstacle.prediction.trajectory.state_list[ego_state.time_step - 1]
+                other_state = obstacle.prediction.trajectory.state_list[ego_state.time_step- 1]
             except IndexError:
                 continue
 
