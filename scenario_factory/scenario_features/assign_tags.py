@@ -10,15 +10,13 @@ from commonroad.scenario.scenario import Lanelet, LaneletNetwork, Scenario
 from commonroad.common.util import make_valid_orientation, Interval
 from sumocr.sumo_config.default import ParamType
 
-from scenario_factory.scenario_features.features import changes_lane, euclidean_distance, get_cut_in_info, \
+from scenario_factory.scenario_features.features import changes_lane, is_obstacle_in_front, euclidean_distance, get_cut_in_info, \
     get_obstacle_state_list, \
     get_min_ego_acc, get_obstacle_state_at_timestep, get_lanelets, get_obstacles_in_lanelet, \
     get_min_ttc, get_min_dhw, get_min_thw
 # from scenario_factory.cr_scenario_factory import GenerateCRScenarios
 from commonroad.common.common_lanelet import LaneletType
 
-
-# from scenario_factory.scenario_checker import check_collision
 
 def assign_tags(list_ego_obstacles, scenario):
     tags = {Tag('simulated')}
@@ -32,8 +30,7 @@ def assign_tags(list_ego_obstacles, scenario):
         if Tag('traffic_jam') not in tags and merging_lanes(ego_lanelets):
             tags.add(Tag('merging_lanes'))
 
-        ego_lanelets = set(ego_lanelets)
-        if lane_following(len(ego_lanelets)):
+        if lane_following(ego_vehicle):
             tags.add(Tag('lane_following'))
 
         lanelets_ego_passed_through.update(ego_lanelets)
@@ -80,9 +77,14 @@ def get_lanelets_ego_passed_through(lanelet_network: LaneletNetwork, ego_states:
         ego_lanelets.append(ego_lanelet)
     return ego_lanelets
 
+def lane_following(ego: DynamicObstacle):
+    # Alternative: num_lanelets == 1
+    assignments = ego.prediction.center_lanelet_assignment
+    if assignments is None:
+        return False
+    ids = ego.center_lanelet_ids_history
+    return bool(set(ids) & set.union(*assignments.values()))
 
-def lane_following(num_lanelets):
-    return num_lanelets == 1
 
 
 def merging_lanes(lanelets: [Lanelet]):
@@ -115,7 +117,7 @@ def feature_wrapper_tags(scenario: Scenario, ego_vehicle: DynamicObstacle):
         tags.add(Tag('critical'))
     if lane_change(lc_ts):
         tags.add(Tag('lane_change'))
-    if illegal_cut_in(cut_in_ts):
+    if illegal_cut_in(cut_in_ts, ego_vehicle, dt):
         tags.add(Tag('illegal_cut_in'))
     if is_comfort(min_acc):
         tags.add(Tag('comfort'))
@@ -124,8 +126,8 @@ def feature_wrapper_tags(scenario: Scenario, ego_vehicle: DynamicObstacle):
     return tags
 
 
-def is_critical(min_dhw, min_thw, min_ttc, dhw_threshold: float = 1.0, thw_threshold: float = 5.0,
-                ttc_threshold: float = 2.0):
+def is_critical(min_dhw, min_thw, min_ttc, dhw_threshold: float = 5.0, thw_threshold: float = 1.0,
+                ttc_threshold: float = 1.0):
     # a very simplified version using features
     # small TTC indicates a high likelihood of collision
     # small THW suggests that the ego vehicle needs to respond quickly
@@ -137,8 +139,13 @@ def lane_change(lc_ts):
     return lc_ts != -1
 
 
-def illegal_cut_in(cut_in_ts):
-    return cut_in_ts != -1
+def illegal_cut_in(cut_in_ts, ego, dt):
+    if cut_in_ts == -1:
+        return False
+    state = ego.prediction.trajectory.state_list[cut_in_ts*dt-1]
+    if state.acceleration < -2.0:
+        return True
+    return False
 
 
 def is_comfort(min_acc, acc_threshold=1.0):
@@ -228,7 +235,7 @@ def is_emergency_braking(states: [TraceState], braking_detection_threshold: floa
 
 
 def identify_oncoming_traffic(lanelet_network: LaneletNetwork, states: [TraceState], all_obstacles,
-                              distance_threshold=5.0):
+                              distance_threshold=5.0, orientation_threshold=np.deg2rad(30)):
     for ego_state in states:
         ego_lanelet, adj_left_lanelet, adj_right_lanelet = get_lanelets(lanelet_network, ego_state)
         obstacles = [obstacle for lanelet in [ego_lanelet, adj_left_lanelet, adj_right_lanelet] if lanelet is not None
@@ -236,23 +243,25 @@ def identify_oncoming_traffic(lanelet_network: LaneletNetwork, states: [TraceSta
         ego_position = ego_state.position
         ego_orientation = ego_state.orientation
 
-        oncoming_traffic = []
-
         for obstacle in obstacles:
             try:
-                other_state = obstacle.prediction.trajectory.state_list[ego_state.time_step - 1]
+                other_state = obstacle.prediction.trajectory.state_list[ego_state.time_step- 1]
             except IndexError:
                 continue
+
             other_position = other_state.position
-            other_orientation = other_state.orientation
+            if not is_obstacle_in_front(ego_state, other_position):
+                continue
 
             relative_position = (other_position[0] - ego_position[0], other_position[1] - ego_position[1])
-            relative_orientation = other_orientation - ego_orientation
-
             distance = math.sqrt(relative_position[0] ** 2 + relative_position[1] ** 2)
-            angle = math.atan2(relative_position[1], relative_position[0])
+            if not distance < distance_threshold:
+                continue
 
-            if distance < distance_threshold and -math.pi / 4 < relative_orientation < math.pi / 4:
+            other_orientation = other_state.orientation         
+            relative_orientation = abs(abs(other_orientation - ego_orientation) - math.pi)
+
+            if orientation_threshold < relative_orientation:
                 return True
 
     return False
