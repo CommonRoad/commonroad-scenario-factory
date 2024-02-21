@@ -1,7 +1,8 @@
-from commonroad.common.file_reader import CommonRoadFileReader
 from pathlib import Path
-from matplotlib import pyplot as plt
+
+from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.visualization.mp_renderer import MPRenderer
+from matplotlib import pyplot as plt
 
 path = Path(__file__).parent.joinpath("/home/florian/git/sumocr-scenario-generation/files/commonroad/DEU_LfV.xml")
 scenario, _ = CommonRoadFileReader(path).open()

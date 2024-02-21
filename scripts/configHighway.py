@@ -1,12 +1,11 @@
 from commonroad.common.util import Interval
 from commonroad.scenario.obstacle import ObstacleType
-from commonroad.scenario.traffic_sign import SupportedTrafficSignCountry
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
 
 
 class SumoConfigHighway(SumoConfig):
     # logging level for logging module
-    logging_level = 'INFO'  # select DEBUG, INFO, WARNING, ERROR, CRITICAL
+    logging_level = "INFO"  # select DEBUG, INFO, WARNING, ERROR, CRITICAL
 
     # conversion
     highway_mode = False  # less aggressive clustering, use zipper junctions for onRamps
@@ -43,7 +42,7 @@ class SumoConfigHighway(SumoConfig):
     departure_time_ego = 3
 
     ##
-    ## ego vehicle sync parameters
+    # ego vehicle sync parameters
     ##
     # Time window to detect the lanelet change in seconds
     lanelet_check_time_window = int(2 / dt)
@@ -57,7 +56,7 @@ class SumoConfigHighway(SumoConfig):
     lane_change_tol = 0.00
 
     ##
-    ## TRAFFIC GENERATION
+    # TRAFFIC GENERATION
     ##
     # probability that vehicles will start at the fringe of the network (edges without
     # predecessor), and end at the fringe of the network (edges without successor).
@@ -85,7 +84,7 @@ class SumoConfigHighway(SumoConfig):
         ObstacleType.TRUCK: 0.8,
         ObstacleType.BUS: 0.3,
         ObstacleType.BICYCLE: 0.2,
-        ObstacleType.PEDESTRIAN: 0
+        ObstacleType.PEDESTRIAN: 0,
     }
 
     # default vehicle attributes to determine edge restrictions
@@ -93,30 +92,30 @@ class SumoConfigHighway(SumoConfig):
     # vehicle attributes
     veh_params = {
         # maximum length
-        'length': {
+        "length": {
             ObstacleType.CAR: Interval(4.0, 5.5),
             ObstacleType.TRUCK: 7.5,
             ObstacleType.BUS: 12.4,
-            ObstacleType.BICYCLE: 2.,
-            ObstacleType.PEDESTRIAN: 0.415
+            ObstacleType.BICYCLE: 2.0,
+            ObstacleType.PEDESTRIAN: 0.415,
         },
         # maximum width
-        'width': {
+        "width": {
             ObstacleType.CAR: Interval(1.8, 2.1),
             ObstacleType.TRUCK: 2.6,
             ObstacleType.BUS: 2.7,
             ObstacleType.BICYCLE: 0.68,
-            ObstacleType.PEDESTRIAN: 0.678
+            ObstacleType.PEDESTRIAN: 0.678,
         },
-        'minGap': {
+        "minGap": {
             ObstacleType.CAR: Interval(3.5, 5.0),
             ObstacleType.TRUCK: 4.5,
             ObstacleType.BUS: 2.5,
             # default 0.5
-            ObstacleType.BICYCLE: 1.,
-            ObstacleType.PEDESTRIAN: 0.25
+            ObstacleType.BICYCLE: 1.0,
+            ObstacleType.PEDESTRIAN: 0.25,
         },
-        'accel': {
+        "accel": {
             # default 2.9 m/s²
             ObstacleType.CAR: Interval(2.0, 2.9),
             # default 1.3
@@ -128,7 +127,7 @@ class SumoConfigHighway(SumoConfig):
             # default 1.5
             ObstacleType.PEDESTRIAN: Interval(1.3, 1.7),
         },
-        'decel': {
+        "decel": {
             # default 7.5 m/s²
             ObstacleType.CAR: Interval(4, 7.5),
             # default 4
@@ -140,7 +139,7 @@ class SumoConfigHighway(SumoConfig):
             # default 2
             ObstacleType.PEDESTRIAN: Interval(1.5, 2.5),
         },
-        'maxSpeed': {
+        "maxSpeed": {
             # default 180/3.6 m/s
             ObstacleType.CAR: 180 / 3.6,
             # default 130/3.6
@@ -151,7 +150,7 @@ class SumoConfigHighway(SumoConfig):
             ObstacleType.BICYCLE: 25 / 3.6,
             # default 5.4/3.6
             ObstacleType.PEDESTRIAN: 5.4 / 3.6,
-        }
+        },
     }
 
     # vehicle behavior
@@ -160,9 +159,12 @@ class SumoConfigHighway(SumoConfig):
     'accel': maximum acceleration allowed
     'decel': maximum deceleration allowed (absolute value)
     'maxSpeed': maximum speed. sumo_default 55.55 m/s (200 km/h)
-    'lcStrategic': eagerness for performing strategic lane changing. Higher values result in earlier lane-changing. sumo_default: 1.0
-    'lcSpeedGain': eagerness for performing lane changing to gain speed. Higher values result in more lane-changing. sumo_default: 1.0
-    'lcCooperative': willingness for performing cooperative lane changing. Lower values result in reduced cooperation. sumo_default: 1.0
+    'lcStrategic': eagerness for performing strategic lane changing. Higher values result in earlier lane-changing.
+    sumo_default: 1.0
+    'lcSpeedGain': eagerness for performing lane changing to gain speed. Higher values result in more lane-changing.
+    sumo_default: 1.0
+    'lcCooperative': willingness for performing cooperative lane changing. Lower values result in reduced cooperation.
+    sumo_default: 1.0
     'sigma': [0-1] driver imperfection (0 denotes perfect driving. sumo_default: 0.5
     'speedDev': [0-1] deviation of the speedFactor. sumo_default 0.1
     'speedFactor': [0-1] The vehicles expected multiplicator for lane speed limits. sumo_default 1.0
@@ -171,15 +173,15 @@ class SumoConfigHighway(SumoConfig):
     driving_params = {
         "minGapLat": 1.5,
         "lcSublane": 2,
-        'lcStrategic': Interval(1, 5),
-        'lcSpeedGain': Interval(3, 20),
-        'lcCooperative': Interval(1, 3),
-        'sigma': Interval(0.5, 0.7),
-        'speedDev': Interval(0.15, 0.2),
-        'speedFactor': Interval(0.9, 1.1),
-        'lcImpatience': 0,
-        'impatience': Interval(0.05, 0.2),
-        'lcMaxSpeedLatStanding': 0,
-        'lcSigma': Interval(0.1, 0.15),
-        'lcKeepRight': Interval(0.8, 0.9)
+        "lcStrategic": Interval(1, 5),
+        "lcSpeedGain": Interval(3, 20),
+        "lcCooperative": Interval(1, 3),
+        "sigma": Interval(0.5, 0.7),
+        "speedDev": Interval(0.15, 0.2),
+        "speedFactor": Interval(0.9, 1.1),
+        "lcImpatience": 0,
+        "impatience": Interval(0.05, 0.2),
+        "lcMaxSpeedLatStanding": 0,
+        "lcSigma": Interval(0.1, 0.15),
+        "lcKeepRight": Interval(0.8, 0.9),
     }

@@ -1,25 +1,22 @@
 import os
-import unittest
-import matplotlib
 import pickle
-import numpy as np
-from commonroad.common.util import Interval
+import unittest
 
-from commonroad.scenario.scenario import Scenario
-from cr_scenario_features.models.scenario_model import ScenarioModel
-
-matplotlib.use('TkAgg')
+import matplotlib
 import matplotlib.pyplot as plt
-
-from commonroad.visualization.draw_dispatch_cr import draw_object
 from commonroad.common.file_reader import CommonRoadFileReader
+from commonroad.common.util import Interval
+from commonroad.scenario.scenario import Scenario
+from commonroad.visualization.draw_dispatch_cr import draw_object  # TODO update?
 
-from cr_scenario_features.models.lane_model import LaneletSectionNetwork
+from scenario_factory.scenario_features.models.scenario_model import ScenarioModel
+
+matplotlib.use("TkAgg")
 
 
 class TestScenarioModel(unittest.TestCase):
     def setUp(self) -> None:
-        files = ['test_files/USA_Lanker-2_20_T-1.xml', 'test_files/ITA_CarpiCentro-6_1_T-1.xml']
+        files = ["test_files/USA_Lanker-2_20_T-1.xml", "test_files/ITA_CarpiCentro-6_1_T-1.xml"]
         self.intersection_files = [os.path.join(os.path.dirname(__file__), file) for file in files]
 
     def test_distance(self):
@@ -32,8 +29,8 @@ class TestScenarioModel(unittest.TestCase):
             pickle.dump(scenario, filehandler)
             filehandler.close()
         else:
-            file = open(self.intersection_files[0] + ".obj", 'rb')
-            scenario:Scenario = pickle.load(file)
+            file = open(self.intersection_files[0] + ".obj", "rb")
+            scenario: Scenario = pickle.load(file)
             file.close()
         # plt.ion()
         # plt.figure()
@@ -50,10 +47,15 @@ class TestScenarioModel(unittest.TestCase):
             print(ii)
             plt.figure()
             draw_object(scenario.lanelet_network)
-            draw_object(scenario.obstacle_by_id(2533), draw_params={'time_end':0,'dynamic_obstacle': {'show_label': True}})
-            draw_object([scenario.obstacle_by_id(obs) for obs in array[0]], draw_params={'time_end':0,'dynamic_obstacle': {'show_label': True}})
+            draw_object(
+                scenario.obstacle_by_id(2533), draw_params={"time_end": 0, "dynamic_obstacle": {"show_label": True}}
+            )
+            draw_object(
+                [scenario.obstacle_by_id(obs) for obs in array[0]],
+                draw_params={"time_end": 0, "dynamic_obstacle": {"show_label": True}},
+            )
             plt.title(str(ii))
-            plt.axis('equal')
+            plt.axis("equal")
             plt.autoscale()
             plt.show()
             for obs_id, pos, lat_index in zip(array[0], array[1], array[2]):
@@ -71,34 +73,34 @@ class TestScenarioModel(unittest.TestCase):
                 scenario.assign_obstacles_to_lanelets(time_steps=[0], use_center_only=True)
                 try:
                     os.remove(file + ".obj")
-                except:
+                except Exception:
                     pass
                 filehandler = open(file + ".obj", "wb")
                 pickle.dump(scenario, filehandler)
                 filehandler.close()
             else:
-                file = open(file + ".obj", 'rb')
+                file = open(file + ".obj", "rb")
                 scenario: Scenario = pickle.load(file)
                 file.close()
 
             plt.ion()
             plt.figure()
-            draw_object(scenario, draw_params={'time_end':0,'dynamic_obstacle': {'show_label': True},
-                                               'lanelet': {'show_label': True}})
+            draw_object(
+                scenario,
+                draw_params={"time_end": 0, "dynamic_obstacle": {"show_label": True}, "lanelet": {"show_label": True}},
+            )
             plt.autoscale()
-            plt.axis('equal')
+            plt.axis("equal")
 
             sm = ScenarioModel(scenario)
-            obs = scenario.obstacle_by_id(2533)
-            init_pos = np.array([0.0, 0.0])
+            # obs = scenario.obstacle_by_id(2533)
+            # init_pos = np.array([0.0, 0.0])
             init_pos = list(pp.planning_problem_dict.values())[0].initial_state.position
             print(init_pos)
             plt.scatter(init_pos[0], init_pos[1], zorder=1000)
-            rear_vehicles, front_vehicles = sm. \
-                get_array_closest_obstacles(init_pos,
-                                            longitudinal_range=Interval(-50, 50),
-                                            relative_lateral_indices=True,
-                                            time_step=0)
+            rear_vehicles, front_vehicles = sm.get_array_closest_obstacles(
+                init_pos, longitudinal_range=Interval(-50, 50), relative_lateral_indices=True, time_step=0
+            )
             print(rear_vehicles)
             print(front_vehicles)
             obs_array = sm.get_obstacles_array(init_pos)
@@ -121,6 +123,5 @@ class TestScenarioModel(unittest.TestCase):
             # plt.pause(100)
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

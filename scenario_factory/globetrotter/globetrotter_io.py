@@ -1,4 +1,5 @@
 import os.path
+from pathlib import Path
 from typing import List, Tuple
 
 import crdesigner.map_conversion.osm2cr.converter_modules.converter as converter
@@ -7,17 +8,11 @@ from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.common.file_writer import CommonRoadFileWriter
 from commonroad.common.writer.file_writer_interface import OverwriteExistingFile
 from commonroad.scenario.scenario import Location, Scenario
-from crdesigner.map_conversion.osm2cr.converter_modules.cr_operations.export import (
-    create_scenario_intermediate,
-)
-from crdesigner.map_conversion.osm2cr.converter_modules.graph_operations.road_graph import (
-    _graph as rg,
-)
-from crdesigner.map_conversion.osm2cr.converter_modules.utility.geonamesID import (
-    get_geonamesID,
-)
+from crdesigner.map_conversion.osm2cr.converter_modules.cr_operations.export import create_scenario_intermediate
+from crdesigner.map_conversion.osm2cr.converter_modules.graph_operations.road_graph import _graph as rg
+from crdesigner.map_conversion.osm2cr.converter_modules.utility.geonamesID import get_geonamesID
+
 from scenario_factory.globetrotter.intersection import Intersection
-from pathlib import Path
 
 
 def save_as_cr(graph: rg.Graph, file_path: str) -> None:
@@ -72,16 +67,10 @@ def commonroad_parse(commonroad_xml_path: Path) -> Tuple[Scenario, np.ndarray]:
     lanelet_ids = [lanelet.lanelet_id for lanelet in lanelets]
 
     for lanelet in lanelets:
-        if len(lanelet.predecessor) > 1 and set(lanelet.predecessor).issubset(
-            lanelet_ids
-        ):
-            forking_set.add(
-                (lanelet.center_vertices[0][0], lanelet.center_vertices[0][1])
-            )
+        if len(lanelet.predecessor) > 1 and set(lanelet.predecessor).issubset(lanelet_ids):
+            forking_set.add((lanelet.center_vertices[0][0], lanelet.center_vertices[0][1]))
         if len(lanelet.successor) > 1 and set(lanelet.successor).issubset(lanelet_ids):
-            forking_set.add(
-                (lanelet.center_vertices[-1][0], lanelet.center_vertices[-1][1])
-            )
+            forking_set.add((lanelet.center_vertices[-1][0], lanelet.center_vertices[-1][1]))
 
     forking_points = np.array(list(forking_set))
     return scenario, forking_points
@@ -100,6 +89,4 @@ def save_intersections(intersections: List[Intersection], output_dir: Path, name
         os.makedirs(output_dir)
 
     for i, intersection in enumerate(intersections):
-        intersection.intersection_to_xml(
-            os.path.join(output_dir, f"{name}-{i+1}.xml")
-        )
+        intersection.intersection_to_xml(os.path.join(output_dir, f"{name}-{i+1}.xml"))

@@ -1,38 +1,32 @@
-from copy import deepcopy
-
 import logging
-import traceback
+import os
+import shutil
 import signal
+import time
+import traceback
+from copy import deepcopy
 from multiprocessing import Pool
+from pathlib import Path
 
 import libsumo
 import numpy as np
 from commonroad.common.file_reader import CommonRoadFileReader
 
-from scenario_factory.scenario_features.assign_tags import assign_tags
-from scenario_factory.scenario_util import init_logging
-from sumocr.sumo_config.default import InteractiveSumoConfigDefault
-from scenario_factory.config_files.scenario_config import ScenarioConfig
-from scenario_factory.scenario_checker import DeleteScenario
-
-import os
-from pathlib import Path
-
-from crdesigner.map_conversion.sumo_map.cr2sumo.converter import CR2SumoMapConverter
-from scenario_factory.cr_scenario_factory import GenerateCRScenarios
-from sumocr.interface.sumo_simulation import SumoSimulation
-from sumocr.maps.sumo_scenario import ScenarioWrapper
-import shutil
-import time
-
 # Options
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
-from sumocr.sumo_config.default import SUMO_VEHICLE_PREFIX
-from commonroad.scenario.scenario import Tag
+from crdesigner.map_conversion.sumo_map.cr2sumo.converter import CR2SumoMapConverter
+from sumocr.interface.sumo_simulation import SumoSimulation
+from sumocr.maps.sumo_scenario import ScenarioWrapper
+from sumocr.sumo_config.default import SUMO_VEHICLE_PREFIX, InteractiveSumoConfigDefault
+
+from scenario_factory.config_files.scenario_config import ScenarioConfig
+from scenario_factory.cr_scenario_factory import GenerateCRScenarios
+from scenario_factory.scenario_checker import DeleteScenario
+from scenario_factory.scenario_util import init_logging
 
 
 class Timeout:
-    def __init__(self, seconds=1, error_message='Timeout'):
+    def __init__(self, seconds=1, error_message="Timeout"):
         self.seconds = seconds
         self.error_message = error_message
 
@@ -48,22 +42,23 @@ class Timeout:
 
 
 def create_scenarios(
-        cr_file: Path,
-        sumo_config: SumoConfig,
-        scenario_config: ScenarioConfig,
-        scenarios_per_map: int,
-        output_path: Path,
-        create_noninteractive: bool,
-        create_interactive: bool,
-        timeout: int = 60):
-    logging.info(f'Start with map {cr_file}')
+    cr_file: Path,
+    sumo_config: SumoConfig,
+    scenario_config: ScenarioConfig,
+    scenarios_per_map: int,
+    output_path: Path,
+    create_noninteractive: bool,
+    create_interactive: bool,
+    timeout: int = 60,
+):
+    logging.info(f"Start with map {cr_file}")
 
     # create unique scenario ids for each scenario
-    split_map_name = os.path.splitext(os.path.basename(cr_file))[0].replace('_', '-').rsplit('-')
-    if split_map_name[0] == 'C':
+    split_map_name = os.path.splitext(os.path.basename(cr_file))[0].replace("_", "-").rsplit("-")
+    if split_map_name[0] == "C":
         del split_map_name[0]
-    location_name = split_map_name[0] + '_' + split_map_name[1]
-    orig_map_name = location_name + '-' + split_map_name[2]
+    location_name = split_map_name[0] + "_" + split_map_name[1]
+    orig_map_name = location_name + "-" + split_map_name[2]
 
     map_nr = int(split_map_name[2])
     obtained_scenario_number = 0
@@ -79,7 +74,7 @@ def create_scenarios(
             sumo_config.scenario_name = str(scenario_orig.scenario_id)
             cr2sumo = CR2SumoMapConverter(scenario_orig, sumo_config)
 
-            sumo_net_path = os.path.join(intermediate_sumo_files_path, sumo_config.scenario_name + '.net.xml')
+            sumo_net_path = os.path.join(intermediate_sumo_files_path, sumo_config.scenario_name + ".net.xml")
             logging.info("Converting to SUMO Map")
             cr2sumo._convert_map()
 
@@ -89,7 +84,7 @@ def create_scenarios(
             conversion_possible = cr2sumo.merge_intermediate_files(sumo_net_path, True, *intermediary_files)
 
             if not conversion_possible:
-                logging.warning('Conversion to net file failed!')
+                logging.warning("Conversion to net file failed!")
                 return 0, cr_file
 
             # wait for previous step to be finished
@@ -102,7 +97,7 @@ def create_scenarios(
             try:
                 with ((Timeout(seconds=timeout))):
                     sumo_conf_tmp = deepcopy(sumo_config)
-                    scenario_name = location_name + '-' + str(map_nr) + "_" + str(i_scenario + 1)
+                    scenario_name = location_name + "-" + str(map_nr) + "_" + str(i_scenario + 1)
                     scenario_dir_name = intermediate_sumo_files_path.joinpath(scenario_name)
                     sumo_conf_tmp.scenario_name = scenario_name
                     sumo_conf_tmp.scenarios_path = scenario_dir_name
@@ -110,21 +105,24 @@ def create_scenarios(
                     if scenario_dir_name.exists():
                         shutil.rmtree(scenario_dir_name)
                     scenario_dir_name.mkdir()
-                    sumo_net_copy = scenario_dir_name.joinpath(scenario_name+".net.xml")
-                    cr_map_copy = scenario_dir_name.joinpath(scenario_name+".cr.xml")
+                    sumo_net_copy = scenario_dir_name.joinpath(scenario_name + ".net.xml")
+                    cr_map_copy = scenario_dir_name.joinpath(scenario_name + ".cr.xml")
                     shutil.copy(sumo_net_path, sumo_net_copy)  # copy sumo net file into scenario-specific sub-folder
-                    shutil.copy(cr_file, cr_map_copy)  # copy original commonroad file into scenario-specific sub-folder # TODO this file is redundant? do not copy? or only to upper directory?
+                    shutil.copy(cr_file, cr_map_copy)  # copy original commonroad file into scenario-specific sub-folder
+                    # TODO this file is redundant? do not copy? or only to upper directory?
 
                     # generate route file and additional files for SUMO simulation
                     cr2sumo_converter = CR2SumoMapConverter(deepcopy(scenario_orig), sumo_config)
                     rou_files, additional_file, sumo_cfg_file = cr2sumo_converter._create_random_routes(
-                        sumo_net_copy, scenario_name=scenario_name, return_files=True)
+                        sumo_net_copy, scenario_name=scenario_name, return_files=True
+                    )
                     while not os.path.isfile(cr2sumo_converter.sumo_cfg_file):
                         time.sleep(0.05)
                     time.sleep(0.1)
 
-                    scenario_wrapper = ScenarioWrapper.init_from_scenario(sumo_conf_tmp, scenario_dir_name,
-                                                                          cr_map_file=cr_map_copy)  # TODO parameters are redundant
+                    scenario_wrapper = ScenarioWrapper.init_from_scenario(
+                        sumo_conf_tmp, scenario_dir_name, cr_map_file=cr_map_copy
+                    )  # TODO parameters are redundant
 
                     # simulate sumo scenario and extract scenario files
                     sumo_sim = SumoSimulation()
@@ -155,13 +153,18 @@ def create_scenarios(
 
                     # select ego vehicles for planning problems and postprocess final CommonRoad scenarios
                     try:
-                        cr_scenarios = GenerateCRScenarios(scenario, sumo_conf_tmp.simulation_steps,
-                                                           sumo_conf_tmp.scenario_name,
-                                                           scenario_config, scenario_dir_name, solution_folder)
+                        cr_scenarios = GenerateCRScenarios(
+                            scenario,
+                            sumo_conf_tmp.simulation_steps,
+                            sumo_conf_tmp.scenario_name,
+                            scenario_config,
+                            scenario_dir_name,
+                            solution_folder,
+                        )
 
                     except DeleteScenario:
                         shutil.rmtree(scenario_dir_name)
-                        logging.warning(f'Remove scenario with to many collisions!')
+                        logging.warning("Remove scenario with to many collisions!")
                         return obtained_scenario_number, cr_file
 
                     scenario_counter_prev = scenario_counter
@@ -174,7 +177,7 @@ def create_scenarios(
                             scenario_counter_prev,
                             create_video=False,
                             check_validity=False,  # TODO set True
-                            output_path=output_noninteractive
+                            output_path=output_noninteractive,
                         )
 
                     if create_interactive:
@@ -186,27 +189,27 @@ def create_scenarios(
                             sumo_net_path=sumo_net_copy,
                             rou_files=rou_files,
                             config=sumo_conf_tmp,
-                            default_config= InteractiveSumoConfigDefault(),
+                            default_config=InteractiveSumoConfigDefault(),
                             create_video=False,
                             check_validity=False,  # TODO set True
-                            output_path=output_interactive
+                            output_path=output_interactive,
                         )
 
                     obtained_scenario_number += scenario_nr_added
 
             except TimeoutError:
-                logging.warning(f'Timeout during simulation/extraction, continue with next scenario.')
+                logging.warning("Timeout during simulation/extraction, continue with next scenario.")
                 try:
                     sumo_sim.stop()
-                except:
+                except Exception:
                     pass
 
     except Exception as e:
         print(e)
-        logging.warning(f'UNEXPECTED ERROR, continue with next scenario: {traceback.format_exc()}')
+        logging.warning(f"UNEXPECTED ERROR, continue with next scenario: {traceback.format_exc()}")
         try:
             sumo_sim.stop()
-        except:
+        except Exception:
             pass
         return obtained_scenario_number, cr_file
 
@@ -232,7 +235,7 @@ if __name__ == "__main__":
 
     # load files
     filenames = list(Path(scenario_directory).rglob("*.xml"))
-    filenames = [file for file in filenames ] #if 'DEU' not in str(file)
+    filenames = [file for file in filenames]  # if 'DEU' not in str(file)
     # random.shuffle(filenames)
 
     solution_folder = os.path.join(scenario_config.output_folder, timestr, "solutions")
@@ -251,4 +254,4 @@ if __name__ == "__main__":
 
     res = {r[1]: r[0] for r in res0}
 
-    logger.info(f'obtained_scenario_number: {sum(list(res.values()))}')
+    logger.info(f"obtained_scenario_number: {sum(list(res.values()))}")

@@ -1,68 +1,58 @@
+import glob
 import io
+import itertools
 import json
-import random
+import os.path
 import shutil
 import signal
 import time
 import traceback
-from multiprocessing.pool import Pool
-from zipfile import ZipFile
-
-import matplotlib
-import yaml
-from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
-from commonroad_dc.collision.collision_detection.pycrcc_collision_dispatch import create_collision_object
-from commonroad_dc.collision.collision_detection.scenario import create_collision_checker_scenario
-from commonroad_dc.feasibility.solution_checker import valid_solution, CollisionException, GoalNotReachedException, \
-    _construct_boundary_checker, starts_at_correct_ts, solution_feasible
-from simulation.simulations import simulate_with_solution, load_sumo_configuration, simulate_without_ego, \
-    SimulationOption, simulate_scenario
-from sumocr.maps.sumo_scenario import ScenarioWrapper
-
-
-import copy
-import glob
-import itertools
-import math
-import os.path
 import warnings
-from typing import List, Tuple
-
-import cv2
-
-import numpy as np
-from commonroad.common.file_reader import CommonRoadFileReader
-from commonroad.common.solution import VehicleType, CostFunction, CommonRoadSolutionReader, Solution
-from commonroad.scenario.scenario import ScenarioID
-from commonroad.visualization.mp_renderer import MPRenderer
-from commonroad_dc.costs.route_matcher import LaneletRouteMatcher
+from multiprocessing.pool import Pool
 
 import matplotlib.pyplot as plt
-import pandas as pd
-from commonroad_dc.costs.evaluation import PartialCostFunction, required_properties, PartialCostFunctionMapping, \
-    cost_function_mapping
+from commonroad.common.file_reader import CommonRoadFileReader
+from commonroad.common.solution import CommonRoadSolutionReader, CostFunction
+from commonroad.scenario.scenario import ScenarioID
+from commonroad.visualization.mp_renderer import MPRenderer
+from commonroad_dc.collision.collision_detection.pycrcc_collision_dispatch import create_collision_object
+from commonroad_dc.collision.collision_detection.scenario import create_collision_checker_scenario
+from commonroad_dc.costs.evaluation import PartialCostFunctionMapping, required_properties
+from commonroad_dc.costs.route_matcher import LaneletRouteMatcher
+from commonroad_dc.feasibility.solution_checker import (
+    CollisionException,
+    GoalNotReachedException,
+    _construct_boundary_checker,
+    valid_solution,
+)
+from simulation.simulations import SimulationOption, load_sumo_configuration, simulate_scenario, simulate_with_solution
+from sumocr.maps.sumo_scenario import ScenarioWrapper
+
 
 class Evaluator:
     def __init__(self):
         # self.test_scenario_dir = "/home/klischat/out/2021_competition_scenarios/examples/selection"
-        self.test_scenario_dir = os.path.expanduser(f"/home/klischatm/out/2202_save_the_salary/selected_renamed")
+        self.test_scenario_dir = os.path.expanduser("/home/klischatm/out/2202_save_the_salary/selected_renamed")
         # self.solutions_dir = "/home/klischat/out/2021_competition_scenarios/examples/solutions"
-        self.solutions_dir = os.path.expanduser(f"/home/klischatm/out/2202_save_the_salary/solutions_selected")
+        self.solutions_dir = os.path.expanduser("/home/klischatm/out/2202_save_the_salary/solutions_selected")
         # self.path_videos_out = "/home/klischat/out/2021_competition_scenarios/examples/out_videos_selection"
-        self.path_videos_out = os.path.expanduser(f"~/out/2202_save_the_salary/video")
-        self.simulated_scenarios_dir = os.path.expanduser(f"~/out/2202_save_the_salary/simscenarios")
+        self.path_videos_out = os.path.expanduser("~/out/2202_save_the_salary/video")
+        self.simulated_scenarios_dir = os.path.expanduser("~/out/2202_save_the_salary/simscenarios")
         self.i = 0
-        self.all_scenario_dir = os.path.expanduser(f"~/GIT_REPOS/commonroad-scenarios-dev/scenarios")
-        self.config_paths = list(glob.glob(os.path.join(self.test_scenario_dir, "*_I-*/simulation_config.p"), recursive=True))
+        self.all_scenario_dir = os.path.expanduser("~/GIT_REPOS/commonroad-scenarios-dev/scenarios")
+        self.config_paths = list(
+            glob.glob(os.path.join(self.test_scenario_dir, "*_I-*/simulation_config.p"), recursive=True)
+        )
         print(self.config_paths)
-        self.cost_funcs = [CostFunction.TR1,
-                           # CostFunction.MW1,
-                           # CostFunction.SA1,
-                           # CostFunction.WX1,
-                           # CostFunction.SM1,
-                           # CostFunction.SM2,
-                           # CostFunction.SM3
-                           ]
+        self.cost_funcs = [
+            CostFunction.TR1,
+            # CostFunction.MW1,
+            # CostFunction.SA1,
+            # CostFunction.WX1,
+            # CostFunction.SM1,
+            # CostFunction.SM2,
+            # CostFunction.SM3
+        ]
 
     def _get_scenario_paths(self, scenario_id: ScenarioID = None):
         if scenario_id is None:
@@ -86,7 +76,8 @@ class Evaluator:
         if not scenario.scenario_id == scenario_id:
             warnings.warn(
                 f"{str(scenario.scenario_id)}:{scenario.scenario_id.scenario_version} "
-                f" != {str(scenario_id)}:{scenario_id.scenario_version}")
+                f" != {str(scenario_id)}:{scenario_id.scenario_version}"
+            )
         return scenario, pp
 
     def _open_solution_scenario(self, solution_path: str):
@@ -103,15 +94,21 @@ class Evaluator:
             lm = LaneletRouteMatcher(sce, list(sol.planning_problem_solutions)[0].vehicle_type)
             required_properties_all = set(itertools.chain.from_iterable(required_properties.values()))
             for pp_sol in sol.planning_problem_solutions[:1]:
-                trajectory, _, properties = lm.compute_curvilinear_coordinates(pp_sol.trajectory,
-                                                                               required_properties=required_properties_all,
-                                                                               draw_lanelet_path=False)
-                evaluation_result = {"scenario_id": str(sce.scenario_id),
-                                     "solution_file": str(os.path.basename(str(sol.scenario_id)))}
+                trajectory, _, properties = lm.compute_curvilinear_coordinates(
+                    pp_sol.trajectory, required_properties=required_properties_all, draw_lanelet_path=False
+                )
+                evaluation_result = {
+                    "scenario_id": str(sce.scenario_id),
+                    "solution_file": str(os.path.basename(str(sol.scenario_id))),
+                }
                 for pcf, pcf_func in PartialCostFunctionMapping.items():
                     # TODO: remove normalization again after tuning
-                    evaluation_result[pcf.value] = 1/len(trajectory.state_list)*30 * pcf_func(sce, pp.planning_problem_dict[pp_sol.planning_problem_id],
-                                                            trajectory, properties)
+                    evaluation_result[pcf.value] = (
+                        1
+                        / len(trajectory.state_list)
+                        * 30
+                        * pcf_func(sce, pp.planning_problem_dict[pp_sol.planning_problem_id], trajectory, properties)
+                    )
         except Exception as e:
             print(traceback.format_exc())
             warnings.warn(f"solution {self.i} fails with error:\n{str(e)}")
@@ -130,28 +127,31 @@ class Evaluator:
         try:
             path_scenario = self._get_scenario_paths_interactive(solution.scenario_id)
 
-            scenario, pps, traj_solution = simulate_with_solution(interactive_scenario_path=path_scenario,
-                                                                  output_folder_path=self.path_videos_out,
-                                                                  solution=solution,
-                                                                  create_video=SAVE_VIDEOS)
-        except Exception as e:
+            scenario, pps, traj_solution = simulate_with_solution(
+                interactive_scenario_path=path_scenario,
+                output_folder_path=self.path_videos_out,
+                solution=solution,
+                create_video=SAVE_VIDEOS,
+            )
+        except Exception:
             # raise
             traceback.print_exc()
             raise
             return
 
-        # list(pps._planning_problem_dict.values())[0]._initial_state.position = list(traj_solution.values())[0].initial_state.position
+        # list(pps._planning_problem_dict.values())[0]._initial_state.position =
+        # list(traj_solution.values())[0].initial_state.position
         # scenario_file = os.path.join(path_scenario, f"{os.path.basename(path_scenario)}.cr.xml")
         # scenario_init, _ = CommonRoadFileReader(scenario_file).open()
         #
         # CommonRoadFileWriter(scenario_init, pps).write_to_file(scenario_file,
         #                                                   overwrite_existing_file=OverwriteExistingFile.ALWAYS)
         #
-        # return (list(pps.planning_problem_dict.values())[0].initial_state.position, list(traj_solution.values())[0].initial_state.position)
+        # return (list(pps.planning_problem_dict.values())[0].initial_state.position,
+        # list(traj_solution.values())[0].initial_state.position)
         # scenario, pps = simulate_without_ego(interactive_scenario_path=path_scenario,
         #                                                     output_folder_path=self.path_videos_out,
         #                                                     create_GIF=True)
-
 
         # scenario
 
@@ -172,11 +172,16 @@ class Evaluator:
 
     def evaluate_all_solutions(self, files=None):
         if files is None:
-            solution_files  = [s for s in (glob.glob(os.path.join(self.solutions_dir, "**/*.xml"), recursive=True))[:] if "NOT_FOUND" not in s]
+            solution_files = [
+                s
+                for s in (glob.glob(os.path.join(self.solutions_dir, "**/*.xml"), recursive=True))[:]
+                if "NOT_FOUND" not in s
+            ]
         else:
             solution_files = files
 
-        # with ZipFile('/home/klischat/LRZSyncShare/09_commonroad/202011_CR_competition/commonroad-competition/workshop/evaluation/scenarios-sumo.zip', 'r') as zipObj:
+        # with ZipFile('/home/klischat/LRZSyncShare/09_commonroad/202011_CR_competition/commonroad-competition/workshop/
+        # evaluation/scenarios-sumo.zip', 'r') as zipObj:
         #     files = zipObj.namelist()
         # solution_files = [s for s in solution_files if os.path.basename(s) not in files]
         # results = [self.resimulate_interactive_scenarios(s) for s in solution_files[:]]
@@ -186,7 +191,11 @@ class Evaluator:
         return results
 
     def check_configs(self, n):
-        solution_files  = [s for s in (glob.glob(os.path.join(self.solutions_dir, "*.xml"), recursive=False))[:] if "NOT_FOUND" not in s]
+        solution_files = [
+            s
+            for s in (glob.glob(os.path.join(self.solutions_dir, "*.xml"), recursive=False))[:]
+            if "NOT_FOUND" not in s
+        ]
         for sol in solution_files[:n]:
             solution = CommonRoadSolutionReader.open(sol)
             path_scenario = self._get_scenario_paths_interactive(solution.scenario_id)
@@ -207,13 +216,16 @@ class Evaluator:
             scenario_wrapper.sumo_cfg_file = os.path.join(interactive_scenario_path, f"{conf.scenario_name}.sumo.cfg")
             scenario_wrapper.initial_scenario = scenario
 
-            scenario_with_solution, ego_vehicles = simulate_scenario(SimulationOption.SOLUTION, conf,
-                                                                     scenario_wrapper,
-                                                                     interactive_scenario_path,
-                                                                     num_of_steps=conf.simulation_steps,
-                                                                     planning_problem_set=planning_problem_set,
-                                                                     solution=solution,
-                                                                     use_sumo_manager=False)
+            scenario_with_solution, ego_vehicles = simulate_scenario(
+                SimulationOption.SOLUTION,
+                conf,
+                scenario_wrapper,
+                interactive_scenario_path,
+                num_of_steps=conf.simulation_steps,
+                planning_problem_set=planning_problem_set,
+                solution=solution,
+                use_sumo_manager=False,
+            )
             scenario_with_solution.scenario_id = scenario.scenario_id
 
             for pp_id, planning_problem in planning_problem_set.planning_problem_dict.items():
@@ -222,20 +234,30 @@ class Evaluator:
             cc = create_collision_checker_scenario(scenario)
             try:
                 self.compute_costs(solution, scenario, planning_problem_set)
-            except:
+            except Exception:
                 return {interactive_scenario_path: (False, False, True)}
             with timeout(seconds=14):
                 t0 = time.time()
                 cc_boundary = _construct_boundary_checker(scenario)
                 ego_obs = create_collision_object(list(solution.create_dynamic_obstacle().values())[0])
                 print("TIMnE", time.time() - t0)
-            return {interactive_scenario_path: (cc.collide(create_collision_object(obstacle_ego)), cc_boundary.collide(ego_obs), False)}
+            return {
+                interactive_scenario_path: (
+                    cc.collide(create_collision_object(obstacle_ego)),
+                    cc_boundary.collide(ego_obs),
+                    False,
+                )
+            }
         except TimeoutError as e:
             print("UNEX:", e)
             return {interactive_scenario_path: (True, True, False)}
 
     def delete_collision_scenarios(self, n0=0):
-        solution_files  = [s for s in (glob.glob(os.path.join(self.solutions_dir, "*.xml"), recursive=False))[:] if "NOT_FOUND" not in s]
+        solution_files = [
+            s
+            for s in (glob.glob(os.path.join(self.solutions_dir, "*.xml"), recursive=False))[:]
+            if "NOT_FOUND" not in s
+        ]
         results = []
         # for i, s in enumerate(solution_files[n0:]):
         #     results.append(self.basic_collision_check(s))
@@ -250,24 +272,29 @@ class Evaluator:
         n_cores = 14
         pool = Pool(n_cores)
         for n0_ in range(n0, len(solution_files), n_cores):
-            results.extend(pool.map(self.basic_collision_check, solution_files[n0_:n0_+n_cores]))
-            with io.open(os.path.expanduser(f"~/SCENARIO_FACTORY/coll_stat{n0}.json"), 'w', encoding='utf8') as outfile:
+            results.extend(pool.map(self.basic_collision_check, solution_files[n0_ : n0_ + n_cores]))
+            with io.open(os.path.expanduser(f"~/SCENARIO_FACTORY/coll_stat{n0}.json"), "w", encoding="utf8") as outfile:
                 json.dump(results, outfile, indent=2, sort_keys=True)
 
         return results
 
     def visualize_goals(self):
-        solution_files = [s for s in (glob.glob(os.path.join(self.solutions_dir, "*.xml"), recursive=False))[:] if
-                          "NOT_FOUND" not in s]
+        solution_files = [
+            s
+            for s in (glob.glob(os.path.join(self.solutions_dir, "*.xml"), recursive=False))[:]
+            if "NOT_FOUND" not in s
+        ]
         for s in solution_files:
             solution = CommonRoadSolutionReader.open(s)
             pos = list(solution.create_dynamic_obstacle().values())[0].prediction.trajectory.state_list[-1].position
-            plt_limits = [pos[0]-100, pos[0]+100, pos[1]-100, pos[1]+100]
-            rnd = MPRenderer(plot_limits=plt_limits, figsize=(20,15))
-            list(solution.create_dynamic_obstacle().values())[0].draw(rnd,
-                                                                      draw_params={"time_begin": 198, "time_end":199})
-            path_scenario = os.path.join(self._get_scenario_paths_interactive(solution.scenario_id),
-                                         str(solution.scenario_id) + ".cr.xml")
+            plt_limits = [pos[0] - 100, pos[0] + 100, pos[1] - 100, pos[1] + 100]
+            rnd = MPRenderer(plot_limits=plt_limits, figsize=(20, 15))
+            list(solution.create_dynamic_obstacle().values())[0].draw(
+                rnd, draw_params={"time_begin": 198, "time_end": 199}
+            )
+            path_scenario = os.path.join(
+                self._get_scenario_paths_interactive(solution.scenario_id), str(solution.scenario_id) + ".cr.xml"
+            )
             sc, pp = CommonRoadFileReader(path_scenario).open()
             sc.draw(rnd)
             pp.draw(rnd)
@@ -282,19 +309,23 @@ class Evaluator:
 
 
 class timeout:
-    def __init__(self, seconds=1, error_message='Timeout'):
+    def __init__(self, seconds=1, error_message="Timeout"):
         self.seconds = seconds
         self.error_message = error_message
+
     def handle_timeout(self, signum, frame):
         raise TimeoutError(self.error_message)
+
     def __enter__(self):
         signal.signal(signal.SIGALRM, self.handle_timeout)
         signal.alarm(self.seconds)
+
     def __exit__(self, type, value, traceback):
         signal.alarm(0)
 
+
 if __name__ == "__main__":
-    files = None # ["/home/klischat/Downloads/test/debug_desmond/fd2145ce-d371-43c9-a40c-d47c53e82600.xml"]
+    files = None  # ["/home/klischat/Downloads/test/debug_desmond/fd2145ce-d371-43c9-a40c-d47c53e82600.xml"]
     # SAVE_SIMULATED_SCENARIOS = False
     SAVE_VIDEOS = True
     eval = Evaluator().evaluate_all_solutions(files)
@@ -305,7 +336,7 @@ if __name__ == "__main__":
 
     def copytree2(source, dest):
         # os.mkdir(dest)
-        dest_dir = os.path.join(dest,os.path.basename(source))
+        dest_dir = os.path.join(dest, os.path.basename(source))
         shutil.copytree(source, dest_dir)
 
     # for config_file in eval.config_paths:
@@ -324,8 +355,6 @@ if __name__ == "__main__":
     #     #
     #     copytree2(file, out)
 
-
-
     # from sumocr.sumo_config import DefaultConfig
     # for config_file in glob.glob(os.path.join(interactive_scenario_path_out, "**/*.p"), recursive=True):
     #     # conf = migrate_config_file(str(config_file))
@@ -338,7 +367,6 @@ if __name__ == "__main__":
     # plt.hist(dist)
     # plt.show(block=True)
 
-
     # n0 = 0
     # results = Evaluator().delete_collision_scenarios(n0=n0)
     # result = {}
@@ -350,7 +378,6 @@ if __name__ == "__main__":
     #
     #
     #
-
 
     # def cop_state(inpath):
     #     with io.open(inpath, 'r', encoding='utf8') as outfile:

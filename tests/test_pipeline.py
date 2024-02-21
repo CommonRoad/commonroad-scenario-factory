@@ -1,16 +1,17 @@
-import pytest
-import os
-import sys
-import random
-from files.script_1_bounding_box_coordinates import compute_bounding_box_coordinates
-import math
-from pathlib import Path
-import pandas as pd
-import osmium
-import xml.etree.ElementTree as ET
-from pyproj import Proj, transform
-from commonroad.common.file_reader import CommonRoadFileReader
 import logging
+import math
+import os
+import random
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+import osmium
+import pandas as pd
+import pytest
+from commonroad.common.file_reader import CommonRoadFileReader
+from pyproj import Proj, transform
+
+from files.script_1_bounding_box_coordinates import compute_bounding_box_coordinates
 from scenario_factory.scenario_util import init_logging
 
 # start logging, choose logging levels logging.DEBUG, INFO, WARN, ERROR, CRITICAL
@@ -25,7 +26,7 @@ class NodeHandler(osmium.SimpleHandler):
 
     def node(self, n):
         # Store node ID, lat, and lon in the list
-        self.nodes.append({'id': n.id, 'lat': n.location.lat, 'lon': n.location.lon})
+        self.nodes.append({"id": n.id, "lat": n.location.lat, "lon": n.location.lon})
 
 
 def can_open_CR_file(filepath):
@@ -54,17 +55,17 @@ def calculate_bounding_box(lat, lon, radius):
 
     # Convert latitude and longitude from degrees to radians
     lat_rad = math.radians(lat)
-    lon_rad = math.radians(lon)
+    # lon_rad = math.radians(lon)
 
     # Calculate the change in latitude and longitude based on the radius
     delta_lat = math.degrees(radius / earth_radius)
     delta_lon = math.degrees(math.asin(math.sin(radius / earth_radius) / math.cos(lat_rad)))
 
     # Calculate the corner points of the bounding box
-    top_left = (lat + delta_lat, lon - delta_lon)
+    # top_left = (lat + delta_lat, lon - delta_lon)
     top_right = (lat + delta_lat, lon + delta_lon)
     bottom_left = (lat - delta_lat, lon - delta_lon)
-    bottom_right = (lat - delta_lat, lon + delta_lon)
+    # bottom_right = (lat - delta_lat, lon + delta_lon)
 
     # East, North, West, South
     return top_right[1], top_right[0], bottom_left[1], bottom_left[0]
@@ -81,8 +82,8 @@ def calculate_area(lat1, lon1, lat2, lon2):
 
 def wgs84_to_web_mercator(lon, lat):
     # Define the WGS84 and Web Mercator coordinate systems
-    wgs84 = Proj(init='epsg:4326')  # WGS84
-    web_mercator = Proj(init='epsg:3857')  # WGS84 Web Mercator
+    wgs84 = Proj(init="epsg:4326")  # WGS84
+    web_mercator = Proj(init="epsg:3857")  # WGS84 Web Mercator
 
     # Perform the coordinate transformation
     x, y = transform(wgs84, web_mercator, lon, lat)
@@ -91,7 +92,7 @@ def wgs84_to_web_mercator(lon, lat):
 
 
 def count_lines_in_file(file_path):
-    with open(file_path, 'r') as file:
+    with open(file_path, "r") as file:
         line_count = sum(1 for line in file)
     return line_count
 
@@ -112,7 +113,7 @@ def calculate_input_variables(request):
 
     random_test = request.config.getoption("--random_test")
     if random_test:
-        with open(Path("../files/0_cities_selected.csv"), newline='') as csvfile:
+        with open(Path("../files/0_cities_selected.csv"), newline="") as csvfile:
             cities = pd.read_csv(csvfile)
 
         random_line = cities.sample(n=1).iloc[0]
@@ -168,25 +169,28 @@ def test_area(random_params, repeat_count, request):
 
 def test_bounding_box_coordinates():
     global east, north, west, south
-    script_name = 'script_1_bounding_box_coordinates.py'
-    command1 = f"cd ../files"
+    script_name = "script_1_bounding_box_coordinates.py"
+    command1 = "cd ../files"
     command2 = f"poetry run python {script_name}"
     try:
         os.system(command1 + " ; " + command2)
-    except:
+    except Exception:
         logger.warn(f"Error while running {script_name}")
         assert False, f"Error while running {script_name}"
 
     try:
-        with open(Path("../files/0_cities_selected.csv"), newline='') as csvfile:
+        with open(Path("../files/0_cities_selected.csv"), newline="") as csvfile:
             cities_updated = pd.read_csv(csvfile)
-    except:
+    except Exception:
         logger.warn("The input file can not be opened.")
         assert False, "The input file can not be opened."
 
     selected_line = cities_updated[
-        (cities_updated['Country'] == country) & (cities_updated['City'] == city) & (cities_updated['Lat'] == lat) &
-        (cities_updated['Lon'] == lon)]
+        (cities_updated["Country"] == country)
+        & (cities_updated["City"] == city)
+        & (cities_updated["Lat"] == lat)
+        & (cities_updated["Lon"] == lon)
+    ]
 
     assert selected_line.shape[0] == 1, "Such input can not be found on input file, or duplicated entry on input."
 
@@ -201,13 +205,13 @@ def test_bounding_box_coordinates():
 def test_osm_map_extraction():
     global east, north, west, south, country, city
 
-    script_name = 'script_2_osm_map_extraction.py'
-    command1 = f"cd ../files"
+    script_name = "script_2_osm_map_extraction.py"
+    command1 = "cd ../files"
     command2 = f"poetry run python {script_name}"
 
     try:
         os.system(command1 + " ; " + command2)
-    except:
+    except Exception:
         logger.warn(f"Error while running {script_name}")
         assert False, f"Error while running {script_name}"
 
@@ -219,27 +223,28 @@ def test_osm_map_extraction():
         reader = osmium.io.Reader(osm_file_path)
         osmium.apply(reader, handler)
         reader.close()
-    except:
+    except Exception:
         logger.warn(f"Error while opening {osm_file_path}")
         assert False, f"Error while opening {osm_file_path}"
 
     assert count_lines_in_file(osm_file_path) > 20, f"Empty osm file {osm_file_path}"
 
     for node in handler.nodes:
-        assert (lower_bound * west <= node['lon'] <= upper_bound * east) and (
-                lower_bound * south <= node['lat'] <= upper_bound * north), "The point is out of bounding box."
+        assert (lower_bound * west <= node["lon"] <= upper_bound * east) and (
+            lower_bound * south <= node["lat"] <= upper_bound * north
+        ), "The point is out of bounding box."
 
 
 def test_conversion_to_commonroad():
     global east_SI, north_SI, west_SI, south_SI, country, city
 
-    script_name = 'script_3_conversion_to_commonroad.py'
-    command1 = f"cd ../files"
+    script_name = "script_3_conversion_to_commonroad.py"
+    command1 = "cd ../files"
     command2 = f"poetry run python {script_name}"
 
     try:
         os.system(command1 + " ; " + command2)
-    except:
+    except Exception:
         logger.warn(f"Error while running {script_name}")
         assert False, f"Error while running {script_name}"
 
@@ -247,71 +252,73 @@ def test_conversion_to_commonroad():
 
     try:
         root = ET.parse(filepath).getroot()
-    except:
+    except Exception:
         logger.warn(f"Error while opening {filepath}")
         assert False, f"Error while opening {filepath}"
 
     assert count_lines_in_file(filepath) > 20, f"Empty file {filepath}"
 
-    for lanelet in root.iter('lanelet'):
-        for point in lanelet.iter('point'):
-            x = float(point.find('x').text)
-            y = float(point.find('y').text)
+    for lanelet in root.iter("lanelet"):
+        for point in lanelet.iter("point"):
+            x = float(point.find("x").text)
+            y = float(point.find("y").text)
             assert (lower_bound * west_SI <= x <= upper_bound * east_SI) and (
-                    lower_bound * south_SI <= y <= upper_bound * north_SI), "The point is out of bounding box."
+                lower_bound * south_SI <= y <= upper_bound * north_SI
+            ), "The point is out of bounding box."
 
 
 def test_globetrotter():
     global east_SI, north_SI, west_SI, south_SI, country, city
 
-    script_name = 'script_4_globetrotter.py'
-    command1 = f"cd ../files"
+    script_name = "script_4_globetrotter.py"
+    command1 = "cd ../files"
     command2 = f"poetry run python {script_name}"
 
     try:
         os.system(command1 + " ; " + command2)
-    except:
+    except Exception:
         logger.warn(f"Error while running {script_name}")
         assert False, f"Error while running {script_name}"
 
     folder_path = f"../files/globetrotter/{country}_{city}"
 
     for filename in os.listdir(folder_path):
-        if filename.endswith('.xml'):
+        if filename.endswith(".xml"):
             file_path = os.path.join(folder_path, filename)
 
             try:
                 tree = ET.parse(file_path)
                 root = tree.getroot()
-            except:
+            except Exception:
                 logger.warn(f"Error while opening {file_path}")
                 assert False, f"Error while opening {file_path}"
 
             assert count_lines_in_file(file_path) > 20, f"Empty file {file_path}"
 
-            for lanelet in root.iter('lanelet'):
-                for point in lanelet.iter('point'):
-                    x = float(point.find('x').text)
-                    y = float(point.find('y').text)
+            for lanelet in root.iter("lanelet"):
+                for point in lanelet.iter("point"):
+                    x = float(point.find("x").text)
+                    y = float(point.find("y").text)
                     assert (lower_bound * west_SI <= x <= upper_bound * east_SI) and (
-                            lower_bound * south_SI <= y <= upper_bound * north_SI), "The point is out of bounding box."
+                        lower_bound * south_SI <= y <= upper_bound * north_SI
+                    ), "The point is out of bounding box."
 
 
 def test_scenario_generation():
-    script_name = 'script_5_scenario_generation.py'
-    command1 = f"cd ../files"
+    script_name = "script_5_scenario_generation.py"
+    command1 = "cd ../files"
     command2 = f"poetry run python {script_name}"
     try:
         os.system(command1 + " ; " + command2)
-    except:
+    except Exception:
         logger.warn(f"Error while running {script_name}")
         assert False, f"Error while running {script_name}"
 
-    cmd_num_of_scenario_files = "ls -1 ../files/output/intermediate | wc -l"
+    cmd_num_of_scenario_files = "ls -1 ../files/output/intermediate | wc -lanelet"
 
     try:
         num_of_scenario_files = int(os.popen(cmd_num_of_scenario_files).read().strip())
-    except:
+    except Exception:
         logger.warn(f"Execution of cmd {cmd_num_of_scenario_files} is failed.")
         assert False, f"Execution of cmd {cmd_num_of_scenario_files} is failed."
 

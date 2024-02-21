@@ -1,13 +1,14 @@
-from multiprocessing import Pool
-from copy import deepcopy
-from scenario_factory.config_files.scenario_config import ScenarioConfig
-from crdesigner.map_conversion.sumo_map.config import SumoConfig
-from pathlib import Path
-from scenario_factory.generate_senarios import create_scenarios
 import logging
-from scenario_factory.scenario_util import init_logging
-import numpy as np
+from copy import deepcopy
+from multiprocessing import Pool
+from pathlib import Path
 
+import numpy as np
+from crdesigner.map_conversion.sumo_map.config import SumoConfig
+
+from scenario_factory.config_files.scenario_config import ScenarioConfig
+from scenario_factory.generate_senarios import create_scenarios
+from scenario_factory.scenario_util import init_logging
 
 np.random.seed(123456)
 
@@ -40,7 +41,21 @@ for file in filenames:
     )
 """
 pool = Pool(processes=18)
-res0 = pool.starmap(create_scenarios, [(filename, deepcopy(sumo_config), deepcopy(scenario_config), scenarios_per_map, output_path, create_noninteractive, create_interactive) for filename in filenames])
+res0 = pool.starmap(
+    create_scenarios,
+    [
+        (
+            filename,
+            deepcopy(sumo_config),
+            deepcopy(scenario_config),
+            scenarios_per_map,
+            output_path,
+            create_noninteractive,
+            create_interactive,
+        )
+        for filename in filenames
+    ],
+)
 
 res = {}
 for r in res0:
@@ -49,4 +64,4 @@ for r in res0:
 
 res = {r[1]: r[0] for r in res0}
 
-logger.warn(f'obtained_scenario_number: {sum(list(res.values()))}')
+logger.warn(f"obtained_scenario_number: {sum(list(res.values()))}")

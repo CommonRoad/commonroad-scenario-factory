@@ -47,7 +47,7 @@ class Location:
             self.adminCode1 = d["adminCode1"]["@ISO3166-2"]
             if d["adminCode2"] is not None and "@ISO3166-2" in d["adminCode2"]:
                 self.adminCode2 = str(d["adminCode2"]["@ISO3166-2"])
-        except:
+        except Exception:
             print("error parsing adminCode")
 
         self.lat = float(d["lat"])

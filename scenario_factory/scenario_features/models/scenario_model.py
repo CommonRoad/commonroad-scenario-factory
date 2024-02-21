@@ -1,16 +1,20 @@
 from collections import defaultdict
 from functools import lru_cache
-from typing import List, Union, Dict, Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
 from commonroad.common.util import Interval
-
-from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
-from commonroad.scenario.obstacle import Obstacle, DynamicObstacle
+from commonroad.scenario.lanelet import Lanelet
+from commonroad.scenario.obstacle import DynamicObstacle, Obstacle
 from commonroad.scenario.scenario import Scenario
-from commonroad.scenario.trajectory import State
-from scenario_factory.scenario_features.models.lane_model import (LaneletSectionNetwork, LaneletSection, SectionID,
-                                                                  SectionRoute, ProjectionError)
+
+from scenario_factory.scenario_features.models.lane_model import (
+    LaneletSection,
+    LaneletSectionNetwork,
+    ProjectionError,
+    SectionID,
+    SectionRoute,
+)
 
 
 class ScenarioModel:
@@ -51,8 +55,10 @@ class ScenarioModel:
         lsn = self.lanelet_section_network
         lanelet_ids = self.lanelet_network.find_lanelet_by_position([position])[0]
         # init paths with current section(s)
-        new_paths: List[List[LaneletSection]] = \
-            [[ls] for ls in {lsn._lanelet_sections_dict[lsn.lanelet2section_id[l]] for l in lanelet_ids}]
+        new_paths: List[List[LaneletSection]] = [
+            [ls]
+            for ls in {lsn._lanelet_sections_dict[lsn.lanelet2section_id[lanelet_id]] for lanelet_id in lanelet_ids}
+        ]
         new_lengths = [0 for p in new_paths]
 
         # init end result
@@ -71,8 +77,7 @@ class ScenarioModel:
         return reachable_paths
 
     def get_obstacles_on_section(self, lanelet_section: LaneletSection, time_step: Interval) -> List[Obstacle]:
-        """ :returns: all vehicles on this section
-        """
+        """:returns: all vehicles on this section"""
         self.assign_vehicles_at_time_step(time_step)
         obstacle_ids = set()
         for lanelet in lanelet_section.lanelet_list:
@@ -88,7 +93,7 @@ class ScenarioModel:
         self.assign_vehicles_at_time_step(time_step)
         if isinstance(lanelets, SectionID):
             lanelets = self.lanelet_section_network._lanelet_sections_dict[lanelets].lanelet_list
-            lanelets = [l.lanelet_id for l in lanelets]
+            lanelets = [lanelet.lanelet_id for lanelet in lanelets]
 
         for l_id in lanelets:
             s_id = self.lanelet_section_network.lanelet2section_id[l_id]
@@ -97,53 +102,58 @@ class ScenarioModel:
             obs_d = self.lanelet_network.find_lanelet_by_id(l_id).dynamic_obstacle_by_time_step(time_step)
             for obs_id in obs_d | obs_s:
                 try:
-                    self.long_positions[l_id][time_step][obs_id] \
-                        = self.map_obstacle_to_section_sys(obs_id, s_id, time_step=time_step)[0]
+                    self.long_positions[l_id][time_step][obs_id] = self.map_obstacle_to_section_sys(
+                        obs_id, s_id, time_step=time_step
+                    )[0]
                 except ValueError:
                     continue
 
     @lru_cache(maxsize=1024)
     def map_obstacle_to_lanelet_sys(self, obstacle: Union[Obstacle, int], lanelet: Union[Lanelet, int], time_step: int):
-        """ :returns local coordinates of obstacle on lanelet."""
-        if type(lanelet) == Lanelet:
+        """:returns local coordinates of obstacle on lanelet."""
+        if isinstance(lanelet, Lanelet):
             lanelet = lanelet.lanelet_id
-        if type(obstacle) == int:
+        if isinstance(obstacle, int):
             obstacle = self.scenario.obstacle_by_id(obstacle)
 
-        return self.lanelet_section_network \
-            .get_curv_position_lanelet(position=obstacle.state_at_time(time_step=time_step).position,
-                                       lanelet_id=lanelet.lanelet_id)
+        return self.lanelet_section_network.get_curv_position_lanelet(
+            position=obstacle.state_at_time(time_step=time_step).position, lanelet_id=lanelet.lanelet_id
+        )
 
     @lru_cache(maxsize=1024)
-    def map_obstacle_to_section_sys(self, obstacle: Union[Obstacle, int],
-                                    lanelet_section: Union[LaneletSection, SectionID], time_step: int) -> np.ndarray:
-        """ :returns local coordinates of obstacle on lanelet."""
-        if type(lanelet_section) == LaneletSection:
+    def map_obstacle_to_section_sys(
+        self, obstacle: Union[Obstacle, int], lanelet_section: Union[LaneletSection, SectionID], time_step: int
+    ) -> np.ndarray:
+        """:returns local coordinates of obstacle on lanelet."""
+        if isinstance(lanelet_section, LaneletSection):
             lanelet_section = lanelet_section.section_id
-        if type(obstacle) == int:
+        if isinstance(obstacle, int):
             # print(obstacle)
             obstacle = self.scenario.obstacle_by_id(obstacle)
             if obstacle is None:
-                raise ValueError(f'Obstacle {obstacle} not contained in scenario. All obstacles:'
-                                 f'{[obs.obstacle_id for obs in self.scenario.obstacles]}')
+                raise ValueError(
+                    f"Obstacle {obstacle} not contained in scenario. All obstacles:"
+                    f"{[obs.obstacle_id for obs in self.scenario.obstacles]}"
+                )
 
-        return self.lanelet_section_network \
-            .get_curv_position_section(position=obstacle.state_at_time(time_step=time_step).position,
-                                       section_id=lanelet_section)
+        return self.lanelet_section_network.get_curv_position_section(
+            position=obstacle.state_at_time(time_step=time_step).position, section_id=lanelet_section
+        )
 
-    def _get_long_slice(self, section_route: SectionRoute, time_step: int, exclude_obstacle: Union[int, None] = None) \
-            -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """ :returns obstacle_ids,
-                     longitudinal positions with respect to initial lanelet,
-                     lateral index of lanelet (right to left)
+    def _get_long_slice(
+        self, section_route: SectionRoute, time_step: int, exclude_obstacle: Union[int, None] = None
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """:returns obstacle_ids,
+        longitudinal positions with respect to initial lanelet,
+        lateral index of lanelet (right to left)
         """
         long_position_dict = {}
         lat_index_dict = {}
         s0 = 0.0
         for lanelet_section in section_route.lanelet_sections:
-            for l in lanelet_section.lanelet_list:
-                lat_index = section_route.lateral_indices[l.lanelet_id]
-                for obs_id, pos in self.long_positions[l.lanelet_id][time_step].items():
+            for lanelet in lanelet_section.lanelet_list:
+                lat_index = section_route.lateral_indices[lanelet.lanelet_id]
+                for obs_id, pos in self.long_positions[lanelet.lanelet_id][time_step].items():
                     if obs_id == exclude_obstacle:
                         continue
                     long_position_dict[obs_id] = pos + s0
@@ -151,14 +161,19 @@ class ScenarioModel:
 
             s0 += lanelet_section.min_length()
 
-        return np.array(list(long_position_dict.keys())), \
-               np.array(list(long_position_dict.values())), \
-               np.array(list(lat_index_dict.values())),
+        return (
+            np.array(list(long_position_dict.keys())),
+            np.array(list(long_position_dict.values())),
+            np.array(list(lat_index_dict.values())),
+        )
 
-    def get_obstacles_array(self, init_position: Union[np.ndarray, DynamicObstacle],
-                            longitudinal_range: Interval = Interval(-50, 100),
-                            time_step=0, relative_lateral_indices: bool = True) \
-            -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    def get_obstacles_array(
+        self,
+        init_position: Union[np.ndarray, DynamicObstacle],
+        longitudinal_range: Interval = Interval(-50, 100),
+        time_step=0,
+        relative_lateral_indices: bool = True,
+    ) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
         """
         Get array of obstacles with distance and lane information around a given position.
         :param init_position: reference position
@@ -179,8 +194,9 @@ class ScenarioModel:
         for section_route in reachable_routes[:]:
             # get data for initial position
             try:
-                s_init = self.lanelet_section_network. \
-                    get_curv_position_section(init_position, section_route[0].section_id)[0]
+                s_init = self.lanelet_section_network.get_curv_position_section(
+                    init_position, section_route[0].section_id
+                )[0]
             except ProjectionError:
                 continue
 
@@ -198,8 +214,9 @@ class ScenarioModel:
                 long_positions -= s_init
 
             # apply range interval
-            range_mask = np.logical_and(long_positions >= longitudinal_range.start,
-                                        long_positions <= longitudinal_range.end)
+            range_mask = np.logical_and(
+                long_positions >= longitudinal_range.start, long_positions <= longitudinal_range.end
+            )
             obstacle_ids = obstacle_ids[range_mask]
             long_positions = long_positions[range_mask]
             lateral_indices = lateral_indices[range_mask]
@@ -211,9 +228,13 @@ class ScenarioModel:
 
         return obstacle_arrays
 
-    def get_array_closest_obstacles(self, init_position: Union[np.ndarray, DynamicObstacle],
-                                    longitudinal_range: Interval = Interval(-50, 100),
-                                    time_step=0, relative_lateral_indices: bool = True):
+    def get_array_closest_obstacles(
+        self,
+        init_position: Union[np.ndarray, DynamicObstacle],
+        longitudinal_range: Interval = Interval(-50, 100),
+        time_step=0,
+        relative_lateral_indices: bool = True,
+    ):
         """
         Get closest obstacles before and behind init_position separated for every lane.
         :param init_position: initial position or vehicle
@@ -224,8 +245,8 @@ class ScenarioModel:
         """
 
         def select_with_mask(np_mask: np.ndarray, position_dict: dict):
-            """ :returns obstacle id with closest position of vehicle out of the masked ones
-                         and puts it into position_dict."""
+            """:returns obstacle id with closest position of vehicle out of the masked ones
+            and puts it into position_dict."""
             if np.any(np_mask != 0):
                 obstacle_id_select = obstacle_ids[np_mask]
                 long_pos_select = long_positions[np_mask]
@@ -236,8 +257,9 @@ class ScenarioModel:
 
             return position_dict
 
-        obstacle_arrays = self.get_obstacles_array(init_position, longitudinal_range, time_step=time_step,
-                                                   relative_lateral_indices=relative_lateral_indices)
+        obstacle_arrays = self.get_obstacles_array(
+            init_position, longitudinal_range, time_step=time_step, relative_lateral_indices=relative_lateral_indices
+        )
         min_front = defaultdict(dict)
         min_behind = defaultdict(dict)
 

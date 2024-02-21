@@ -1,17 +1,17 @@
 import logging
 import os
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 from pandas import Series
 
 logging.basicConfig(level=logging.INFO)
 
-with open(Path("0_cities_selected.csv"), newline='') as csvfile:
+with open(Path("0_cities_selected.csv"), newline="") as csvfile:
     cities = pd.read_csv(csvfile)
 
     def bbox_str(entry: Series) -> str:
         return f"{entry['West']},{entry['South']},{entry['East']},{entry['North']}"
-
 
     for row, entry in cities.iterrows():
         output_file = Path(f"extracted_maps/{entry['Country']}_{entry['City']}.osm")
@@ -52,9 +52,11 @@ with open(Path("0_cities_selected.csv"), newline='') as csvfile:
 
                         case _:
                             execute_osmium = False
-                            logging.warning(f"OSM file extraction for {entry['Country']} not automated. Do by hand! \n"
-                                            f"This is the terminal command: \n"
-                                            f"osmium extract --bbox {bbox_str(entry)} -o {output_file} input_file")
+                            logging.warning(
+                                f"OSM file extraction for {entry['Country']} not automated. Do by hand! \n"
+                                f"This is the terminal command: \n"
+                                f"osmium extract --bbox {bbox_str(entry)} -o {output_file} input_file"
+                            )
 
                 # case "ARG":
                 #     input_file = Path("input_maps/arizona-latest.osm.pbf")
@@ -64,9 +66,11 @@ with open(Path("0_cities_selected.csv"), newline='') as csvfile:
 
                 case _:
                     execute_osmium = False
-                    logging.warning(f"OSM file extraction for {entry['Country']} not automated. Do by hand! \n"
-                                    f"This is the terminal command: \n"
-                                    f"osmium extract --bbox {bbox_str(entry)} -o {output_file} input_file")
+                    logging.warning(
+                        f"OSM file extraction for {entry['Country']} not automated. Do by hand! \n"
+                        f"This is the terminal command: \n"
+                        f"osmium extract --bbox {bbox_str(entry)} -o {output_file} input_file"
+                    )
 
             if execute_osmium:
                 logging.info(f"Extracting {entry['Country']}_{entry['City']}")
@@ -74,7 +78,7 @@ with open(Path("0_cities_selected.csv"), newline='') as csvfile:
                 # if not, the converted file is (almost) empty -- conversion was not successful
                 assert os.path.getsize(output_file) > 200
 
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             logging.warning(f"Could not find input file {input_file}. Skipping...")
-            logging.info(f"Download the file from https://download.geofabrik.de/ and place it in input_maps/")
+            logging.info("Download the file from https://download.geofabrik.de/ and place it in input_maps/")
             continue

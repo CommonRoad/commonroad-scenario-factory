@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from commonroad.common.file_reader import CommonRoadFileReader
 
 # simple check
@@ -12,7 +13,7 @@ for file in files:
     try:
         scenario, _ = CommonRoadFileReader(file).open()
         files_successful += 1
-    except:
+    except Exception:
         files_error.append(file.stem)
 
 print(f"Files in total: {files_total}")

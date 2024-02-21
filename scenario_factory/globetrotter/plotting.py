@@ -13,8 +13,6 @@ def _plot_scenario(scenario: Scenario, ax=None) -> None:
     """
     Plot a scenario
 
-    See also https://commonroad.in.tum.de/static/docs/opendrive2lanelet/_modules/opendrive2lanelet/io/visualize_commonroad.html#main
-
     :param scenario: CommonRoad scenario
     """
     ax = plt.gca() if ax is None else ax
@@ -51,9 +49,7 @@ def plot_forking_points(scenario: Scenario, points: np.ndarray) -> None:
     _plot_scenario(scenario)
 
     plt.subplots_adjust(bottom=0.1)
-    plt.scatter(
-        points[:, 0], points[:, 1], label="True Position", s=60, c="red", zorder=10
-    )
+    plt.scatter(points[:, 0], points[:, 1], label="True Position", s=60, c="red", zorder=10)
     for idx in range(0, len(points)):
         plt.annotate(str(idx), xy=(points[idx, 0], points[idx, 1]), zorder=11)
 
@@ -64,9 +60,7 @@ def plot_forking_points(scenario: Scenario, points: np.ndarray) -> None:
     plt.show()
 
 
-def plot_clustered_forking_points(
-    scenario: Scenario, cluster: AgglomerativeClustering, points: np.ndarray
-) -> None:
+def plot_clustered_forking_points(scenario: Scenario, cluster: AgglomerativeClustering, points: np.ndarray) -> None:
     """
     Plot cluster with grouped forking points in same color on a large location as background
 
@@ -79,9 +73,7 @@ def plot_clustered_forking_points(
 
     _plot_scenario(scenario)
 
-    plt.scatter(
-        points[:, 0], points[:, 1], c=cluster.labels_, cmap="rainbow", s=60, zorder=10
-    )
+    plt.scatter(points[:, 0], points[:, 1], c=cluster.labels_, cmap="rainbow", s=60, zorder=10)
     plt.gca().set_aspect("equal")
 
     ind = np.lexsort((points[:, 1], points[:, 0]))
@@ -94,9 +86,7 @@ def plot_clustered_forking_points(
     plt.show()
 
 
-def plot_intersections_single(
-    scenario: Scenario, intersections: List[Intersection]
-) -> None:
+def plot_intersections_single(scenario: Scenario, intersections: List[Intersection]) -> None:
     plt.figure(figsize=(10, 7))
 
     _plot_scenario(scenario)
@@ -122,9 +112,7 @@ def plot_intersections_single(
     plt.show()
 
 
-def _plot_intersections(
-    intersections: List[Intersection], start: int = 0, m: int = 5, n: int = 5
-) -> None:
+def _plot_intersections(intersections: List[Intersection], start: int = 0, m: int = 5, n: int = 5) -> None:
     """
     Plot multiple intersections
 
@@ -150,8 +138,6 @@ def _plot_intersections(
     plt.show()
 
 
-def plot_intersections(
-    intersections: List[Intersection], m: int = 5, n: int = 5
-) -> None:
+def plot_intersections(intersections: List[Intersection], m: int = 5, n: int = 5) -> None:
     for start in range(0, len(intersections), m * n):
         _plot_intersections(intersections[start : start + m * n], start, m, n)
