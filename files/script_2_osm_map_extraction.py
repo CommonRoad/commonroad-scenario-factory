@@ -7,6 +7,8 @@ from pandas import Series
 
 logging.basicConfig(level=logging.INFO)
 
+overwrite = True
+
 with open(Path("0_cities_selected.csv"), newline="") as csvfile:
     cities = pd.read_csv(csvfile)
 
@@ -74,7 +76,8 @@ with open(Path("0_cities_selected.csv"), newline="") as csvfile:
 
             if execute_osmium:
                 logging.info(f"Extracting {entry['Country']}_{entry['City']}")
-                os.system(f"osmium extract --bbox {bbox_str(entry)} -o {output_file} {input_file}")
+                overwr = '--overwrite' if overwrite else ''
+                os.system(f"osmium extract --bbox {bbox_str(entry)} -o {output_file} {input_file} {overwr}")
                 # if not, the converted file is (almost) empty -- conversion was not successful
                 assert os.path.getsize(output_file) > 200
 

@@ -314,7 +314,7 @@ def test_scenario_generation():
         logger.warn(f"Error while running {script_name}")
         assert False, f"Error while running {script_name}"
 
-    cmd_num_of_scenario_files = "ls -1 ../files/output/intermediate | wc -lanelet"
+    cmd_num_of_scenario_files = "ls -1 ../files/output/intermediate | wc -l"
 
     try:
         num_of_scenario_files = int(os.popen(cmd_num_of_scenario_files).read().strip())
