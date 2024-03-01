@@ -1,11 +1,12 @@
 from pathlib import Path
+
 from commonroad.common.file_writer import CommonRoadFileWriter
+from commonroad.common.writer.file_writer_interface import OverwriteExistingFile
 from commonroad.scenario.scenario import Location
+from commonroad.scenario.traffic_sign import TrafficSignIDZamunda
 from crdesigner.map_conversion.osm2cr.converter_modules.converter import GraphScenario
 from crdesigner.map_conversion.osm2cr.converter_modules.cr_operations.export import create_scenario_intermediate
 from crdesigner.map_conversion.osm2cr.converter_modules.utility.geonamesID import get_geonamesID
-from commonroad.common.writer.file_writer_interface import OverwriteExistingFile
-from commonroad.scenario.traffic_sign import TrafficSignIDZamunda
 from crdesigner.map_conversion.osm2cr.converter_modules.utility.labeling_create_tree import create_tree_from_file
 
 geonames_tree = create_tree_from_file()
@@ -59,18 +60,12 @@ def convert_osm_file(osm_file: Path) -> None:
     scenario_repaired.scenario_id = f"ZAM_{osm_file.stem.split('_')[-1]}-0_0_T-0"
 
     # map saving
-    cr_fw = (CommonRoadFileWriter(
-        scenario_repaired,
-        None,
-        "Florian Finkeldei",
-        "TUM - Cyber-Physical Systems",
-        "Open Street Map",
-        set(),
-        location
-    ))
+    cr_fw = CommonRoadFileWriter(
+        scenario_repaired, None, "Florian Finkeldei", "TUM - Cyber-Physical Systems", "Open Street Map", set(), location
+    )
     cr_fw.write_scenario_to_file(str(commonroad_file), OverwriteExistingFile.ALWAYS)
 
 
-osm_files = Path("extracted_maps").glob('*.osm')
+osm_files = Path("extracted_maps").glob("*.osm")
 for osm_file in osm_files:
     convert_osm_file(osm_file)

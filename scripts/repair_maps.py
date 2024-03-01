@@ -9,13 +9,14 @@ from commonroad.common.file_writer import CommonRoadFileWriter
 from crdesigner.verification_repairing.repairing.map_repairer import MapRepairer
 from crdesigner.verification_repairing.verification.map_verifier import MapVerifier
 from evaluate_solutions import timeout
-from scenario_factory.scenario_util import iter_scenario_from_folder, iter_scenario_paths_from_folder
+
+from scenario_factory.scenario_util import iter_scenario_paths_from_folder
 
 if __name__ == "__main__":
     in_folder = os.path.expanduser("~/out/2202_OSM_crawler/all")
     out_folder = "~/out/2202_OSM_crawlerRepaired"
     out_folder = os.path.join(os.path.expanduser(out_folder), time.strftime("%Y-%m-%d-%H%M%S"))
-    out_folder_success =os.path.join(out_folder, "success")
+    out_folder_success = os.path.join(out_folder, "success")
     out_folder_exception_validation = os.path.join(out_folder, "exception_validation")
     out_folder_exception_repairing = os.path.join(out_folder, "exception_repairing")
     out_folder_unsuccessful_repairing = os.path.join(out_folder, "unsuccessful_repairing")
@@ -37,7 +38,7 @@ if __name__ == "__main__":
                     print(scenario.scenario_id)
                     invalid = MapVerifier(scenario.scenario_id, scenario.lanelet_network).validate(1)
                     print("Found Problems!" if len(invalid) != 0 else "No problems, continue!")
-                except Exception as e:
+                except Exception:
                     traceback.print_exc()
                     time.sleep(0.01)
                     out_path = os.path.join(out_folder_exception_validation, rel_path)
@@ -48,7 +49,7 @@ if __name__ == "__main__":
                     try:
                         print("Repair!")
                         MapRepairer(scenario.lanelet_network, invalid).repair_map()
-                    except Exception as e:
+                    except Exception:
                         traceback.print_exc()
                         time.sleep(0.01)
                         out_path = os.path.join(out_folder_exception_repairing, rel_path)
@@ -70,10 +71,9 @@ if __name__ == "__main__":
                     CommonRoadFileWriter(scenario_orig, planning_problem_set=None).write_scenario_to_file(out_path)
         except TimeoutError:
             return
-        except:
+        except Exception:
             traceback.print_exc()
             return
-
 
     args = iter_scenario_paths_from_folder(in_folder)
     pool = multiprocessing.Pool(num_cores)

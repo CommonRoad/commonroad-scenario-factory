@@ -1,16 +1,16 @@
+from copy import deepcopy
 from typing import List, Tuple
 
 import commonroad
 import numpy as np
+from commonroad.scenario.lanelet import Lanelet
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.traffic_light import TrafficLight
 from commonroad.scenario.traffic_sign import TrafficSign
-from commonroad.scenario.lanelet import Lanelet
 from scipy.spatial import distance
 from sklearn.cluster import AgglomerativeClustering
 
 from scenario_factory.globetrotter.intersection import Intersection
-from copy import deepcopy
 
 
 def find_clusters_agglomerative(points: np.ndarray) -> AgglomerativeClustering:
@@ -175,7 +175,11 @@ def cut_area(scenario, center, max_distance) -> Scenario:
     for intersection in cut_lanelet_scenario.lanelet_network.intersections:
         remove_incoming = set()
         for incoming in intersection.incomings:
-            if len(incoming.incoming_lanelets) < 1 or len(incoming.successors_straight) + len(incoming.successors_left) + len(incoming.successors_right) < 1:
+            if (
+                len(incoming.incoming_lanelets) < 1
+                or len(incoming.successors_straight) + len(incoming.successors_left) + len(incoming.successors_right)
+                < 1
+            ):
                 remove_incoming.add(incoming)
 
         for incoming in remove_incoming:
@@ -226,8 +230,6 @@ def generate_intersections(
 
     intersections = []
     for key in centroids:
-        intersection = create_intersection(
-            scenario, centroids[key], distances[key], clusters[key]
-        )
+        intersection = create_intersection(scenario, centroids[key], distances[key], clusters[key])
         intersections.append(intersection)
     return intersections, clustering_result

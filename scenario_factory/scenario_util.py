@@ -1,19 +1,16 @@
 import glob
 import logging
 import os
-
-import scipy.signal as signal
 from copy import deepcopy
-import numpy as np
-import commonroad_dc.pycrcc as pycrcc
+from typing import Dict, Generator, Iterable, List, Tuple, Union
 
+import commonroad_dc.pycrcc as pycrcc
+import numpy as np
+import scipy.signal as signal
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.geometry.shape import Polygon
 from commonroad.planning.planning_problem import PlanningProblemSet
-
-from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
-from typing import Union, List, Tuple, Iterable, Dict, Generator
-
+from commonroad.scenario.lanelet import Lanelet, LaneletNetwork
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import State
@@ -24,7 +21,7 @@ def iter_scenario_pp_from_folder(folder: str) -> Generator[Tuple[Scenario, Plann
     for path in glob.glob(os.path.join(folder, "*.xml"), recursive=True):
         try:
             yield tuple(list(CommonRoadFileReader(path).open()) + [path])
-        except:
+        except Exception:
             continue
 
 
@@ -39,11 +36,11 @@ def iter_scenario_from_folder(folder: str) -> Generator[Tuple[Scenario, Planning
             reader = CommonRoadFileReader(path)
             reader._read_header()
             yield reader._open_scenario(lanelet_assignment=False), path
-        except:
+        except Exception:
             continue
 
 
-def erode_lanelets(lanelet_network: LaneletNetwork, radius:float) -> LaneletNetwork:
+def erode_lanelets(lanelet_network: LaneletNetwork, radius: float) -> LaneletNetwork:
     """Erode shape of lanelet by given radius."""
 
     lanelets_ero = []
@@ -54,17 +51,17 @@ def erode_lanelets(lanelet_network: LaneletNetwork, radius:float) -> LaneletNetw
         # compute eroded vector from center
         perp_vecs = (lanelet_ero.left_vertices - lanelet_ero.right_vertices) * 0.5
         length = np.linalg.norm(perp_vecs, axis=1)
-        factors = (1 - np.divide(radius,length)) * 0.5 * np.ones_like(length)#np.divide(radius, length)
-        factors = np.reshape(factors,newshape=[-1,1])
+        factors = (1 - np.divide(radius, length)) * 0.5 * np.ones_like(length)  # np.divide(radius, length)
+        factors = np.reshape(factors, newshape=[-1, 1])
         perp_vec_ero = np.multiply(perp_vecs, factors)
-
 
         # recompute vertices
         lanelet_ero._left_vertices = lanelet_ero.center_vertices + perp_vec_ero
         lanelet_ero._right_vertices = lanelet_ero.center_vertices - perp_vec_ero
         if lanelet_ero._polygon is not None:
-            lanelet_ero._polygon = Polygon(np.concatenate((lanelet_ero.right_vertices,
-                                                    np.flip(lanelet_ero.left_vertices, 0))))
+            lanelet_ero._polygon = Polygon(
+                np.concatenate((lanelet_ero.right_vertices, np.flip(lanelet_ero.left_vertices, 0)))
+            )
         lanelets_ero.append(lanelet_ero)
 
     return LaneletNetwork.create_from_lanelet_list(lanelets_ero)
@@ -72,13 +69,13 @@ def erode_lanelets(lanelet_network: LaneletNetwork, radius:float) -> LaneletNetw
 
 def is_iterable(p_object):
     try:
-        it = iter(p_object)
+        iter(p_object)
     except TypeError:
         return False
     return True
 
 
-def is_connected(lanelet_a:Lanelet, lanelet_b:Lanelet):
+def is_connected(lanelet_a: Lanelet, lanelet_b: Lanelet):
     """Checks whether lanes are in a succ/pred relation or adjacent."""
     if not is_iterable(lanelet_a.adj_left):
         adj_left = [lanelet_a.adj_left]
@@ -98,8 +95,7 @@ def is_connected(lanelet_a:Lanelet, lanelet_b:Lanelet):
     return False
 
 
-def find_intersecting_lanelets(lanelet_network: LaneletNetwork)\
-        -> List[Tuple[int, int]]:
+def find_intersecting_lanelets(lanelet_network: LaneletNetwork) -> List[Tuple[int, int]]:
     """Find pairs of intersecting lanelets. Returns list of lanelet_id pairs."""
     poly_dict = {}  # {polygon_obj: lanelet_id}
     poly_mapping = {}  # {lanelet_id: polygon_obj}
@@ -115,7 +111,7 @@ def find_intersecting_lanelets(lanelet_network: LaneletNetwork)\
         cc_tmp = pycrcc.CollisionChecker()
         checked_ids.append(id)
         for id_tmp, poly_tmp in poly_dict.items():
-            if not id_tmp in checked_ids:
+            if id_tmp not in checked_ids:
                 lanelet_b = lanelet_network._lanelets[id_tmp]
                 if not is_connected(lanelet_a, lanelet_b):
                     # check only for intersection, if lanelets are not connected
@@ -128,20 +124,21 @@ def find_intersecting_lanelets(lanelet_network: LaneletNetwork)\
     # TODO: only for debugging
     import matplotlib.pyplot as plt
     from commonroad.visualization.draw_dispatch_cr import draw_object
+
     for pair in intersections:
         # plt.close('all')
         plt.figure()
-        plt.axis('equal')
-        draw_object(lanelet_network.find_lanelet_by_id(pair[0]), draw_params={'lanelet':{'show_label':True}})
-        draw_object(lanelet_network.find_lanelet_by_id(pair[1]), draw_params={'lanelet':{'show_label':True}})
+        plt.axis("equal")
+        draw_object(lanelet_network.find_lanelet_by_id(pair[0]), draw_params={"lanelet": {"show_label": True}})
+        draw_object(lanelet_network.find_lanelet_by_id(pair[1]), draw_params={"lanelet": {"show_label": True}})
         plt.autoscale()
         plt.show()
-        plt.pause(.01)
+        plt.pause(0.01)
 
     return intersections
 
 
-def compute_intersections(lanelet_network:LaneletNetwork) -> List[Tuple[int, int]]:
+def compute_intersections(lanelet_network: LaneletNetwork) -> List[Tuple[int, int]]:
     """
     Compute list of intersecting lanelet_id pairs. Adjacent and successor/predecessor lanelets are ignored.
     :param lanelet_network:
@@ -153,10 +150,10 @@ def compute_intersections(lanelet_network:LaneletNetwork) -> List[Tuple[int, int
     return intersecting_lanelet_ids
 
 
-def apply_smoothing_filter(array: np.ndarray, par1=0.05/2.5):
+def apply_smoothing_filter(array: np.ndarray, par1=0.05 / 2.5):
     if int(array.size) > 12:  # filter fails for length <= 12!
         # butterworth lowpass filter
-        b, a = signal.butter(1, par1, output='ba')
+        b, a = signal.butter(1, par1, output="ba")
         zi = signal.lfilter_zi(b, a)
         z, _ = signal.lfilter(b, a, array, zi=zi * array[0])
         return True, signal.filtfilt(b, a, array)
@@ -175,13 +172,13 @@ def sort_by_list(list_in: list, sorter_list: list):
     return [ele for _, ele in sorted(zip(sorter_list, list_in), key=lambda pair: pair[0])]
 
 
-def get_state_at_time(obstacle:DynamicObstacle, time_step:int) -> State:
+def get_state_at_time(obstacle: DynamicObstacle, time_step: int) -> State:
     if time_step == obstacle.initial_state.time_step:
         return obstacle.initial_state
     return obstacle.prediction.trajectory.state_at_time_step(time_step)
 
 
-def find_first_greater(vec:np.ndarray, item):
+def find_first_greater(vec: np.ndarray, item):
     """return the index of the first occurence of item in vec"""
     for i in range(len(vec)):
         if item < vec[i]:
@@ -189,7 +186,7 @@ def find_first_greater(vec:np.ndarray, item):
     return None
 
 
-def init_logging(module_name: str, logging_level:int):
+def init_logging(module_name: str, logging_level: int):
     """
     Initis logging for module
     :param module_name:
@@ -205,7 +202,7 @@ def init_logging(module_name: str, logging_level:int):
     # logger.setLevel(level=getattr(logging, self.conf_scenario.logging_level))
 
     # Create formatters and add it to handlers
-    c_format = logging.Formatter('%(message)s')
+    c_format = logging.Formatter("%(message)s")
     c_handler.setFormatter(c_format)
 
     # Add handlers to the logger
@@ -213,9 +210,10 @@ def init_logging(module_name: str, logging_level:int):
     return logger
 
 
-def select_by_vehicle_type(obstacles: Iterable, vehicle_types: Iterable[ObstacleType] = (ObstacleType.CAR))\
-        -> Union[Dict[int,DynamicObstacle],Iterable[DynamicObstacle]]:
-    """ :returns only obstacles with specified vehicle type(s)."""
+def select_by_vehicle_type(
+    obstacles: Iterable, vehicle_types: Iterable[ObstacleType] = (ObstacleType.CAR)
+) -> Union[Dict[int, DynamicObstacle], Iterable[DynamicObstacle]]:
+    """:returns only obstacles with specified vehicle type(s)."""
     if isinstance(obstacles, dict):
         return {obs_id: obs for obs_id, obs in obstacles.items() if (obs.obstacle_type in vehicle_types)}
     else:

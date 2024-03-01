@@ -1,61 +1,48 @@
 """
 Extract CommonRoad maps from large OpenDrive file
 """
+import glob
+import itertools
+import os
+import time
 import warnings
 from copy import deepcopy
 from functools import lru_cache
+from typing import Dict, List, Set
 
 import matplotlib
 import networkx as nx
-from commonroad.scenario.intersection import Intersection
-from commonroad_dc.pycrcc import CollisionChecker
-
-from autocorrect_intersections import ScenarioFixer
-from crdesigner.map_conversion.sumo_map.config import SumoConfig
-from evaluate_solutions import timeout
-
-matplotlib.use("TkAgg")
-import itertools
-import time
-from typing import Dict, List, Set
-
 import numpy as np
-from crdesigner.map_conversion.sumo_map.util import erode_lanelet
-
-from commonroad_dc.collision.collision_detection.pycrcc_collision_dispatch import create_collision_object
-
-from commonroad_dc import pycrcc
-
-from commonroad_dc.boundary import boundary
-from crdesigner.map_conversion.sumo_map.config import SumoConfig
+from autocorrect_intersections import ScenarioFixer
+from commonroad.common.file_reader import CommonRoadFileReader
+from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
 from commonroad.common.util import Interval
 from commonroad.planning.goal import GoalRegion
-from commonroad.planning.planning_problem import PlanningProblemSet, PlanningProblem
-from commonroad.scenario.lanelet import LaneletNetwork, Lanelet, LaneletType
-from commonroad.scenario.scenario import Tag, Scenario
+from commonroad.planning.planning_problem import PlanningProblem, PlanningProblemSet
+from commonroad.scenario.intersection import Intersection
+from commonroad.scenario.lanelet import Lanelet, LaneletNetwork, LaneletType
+from commonroad.scenario.obstacle import ObstacleType
+from commonroad.scenario.scenario import Scenario, Tag
 from commonroad.scenario.trajectory import State
+from commonroad.visualization.mp_renderer import MPRenderer
+from commonroad_dc import pycrcc
+from commonroad_dc.collision.collision_detection.pycrcc_collision_dispatch import create_collision_object
+from commonroad_dc.pycrcc import CollisionChecker
 from commonroad_route_planner.route_planner import RoutePlanner
 from crdesigner.map_conversion.opendrive.opendrive_conversion.network import Network
 from crdesigner.map_conversion.opendrive.opendrive_parser.parser import parse_opendrive
+from crdesigner.map_conversion.sumo_map.config import SumoConfig
 from crdesigner.map_conversion.sumo_map.cr2sumo.converter import CR2SumoMapConverter
+from crdesigner.map_conversion.sumo_map.util import erode_lanelet
+from evaluate_solutions import timeout
 from lxml import etree
-import glob
-import os
-
-from commonroad.common.file_reader import CommonRoadFileReader
-from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
-from commonroad.scenario.obstacle import ObstacleType
-from commonroad.visualization.mp_renderer import MPRenderer
-from shapely.geometry import LineString
-
-# In[10]:
-
-
 from matplotlib import pyplot as plt
-
-# matplotlib.use("TkAgg")
+from shapely.geometry import LineString
 from sumocr.interface.sumo_simulation import SumoSimulation
 from sumocr.maps.sumo_scenario import ScenarioWrapper
+
+matplotlib.use("TkAgg")
+
 
 convert_od = False
 plot = False
@@ -108,46 +95,33 @@ id_lanelets_start = None
 ids_lanelets_goal = None
 min_length_extract = None
 map_settings = {
-    "KASuedtangenteatlatec":
-        {
-            1:
-                {
-                    "id_lanelets_start": [154],
-                    "ids_lanelets_goal": [130],
-                    "min_length_extract": 150,
-                },
-            2:
-                {
-                    "id_lanelets_start": [143],
-                    "ids_lanelets_goal": [165],
-                    "min_length_extract": 150,
-                },
+    "KASuedtangenteatlatec": {
+        1: {
+            "id_lanelets_start": [154],
+            "ids_lanelets_goal": [130],
+            "min_length_extract": 150,
         },
-    "SanFranciscoDowntownSampleOpenDrive":
-        {
-            1:
-                {
-
-                }
+        2: {
+            "id_lanelets_start": [143],
+            "ids_lanelets_goal": [165],
+            "min_length_extract": 150,
         },
-    "KoHAFOpenDRIVE07052018Frankfurt":
-        {
-            1:
-                {
-                    "id_lanelets_start": [1333],
-                    "ids_lanelets_goal": [413],
-                    "min_length_extract": 400,
-                }
-        },
-    "KoHAFOpenDRIVE07052018Frankfurtphase2":
-        {
-            1:
-                {
-                    # "id_lanelets_start": [1333],
-                    # "ids_lanelets_goal": [413],
-                    "min_length_extract": 400,
-                }
+    },
+    "SanFranciscoDowntownSampleOpenDrive": {1: {}},
+    "KoHAFOpenDRIVE07052018Frankfurt": {
+        1: {
+            "id_lanelets_start": [1333],
+            "ids_lanelets_goal": [413],
+            "min_length_extract": 400,
         }
+    },
+    "KoHAFOpenDRIVE07052018Frankfurtphase2": {
+        1: {
+            # "id_lanelets_start": [1333],
+            # "ids_lanelets_goal": [413],
+            "min_length_extract": 400,
+        }
+    },
 }
 
 if convert_od is True:
@@ -163,8 +137,9 @@ if convert_od is True:
     road_network.load_opendrive(opendrive)
 
     # export to CommonRoad scenario
-    scenario = road_network.export_commonroad_scenario(map_name=cr_name, map_id=0,
-                                                       filter_types=["driving", "onRamp", "offRamp", "exit", "entry"])
+    scenario = road_network.export_commonroad_scenario(
+        map_name=cr_name, map_id=0, filter_types=["driving", "onRamp", "offRamp", "exit", "entry"]
+    )
 
     # store converted file as CommonRoad scenario
     writer = CommonRoadFileWriter(
@@ -175,8 +150,7 @@ if convert_od is True:
         source="OpenDRIVE 2 Lanelet Converter",
         tags={Tag.URBAN, Tag.HIGHWAY},
     )
-    writer.write_to_file(cr_file,
-                         OverwriteExistingFile.ALWAYS)
+    writer.write_to_file(cr_file, OverwriteExistingFile.ALWAYS)
     scenario, pp = CommonRoadFileReader(cr_file).open()
     warnings.warn("deleted all trafic lights")
     scenario.lanelet_network._traffic_lights = {}
@@ -245,7 +219,7 @@ def remove_intersecting_lanelets(lanelets: Dict[int, Lanelet], other_lanelets: D
     cc = pycrcc.CollisionChecker()
     for l_id, l in lanelets_union.items():
         if l.lanelet_id not in l2co:
-            # l_eroded = _erode_lanelets([l], radius=0.2).lanelets[0]
+            # l_eroded = _erode_lanelets([lanelet], radius=0.2).lanelets[0]
             l2co[l.lanelet_id] = create_collision_object(l.convert_to_polygon())
             co2l[l2co[l.lanelet_id]] = l.lanelet_id
         if l_id not in lanelets:
@@ -283,8 +257,9 @@ def get_all_adjacent(lanelet: int, lanelet_network) -> Set[int]:
     return new_lanelets
 
 
-def join_all_pred_succ(lanelet: Lanelet, lanelet_network: LaneletNetwork, extracted_lanelets: Dict[int, Lanelet],
-                       min_length: float):
+def join_all_pred_succ(
+    lanelet: Lanelet, lanelet_network: LaneletNetwork, extracted_lanelets: Dict[int, Lanelet], min_length: float
+):
     def add_until_length(attr: str, min_length: float):
         lanelet_tmp = lanelet
         length = 0
@@ -296,13 +271,14 @@ def join_all_pred_succ(lanelet: Lanelet, lanelet_network: LaneletNetwork, extrac
             else:
                 break
             latest_addition -= extracted_lanelets.keys()
-            # latest_lanelets: Dict[int, Lanelet] = {l: lanelet_network._lanelets[l] for l in latest_addition}
+            # latest_lanelets: Dict[int, Lanelet] = {lanelet: lanelet_network._lanelets[lanelet] for lanelet in
+            # latest_addition}
             # latest_addition = set()
             for l_id in latest_addition.copy():
                 latest_addition |= get_all_adjacent(l_id, lanelet_network)
 
             latest_addition -= extracted_lanelets.keys()
-            latest_lanelets ={l: lanelet_network._lanelets[l] for l in latest_addition}
+            latest_lanelets = {lanelet: lanelet_network._lanelets[lanelet] for lanelet in latest_addition}
             latest_lanelets = remove_intersecting_lanelets(latest_lanelets, extracted_lanelets, erosion_radius)
             extracted_lanelets.update(latest_lanelets)
             if not latest_lanelets:
@@ -326,15 +302,17 @@ def complete_intersections(lanelets: Dict[int, Lanelet], sc: Scenario, erosion_r
         if l_id in lanelet2inter:
             add_lanelet_ids_tmp = set()
             for inc in lanelet2inter[l_id].incomings:
-                # print("inter:",inter.intersection_id,"inc_id",inc.incoming_id, "inc.incoming_lanelets",inc.incoming_lanelets)
-                # print("out", "left", inc.successors_left, "right", inc.successors_right, "straight", inc.successors_straight)
+                # print("inter:",inter.intersection_id,"inc_id",inc.incoming_id, "inc.incoming_lanelets",
+                # inc.incoming_lanelets)
+                # print("out", "left", inc.successors_left, "right", inc.successors_right, "straight",
+                # inc.successors_straight)
                 # print("out", inc.successors_right | inc.successors_left | inc.successors_straight)
                 add_lanelet_ids_tmp |= inc.incoming_lanelets
                 add_lanelet_ids_tmp |= inc.successors_left
                 add_lanelet_ids_tmp |= inc.successors_right
                 add_lanelet_ids_tmp |= inc.successors_straight
 
-            tmp = {l: sc.lanelet_network.find_lanelet_by_id(l) for l in add_lanelet_ids_tmp}
+            tmp = {lanelet: sc.lanelet_network.find_lanelet_by_id(lanelet) for lanelet in add_lanelet_ids_tmp}
             len0 = len(tmp)
             remove_intersecting_lanelets(tmp, other_lanelets=lanelets, erosion_radius=erosion_radius)
             if len0 == len(tmp):
@@ -348,39 +326,52 @@ def cleanup_incomplete_intersections(intersections: Dict[int, Intersection], lan
     delete_intersections = []
     delete_lanelets = set()
     for inter_id, inter in intersections.items():
-        lanelets_intersection = set(itertools.chain.from_iterable([inc.incoming_lanelets | inc.successors_straight |
-                                                                   inc.successors_left | inc.successors_right
-                                                                   for inc in inter.incomings]))
+        lanelets_intersection = set(
+            itertools.chain.from_iterable(
+                [
+                    inc.incoming_lanelets | inc.successors_straight | inc.successors_left | inc.successors_right
+                    for inc in inter.incomings
+                ]
+            )
+        )
         if len(lanelets_intersection - lanelet_ids) > 0:
             delete_intersections.append(inter_id)
-            delete_lanelets |= set(itertools.chain.from_iterable([inc.successors_straight |
-                                                                  inc.successors_left | inc.successors_right
-                                                                  for inc in inter.incomings]))
+            delete_lanelets |= set(
+                itertools.chain.from_iterable(
+                    [inc.successors_straight | inc.successors_left | inc.successors_right for inc in inter.incomings]
+                )
+            )
 
     for inter_id in delete_intersections:
         del intersections[inter_id]
 
 
 def is_adjacent(lanelet: Lanelet, lanelet_list: List[int]):
-    adj = lanelet.adj_left in lanelet_list or \
-        lanelet.adj_right in lanelet_list
+    adj = lanelet.adj_left in lanelet_list or lanelet.adj_right in lanelet_list
     return adj
 
 
-def extract_random_route(lanelet_network: LaneletNetwork, rp: RoutePlanner,
-                         allowed_lanelet_types: Set[LaneletType],
-                         forbidden_lanelet_types: Set[LaneletType],
-                         erosion_radius: float,
-                         seed:int,
-                         min_length: float,
-                         min_num_lanelets=5,
-                         ):
-    def choose_initial_lanelet(lanelet_network: LaneletNetwork,
-                               allowed_lanelet_types: Set[LaneletType],
-                               forbidden_lanelet_types: Set[LaneletType]):
-        lanelet_candidates = [l_id for l_id, lanelet in lanelet_network._lanelets.items()
-                              if len(lanelet.lanelet_type & allowed_lanelet_types) > 0
-                              and len(lanelet.lanelet_type & forbidden_lanelet_types) == 0]
+def extract_random_route(
+    lanelet_network: LaneletNetwork,
+    rp: RoutePlanner,
+    allowed_lanelet_types: Set[LaneletType],
+    forbidden_lanelet_types: Set[LaneletType],
+    erosion_radius: float,
+    seed: int,
+    min_length: float,
+    min_num_lanelets=5,
+):
+    def choose_initial_lanelet(
+        lanelet_network: LaneletNetwork,
+        allowed_lanelet_types: Set[LaneletType],
+        forbidden_lanelet_types: Set[LaneletType],
+    ):
+        lanelet_candidates = [
+            l_id
+            for l_id, lanelet in lanelet_network._lanelets.items()
+            if len(lanelet.lanelet_type & allowed_lanelet_types) > 0
+            and len(lanelet.lanelet_type & forbidden_lanelet_types) == 0
+        ]
         choice = np.random.choice(lanelet_candidates)
         i = 0
         while is_lanelet_valid(choice, lanelet_network) is False:
@@ -396,9 +387,13 @@ def extract_random_route(lanelet_network: LaneletNetwork, rp: RoutePlanner,
         t = nx.bfs_tree(rp.digraph, initial_lanelet, depth_limit=20)
         nodes = list(t.nodes())
         np.random.shuffle(nodes)  # randomize order
-        route_gen = (route for n in nodes if t.out_degree(n) == 0 for route in
-                     nx.all_simple_paths(t, initial_lanelet, n)
-                     if len(route) >= min_num_lanelets)
+        route_gen = (
+            route
+            for n in nodes
+            if t.out_degree(n) == 0
+            for route in nx.all_simple_paths(t, initial_lanelet, n)
+            if len(route) >= min_num_lanelets
+        )
 
         def lanelet_intersects(lanelet: int, current_path: List[int]):
             """
@@ -409,15 +404,19 @@ def extract_random_route(lanelet_network: LaneletNetwork, rp: RoutePlanner,
 
             if lanelet not in l2co:
                 l2co[lanelet] = create_collision_object(
-                    erode_lanelet(deepcopy(lanelet_network.find_lanelet_by_id(lanelet)),
-                                  radius=0.4).convert_to_polygon())
+                    erode_lanelet(
+                        deepcopy(lanelet_network.find_lanelet_by_id(lanelet)), radius=0.4
+                    ).convert_to_polygon()
+                )
                 co2l[l2co[lanelet]] = lanelet
             cc = CollisionChecker()
             for l_id in current_path:
                 if l_id not in l2co:
                     l2co[l_id] = create_collision_object(
-                        erode_lanelet(deepcopy(lanelet_network.find_lanelet_by_id(l_id)),
-                                      radius=0.4).convert_to_polygon())
+                        erode_lanelet(
+                            deepcopy(lanelet_network.find_lanelet_by_id(l_id)), radius=0.4
+                        ).convert_to_polygon()
+                    )
                     co2l[l2co[l_id]] = l_id
                 cc.add_collision_object(l2co[l_id])
 
@@ -427,7 +426,6 @@ def extract_random_route(lanelet_network: LaneletNetwork, rp: RoutePlanner,
                 return not is_adjacent(lanelet_network.find_lanelet_by_id(lanelet), colliding_lanelets)
             else:
                 return False
-
 
         found = False
         while found is False:
@@ -442,7 +440,7 @@ def extract_random_route(lanelet_network: LaneletNetwork, rp: RoutePlanner,
                     route = None
                     break
                 if i > 1 and length >= min_length:
-                    route = route[:i + 1]
+                    route = route[: i + 1]
                     found = True
                     break
 
@@ -451,8 +449,11 @@ def extract_random_route(lanelet_network: LaneletNetwork, rp: RoutePlanner,
     np.random.seed(seed)
     route = None
     while route is None:
-        initial_lanelet = choose_initial_lanelet(lanelet_network, allowed_lanelet_types=allowed_lanelet_types,
-                                                 forbidden_lanelet_types=forbidden_lanelet_types)
+        initial_lanelet = choose_initial_lanelet(
+            lanelet_network,
+            allowed_lanelet_types=allowed_lanelet_types,
+            forbidden_lanelet_types=forbidden_lanelet_types,
+        )
         route = find_route(initial_lanelet, lanelet_network, rp, min_length=min_length)
 
     return route
@@ -465,26 +466,34 @@ def extract_map(scenario: Scenario, min_length_extract: float, seed: int):
     #             print(inter.intersection_id)
 
     # extract highway
-    pp = PlanningProblem(100,
-                         initial_state=State(position=np.array([0, 0]), time_step=0, velocity=0.0, orientation=0,
-                                             yaw_rate=0, slip_angle=0),
-                         goal_region=GoalRegion([State(time_step=Interval(0, 1))], {0: [1247]}), )
+    pp = PlanningProblem(
+        100,
+        initial_state=State(
+            position=np.array([0, 0]), time_step=0, velocity=0.0, orientation=0, yaw_rate=0, slip_angle=0
+        ),
+        goal_region=GoalRegion([State(time_step=Interval(0, 1))], {0: [1247]}),
+    )
 
     rp = RoutePlanner(scenario, pp, log_to_console=True)
     rp.id_lanelets_start = id_lanelets_start  # kohaf:1333#1217
     rp.ids_lanelets_goal = ids_lanelets_goal  # 413,1247
     rp._create_lanelet_network_graph()
-    route = extract_random_route(scenario.lanelet_network, rp, allowed_lanelet_types=allowed_lanelet_types,
-                                 forbidden_lanelet_types=forbidden_lanelet_types, erosion_radius=erosion_radius,
-                                 seed=seed,
-                                 min_length=min_length_route)
+    route = extract_random_route(
+        scenario.lanelet_network,
+        rp,
+        allowed_lanelet_types=allowed_lanelet_types,
+        forbidden_lanelet_types=forbidden_lanelet_types,
+        erosion_radius=erosion_radius,
+        seed=seed,
+        min_length=min_length_route,
+    )
     # routes = rp.plan_routes()
     #
     # sections = routes.list_route_candidates[0].retrieve_route_sections()
 
-    lanelets_route = [scenario.lanelet_network._lanelets[l] for l in route]
-    all_lanelets = {l.lanelet_id: l for l in lanelets_route}
-    all_lanelets_len_orig = len(all_lanelets)
+    lanelets_route = [scenario.lanelet_network._lanelets[lanelet] for lanelet in route]
+    all_lanelets = {lanelet.lanelet_id: lanelet for lanelet in lanelets_route}
+    # all_lanelets_len_orig = len(all_lanelets)
     # complete_intersections(all_lanelets, scenario)
     for lanelet in lanelets_route:
         adj_lanelets = get_all_adjacent(lanelet.lanelet_id, scenario.lanelet_network)
@@ -497,18 +506,23 @@ def extract_map(scenario: Scenario, min_length_extract: float, seed: int):
     # complete_intersections(all_lanelets)
     complete_intersections(all_lanelets, scenario)
 
-    scenario_new = Scenario(dt=scenario.dt, scenario_id=scenario.scenario_id, affiliation=scenario.affiliation,
-                            author=scenario.author, source=scenario.source, location=scenario.location,
-                            tags=scenario.tags)
+    scenario_new = Scenario(
+        dt=scenario.dt,
+        scenario_id=scenario.scenario_id,
+        affiliation=scenario.affiliation,
+        author=scenario.author,
+        source=scenario.source,
+        location=scenario.location,
+        tags=scenario.tags,
+    )
 
     for l_id in all_lanelets:
         if is_lanelet_valid(l_id, lanelet_network=scenario.lanelet_network) is False:
             return None
 
-    scenario_new.lanelet_network = LaneletNetwork.create_from_lanelet_list(list(all_lanelets.values()),
-                                                                           cleanup_ids=True,
-                                                                           original_lanelet_network=deepcopy(
-                                                                               scenario.lanelet_network))
+    scenario_new.lanelet_network = LaneletNetwork.create_from_lanelet_list(
+        list(all_lanelets.values()), cleanup_ids=True, original_lanelet_network=deepcopy(scenario.lanelet_network)
+    )
     scenario_new.lanelet_network._traffic_lights = {}
     scenario_new.lanelet_network.cleanup_traffic_light_references()
     scenario_new.lanelet_network.cleanup_traffic_signs()
@@ -520,17 +534,19 @@ draw_params = {
     "traffic_sign": {
         "draw_traffic_signs": False,
     },
-    "intersection": {
-        "draw_intersections": True},
-    'lanelet_network': {'lanelet': {'draw_border_vertices': False,
-                                    'draw_line_markings': True,
-                                    'draw_left_bound': False,
-                                    'draw_center_bound': False,
-                                    'show_label': False,
-                                    "draw_right_bound": False,
-                                    "left_bound_color": "r",
-                                    "right_bound_color": "g"}
-                        }
+    "intersection": {"draw_intersections": True},
+    "lanelet_network": {
+        "lanelet": {
+            "draw_border_vertices": False,
+            "draw_line_markings": True,
+            "draw_left_bound": False,
+            "draw_center_bound": False,
+            "show_label": False,
+            "draw_right_bound": False,
+            "left_bound_color": "r",
+            "right_bound_color": "g",
+        }
+    },
 }
 
 # filename_cr = "/home/klischat/Downloads/xodr_out/extracted/extracted.xml"
@@ -550,57 +566,79 @@ if extract:
     scenario.lanelet_network.cleanup_traffic_light_references()
     scenario.lanelet_network.cleanup_traffic_sign_references()
     w = []
-    for l in scenario.lanelet_network.lanelets:
-        w_min = np.min(np.linalg.norm(l.left_vertices - l.right_vertices,axis=1))
+    for lanelet in scenario.lanelet_network.lanelets:
+        w_min = np.min(np.linalg.norm(lanelet.left_vertices - lanelet.right_vertices, axis=1))
         if w_min <= 0.5:
-            lns = list(itertools.chain.from_iterable([scenario.lanelet_network.find_lanelet_by_id(l_id).predecessor for l_id in l.successor]))
-            lns.extend(list(itertools.chain.from_iterable([scenario.lanelet_network.find_lanelet_by_id(l_id).successor for l_id in l.predecessor])))
+            lns = list(
+                itertools.chain.from_iterable(
+                    [scenario.lanelet_network.find_lanelet_by_id(l_id).predecessor for l_id in lanelet.successor]
+                )
+            )
+            lns.extend(
+                list(
+                    itertools.chain.from_iterable(
+                        [scenario.lanelet_network.find_lanelet_by_id(l_id).successor for l_id in lanelet.predecessor]
+                    )
+                )
+            )
             lns = set(lns)
-            lns.discard(l.lanelet_id)
+            lns.discard(lanelet.lanelet_id)
             if len(lns) < 1:
                 continue
 
-            if l.adj_left:
-                if l.adj_right:
-                    if scenario.lanelet_network.find_lanelet_by_id(l.adj_left)._adj_right_same_direction and l.adj_left_same_direction:
-                        scenario.lanelet_network.find_lanelet_by_id(l.adj_left)._adj_right = l.adj_right
+            if lanelet.adj_left:
+                if lanelet.adj_right:
+                    if (
+                        scenario.lanelet_network.find_lanelet_by_id(lanelet.adj_left)._adj_right_same_direction
+                        and lanelet.adj_left_same_direction
+                    ):
+                        scenario.lanelet_network.find_lanelet_by_id(lanelet.adj_left)._adj_right = lanelet.adj_right
                     else:
-                        scenario.lanelet_network.find_lanelet_by_id(l.adj_left)._adj_left = l.adj_right
-                        scenario.lanelet_network.find_lanelet_by_id(l.adj_right)._adj_right_same_direction = False
+                        scenario.lanelet_network.find_lanelet_by_id(lanelet.adj_left)._adj_left = lanelet.adj_right
+                        scenario.lanelet_network.find_lanelet_by_id(lanelet.adj_right)._adj_right_same_direction = False
 
-                    scenario.lanelet_network.find_lanelet_by_id(l.adj_right)._adj_right_same_direction = l.adj_right_same_direction
+                    scenario.lanelet_network.find_lanelet_by_id(
+                        lanelet.adj_right
+                    )._adj_right_same_direction = lanelet.adj_right_same_direction
                 else:
-                    scenario.lanelet_network.find_lanelet_by_id(l.adj_left)._adj_right = None
-                    scenario.lanelet_network.find_lanelet_by_id(l.adj_left)._adj_right_same_direction = None
+                    scenario.lanelet_network.find_lanelet_by_id(lanelet.adj_left)._adj_right = None
+                    scenario.lanelet_network.find_lanelet_by_id(lanelet.adj_left)._adj_right_same_direction = None
 
-            if l.adj_right:
-                if l.adj_left:
-                    if scenario.lanelet_network.find_lanelet_by_id(l.adj_right)._adj_left_same_direction and l._adj_right_same_direction:
-                        scenario.lanelet_network.find_lanelet_by_id(l.adj_right)._adj_left = l.adj_left
+            if lanelet.adj_right:
+                if lanelet.adj_left:
+                    if (
+                        scenario.lanelet_network.find_lanelet_by_id(lanelet.adj_right)._adj_left_same_direction
+                        and lanelet._adj_right_same_direction
+                    ):
+                        scenario.lanelet_network.find_lanelet_by_id(lanelet.adj_right)._adj_left = lanelet.adj_left
                     else:
-                        scenario.lanelet_network.find_lanelet_by_id(l.adj_right)._adj_right = l.adj_left
-                        scenario.lanelet_network.find_lanelet_by_id(l.adj_right)._adj_left_same_direction = False
+                        scenario.lanelet_network.find_lanelet_by_id(lanelet.adj_right)._adj_right = lanelet.adj_left
+                        scenario.lanelet_network.find_lanelet_by_id(lanelet.adj_right)._adj_left_same_direction = False
 
                 else:
-                    scenario.lanelet_network.find_lanelet_by_id(l.adj_right)._adj_left = None
-                    scenario.lanelet_network.find_lanelet_by_id(l.adj_right)._adj_left_same_direction = None
+                    scenario.lanelet_network.find_lanelet_by_id(lanelet.adj_right)._adj_left = None
+                    scenario.lanelet_network.find_lanelet_by_id(lanelet.adj_right)._adj_left_same_direction = None
 
-            if l.successor:
-                for s in l.successor:
+            if lanelet.successor:
+                for s in lanelet.successor:
                     del scenario.lanelet_network.find_lanelet_by_id(s).predecessor[
-                        scenario.lanelet_network.find_lanelet_by_id(s).predecessor.index(l.lanelet_id)]
-            if l.predecessor:
-                for p in l.predecessor:
+                        scenario.lanelet_network.find_lanelet_by_id(s).predecessor.index(lanelet.lanelet_id)
+                    ]
+            if lanelet.predecessor:
+                for p in lanelet.predecessor:
                     del scenario.lanelet_network.find_lanelet_by_id(p).successor[
-                        scenario.lanelet_network.find_lanelet_by_id(p).successor.index(l.lanelet_id)]
+                        scenario.lanelet_network.find_lanelet_by_id(p).successor.index(lanelet.lanelet_id)
+                    ]
 
-            scenario.remove_lanelet(l)
-            # lns.add(l.lanelet_id)
-            # lnw = LaneletNetwork.create_from_lanelet_list([scenario.lanelet_network.find_lanelet_by_id(ll) for ll in lns], cleanup_ids=True, original_lanelet_network=scenario.lanelet_network)
+            scenario.remove_lanelet(lanelet)
+            # lns.add(lanelet.lanelet_id)
+            # lnw = LaneletNetwork.create_from_lanelet_list(
+            # [scenario.lanelet_network.find_lanelet_by_id(ll) for ll in lns], cleanup_ids=True,
+            # original_lanelet_network=scenario.lanelet_network)
             # rnd=MPRenderer()
             # lnw.draw(rnd)
             # rnd.render(show=False)
-            # plt.title(f"{l.lanelet_id}, {lns}")
+            # plt.title(f"{lanelet.lanelet_id}, {lns}")
             # plt.show(block=True)
             # plt.close('all')
 
@@ -609,7 +647,7 @@ if extract:
     scenario.lanelet_network.cleanup_traffic_lights()
     scenario.lanelet_network.cleanup_traffic_signs()
 
-    for i in range(1, n_maps+1):
+    for i in range(1, n_maps + 1):
         try:
             with timeout(seconds=3):
                 scenario_new = extract_map(scenario, min_length_extract=min_length_extract, seed=i)
@@ -639,7 +677,9 @@ if extract:
         #         assert len(inc.incoming_lanelets) > 0
         filename_cr_tmp = os.path.join(map_folder_extracted, str(scenario_new.scenario_id) + ".xml")
         try:
-            CommonRoadFileWriter(scenario_new, pps).write_to_file(filename_cr_tmp, OverwriteExistingFile.ALWAYS, check_validity=False)
+            CommonRoadFileWriter(scenario_new, pps).write_to_file(
+                filename_cr_tmp, OverwriteExistingFile.ALWAYS, check_validity=False
+            )
         except Exception as e:
             warnings.warn(f"extracted file {i} is invalid XML.")
             print(e)
@@ -647,7 +687,7 @@ if extract:
 
         try:
             CommonRoadFileReader(filename_cr_tmp).open()
-        except:
+        except Exception:
             warnings.warn(f"extracted file {i} cannot be read!")
 
 
@@ -708,8 +748,7 @@ if sumo_simulate:
     for tt in range(n):
         print(f"Time step simulation: {tt} of {n}", end="\r")
         ego_vehicles = sumo_sim.ego_vehicles
-        commonroad_scenario = sumo_sim.commonroad_scenario_at_time_step(
-            sumo_sim.current_time_step)
+        commonroad_scenario = sumo_sim.commonroad_scenario_at_time_step(sumo_sim.current_time_step)
 
         # assert len(commonroad_scenario.obstacles) > 0
         # plan trajectories for all ego vehicles
@@ -719,8 +758,10 @@ if sumo_simulate:
         #     # own implementation for testing - ego vehicle just stays in the initial position
         #     next_state = deepcopy(current_state)
         #     next_state.time_step = 1
-        #     next_state.position = current_state.position + np.array([np.cos(current_state.orientation) * current_state.velocity * config.dt,
-        #                                                              np.sin(current_state.orientation) * current_state.velocity * config.dt])
+        #     next_state.position = current_state.position + np.array([np.cos(current_state.orientation) *
+        #                                                              current_state.velocity * config.dt,
+        #                                                              np.sin(current_state.orientation) *
+        #                                                              current_state.velocity * config.dt])
         #
         #     ego_vehicle.set_planned_trajectory([next_state])
 
@@ -730,18 +771,21 @@ if sumo_simulate:
     print(time.time() - t0)
 
     # Generated scenario
+    sumo_path = "TODO_use_correct_value"
     out_scenario = sumo_sim.commonroad_scenarios_all_time_steps()
     plt.close("all")
-    CommonRoadFileWriter(out_scenario, pp_read,
-                         author="",
-                         affiliation="",
-                         source="OpenDRIVE 2 Lanelet Converter",
-                         tags={Tag.URBAN, Tag.HIGHWAY},
-                         ).write_scenario_to_file(os.path.join(sumo_path, "cr_simulated.xml"),
-                                                  OverwriteExistingFile.ALWAYS)
+    CommonRoadFileWriter(
+        out_scenario,
+        pp_read,
+        author="",
+        affiliation="",
+        source="OpenDRIVE 2 Lanelet Converter",
+        tags={Tag.URBAN, Tag.HIGHWAY},
+    ).write_scenario_to_file(os.path.join(sumo_path, "cr_simulated.xml"), OverwriteExistingFile.ALWAYS)
     print("wrote xml sumo")
     rnd = MPRenderer(draw_params=draw_params)
-    rnd.create_video([out_scenario], file_path=os.path.join(sumo_path, "sumo.mp4"), delta_time_steps=10,
-                     fig_size=[25, 18])
+    rnd.create_video(
+        [out_scenario], file_path=os.path.join(sumo_path, "sumo.mp4"), delta_time_steps=10, fig_size=[25, 18]
+    )
     print("created video sumo")
     plt.pause(100)

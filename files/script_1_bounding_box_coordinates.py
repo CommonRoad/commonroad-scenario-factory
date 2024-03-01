@@ -1,18 +1,23 @@
-import pandas as pd
-import numpy as np
 import math
 from pathlib import Path
 from typing import Tuple
 
+import numpy as np
+import pandas as pd
+
 
 def update_cities_file(file_path: Path, radius: float, do_overwrite: bool = False):
-    with open(file_path, newline='') as csvfile:
+    with open(file_path, newline="") as csvfile:
         cities = pd.read_csv(csvfile)
 
     for ind, lat, lon in zip(range(len(cities)), cities.Lat, cities.Lon):
         bbox = compute_bounding_box_coordinates(lat, lon, radius)
-        cities.loc[(ind, "West")], cities.loc[(ind, "South")], cities.loc[(ind, "East")], cities.loc[
-            (ind, "North")] = bbox
+        (
+            cities.loc[(ind, "West")],
+            cities.loc[(ind, "South")],
+            cities.loc[(ind, "East")],
+            cities.loc[(ind, "North")],
+        ) = bbox
 
     print(cities)
     if do_overwrite:

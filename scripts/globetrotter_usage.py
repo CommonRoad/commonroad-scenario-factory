@@ -1,10 +1,10 @@
 import pathlib
-import scenario_factory
 from copy import deepcopy
-from scenario_factory.globetrotter.clustering import generate_intersections
-from scenario_factory.globetrotter.plotting import plot_scenario
-from scenario_factory.globetrotter.globetrotter_io import commonroad_parse, osm2commonroad, save_intersections
 
+import scenario_factory
+from scenario_factory.globetrotter.clustering import generate_intersections
+from scenario_factory.globetrotter.globetrotter_io import commonroad_parse, osm2commonroad, save_intersections
+from scenario_factory.globetrotter.plotting import plot_scenario
 
 # write commonroad file
 osm_file = pathlib.Path(scenario_factory.__file__).parent.joinpath("../files/example/campus_garching.osm")

@@ -132,14 +132,10 @@ class Intersection:
             for l2 in lanelets[idx:]:
                 # use shapely polygons of lanelets
                 polygon1 = Polygon(
-                    np.concatenate(
-                        (l1.left_vertices, np.flip(l1.right_vertices, axis=0)), axis=0
-                    )
+                    np.concatenate((l1.left_vertices, np.flip(l1.right_vertices, axis=0)), axis=0)
                 ).shapely_object
                 polygon2 = Polygon(
-                    np.concatenate(
-                        (l2.left_vertices, np.flip(l2.right_vertices, axis=0)), axis=0
-                    )
+                    np.concatenate((l2.left_vertices, np.flip(l2.right_vertices, axis=0)), axis=0)
                 ).shapely_object
                 # overlaps is the needed function here
                 if polygon1.overlaps(polygon2):
@@ -158,9 +154,7 @@ class Intersection:
         lanelets = net.lanelets
         latest_max = 0
         for lanelet in lanelets:
-            latest_max = max(
-                latest_max, len(lanelet.successor), len(lanelet.predecessor)
-            )
+            latest_max = max(latest_max, len(lanelet.successor), len(lanelet.predecessor))
         self.max_pre_suc = latest_max
 
     def get_max_speed(self):
@@ -236,9 +230,7 @@ class Intersection:
         planning_problem_set = PlanningProblemSet()
 
         tag = self.tag if hasattr(self, "tag") else {Tag.INTERSECTION}
-        fw = CommonRoadFileWriter(
-            self.scenario, planning_problem_set, author, affiliation, source, tag
-        )
+        fw = CommonRoadFileWriter(self.scenario, planning_problem_set, author, affiliation, source, tag)
         fw.write_to_file(file_path, OverwriteExistingFile.ALWAYS)
 
         commonRoad = ET.parse(file_path)
@@ -322,10 +314,8 @@ class Intersection:
         try:
             zone_number = u.latlon_to_zone_number(self.location.lat, self.location.lng)
             zone_letter = u.latitude_to_zone_letter(self.location.lat)
-            self.lat, self.lng = u.to_latlon(
-                self.center[0], self.center[1], zone_number, zone_letter
-            )
-        except:
+            self.lat, self.lng = u.to_latlon(self.center[0], self.center[1], zone_number, zone_letter)
+        except Exception:
             print("\t error converting utm to lat, lng. Using utm format instead")
             self.lat = self.center[0]
             self.lng = self.center[1]
@@ -385,9 +375,7 @@ class Intersection:
                 np.mean([p[1] for p in lanelet.center_vertices]),
             )
             G.add_node(lanelet.lanelet_id, pos=position, lanelet=lanelet)
-            edges = [
-                (lanelet.lanelet_id, s) for s in lanelet.successor if s in lanelet_ids
-            ]
+            edges = [(lanelet.lanelet_id, s) for s in lanelet.successor if s in lanelet_ids]
             if edges:
                 G.add_edges_from(edges)
 
@@ -402,9 +390,7 @@ class Intersection:
 
         G = self.graph
         lanelets = list(nx.get_node_attributes(G, "lanelet").values())
-        self.scenario.lanelet_network = (
-            self.scenario.lanelet_network.create_from_lanelet_list(lanelets)
-        )
+        self.scenario.lanelet_network = self.scenario.lanelet_network.create_from_lanelet_list(lanelets)
 
     def show_graph(self):
         """

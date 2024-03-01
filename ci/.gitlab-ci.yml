@@ -12,12 +12,13 @@ before_script:
   - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.lrz.de/".insteadOf "git@gitlab.lrz.de:"
   - poetry install
 
-format_checking:
+pre_commit:
   stage: linting
   image: python:3.10
+  before_script:
+    - pip install pre-commit
   script:
-    - pip install black
-    - black --check .
+    - pre-commit run --all-files --show-diff-on-failure
   allow_failure: true
 
 main_pipeline_testing:
