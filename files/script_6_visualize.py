@@ -1,7 +1,7 @@
-from commonroad.common.file_reader import CommonRoadFileReader
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.visualization.mp_renderer import MPRenderer
 
 do_commonroad = False
