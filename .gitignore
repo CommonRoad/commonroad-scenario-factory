@@ -11,3 +11,4 @@ dec23_data
 *.cfg
 *.tar.gz
 *.mp4
+.coverage

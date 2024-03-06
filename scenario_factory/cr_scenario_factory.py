@@ -991,7 +991,7 @@ class GenerateCRScenarios:
         #
         # anim = FuncAnimation(fig, update, frames=frame_count,
         #                      init_func=update, blit=True, interval=interval)
-        # anim.save(file_path, dpi=dpi,
+        # anim.save(cities_file, dpi=dpi,
         #           writer='imagemagick')
 
     def select_ego_vehicles(

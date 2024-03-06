@@ -6,8 +6,16 @@ import numpy as np
 import pandas as pd
 
 
-def update_cities_file(file_path: Path, radius: float, do_overwrite: bool = False):
-    with open(file_path, newline="") as csvfile:
+def update_cities_file(cities_file: Path, radius: float, do_overwrite: bool = False) -> None:
+    """
+    Update bounding box coordinates in the cities file.
+
+    Args:
+        cities_file (Path): Path to the cities file.
+        radius (float): Radius in km.
+        do_overwrite (bool): Overwrite the file.
+    """
+    with open(cities_file, newline="") as csvfile:
         cities = pd.read_csv(csvfile)
 
     for ind, lat, lon in zip(range(len(cities)), cities.Lat, cities.Lon):
@@ -21,16 +29,20 @@ def update_cities_file(file_path: Path, radius: float, do_overwrite: bool = Fals
 
     print(cities)
     if do_overwrite:
-        cities.to_csv(file_path, index=False)
+        cities.to_csv(cities_file, index=False)
 
 
 def compute_bounding_box_coordinates(lat: float, lon: float, radius: float) -> Tuple[float, float, float, float]:
     """
+    Compute the bounding box coordinates for a given latitude, longitude and radius.
 
-    :param lat: in degree
-    :param lon: in degree
-    :param radius: in km
-    :return:
+    Args:
+        lat (float): Latitude in degree
+        lon (float): Longitude in degree
+        radius (float): Radius in km
+
+    Returns:
+        Tuple[float, float, float, float]: West, South, East, North coordinates
     """
     radius_earth = 6.371 * 1e3
     dist_degree = radius / radius_earth * 180 / math.pi
@@ -40,7 +52,3 @@ def compute_bounding_box_coordinates(lat: float, lon: float, radius: float) -> T
     north = lat + dist_degree
 
     return west, south, east, north
-
-
-if __name__ == "__main__":
-    update_cities_file(Path("0_cities_selected.csv"), 0.3, True)

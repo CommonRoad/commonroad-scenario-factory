@@ -1,7 +1,6 @@
 stages:
   - linting
-  - pipeline_test
-  - deploy
+  - testing
 
 before_script:
   - echo $SUMO_HOME
@@ -10,7 +9,7 @@ before_script:
   - pip install poetry
   - poetry config virtualenvs.in-project true
   - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.lrz.de/".insteadOf "git@gitlab.lrz.de:"
-  - poetry install
+  - poetry install --with dev
 
 pre_commit:
   stage: linting
@@ -19,13 +18,18 @@ pre_commit:
     - pip install pre-commit
   script:
     - pre-commit run --all-files --show-diff-on-failure
-  allow_failure: true
 
-main_pipeline_testing:
-  stage: pipeline_test
+main_testing:
+  stage: testing
   image: gitlab.lrz.de:5005/cps/commonroad/sumocr-scenario-generation
   script:
-    - cd tests
-    - poetry run pytest test_pipeline.py
-    - echo $(osmium --version)
+    - poetry run coverage run -m pytest
+    - poetry run coverage report -m || true
+    - poetry run coverage xml
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
   needs: []
