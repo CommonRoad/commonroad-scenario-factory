@@ -4,27 +4,15 @@ import matplotlib.pyplot as plt
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.visualization.mp_renderer import MPRenderer
 
-do_commonroad = False
-do_globetrotter = False
-do_output = True
 
-# CommonRoad Map
-if do_commonroad:
-    files = Path("commonroad").rglob("*.xml")
-    file = next(files)
+def generate_photos(input_folder: Path) -> None:
+    """
+    Generate photos from CommonRoad scenarios.
 
-    scenario, _ = CommonRoadFileReader(file).open()
-    # Plot scenario
-    plt.figure(figsize=(40, 40))
-    renderer = MPRenderer()
-    renderer.draw_scenario(scenario)
-    renderer.render()
-    plt.show()
-    # TODO add functionality to draw bounding box of map extraction
-
-# Globetrotter Extractions
-if do_globetrotter:
-    files = Path("globetrotter").rglob("*.xml")
+    Args:
+        input_folder (Path): Path to the folder containing the CommonRoad files.
+    """
+    files = input_folder.rglob("*.xml")
 
     for file in files:
         scenario, _ = CommonRoadFileReader(file).open()
@@ -35,13 +23,17 @@ if do_globetrotter:
         renderer.render()
         plt.show()
 
-# Generate videos from non interactive scenarios
-if do_output:
-    files = Path("output").joinpath("noninteractive").rglob("*.xml")
-    file = next(files)
-    video_folder = file.parent.parent.joinpath("videos")
+
+def generate_videos(input_folder: Path, video_folder: Path) -> None:
+    """
+    Generate videos from CommonRoad scenarios.
+
+    Args:
+        input_folder (Path): Path to the folder containing the CommonRoad files.
+        video_folder (Path): Path to the folder where the videos will be saved.
+    """
+    files = input_folder.rglob("*.xml")
     video_folder.mkdir(parents=True, exist_ok=True)
-    files = Path("output").joinpath("noninteractive").rglob("*.xml")
 
     for file in sorted(files):
         scenario, planning_problems = CommonRoadFileReader(file).open()

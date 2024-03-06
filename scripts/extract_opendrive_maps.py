@@ -695,7 +695,7 @@ print(" - - Opened successfully - -")
 
 # draw_params["time_end"] = 50
 # rnd = MPRenderer(draw_params=draw_params)
-# rnd.create_video([sc_read], file_path="/home/klischat/Downloads/xodr_out/extracted/out.mp4")
+# rnd.create_video([sc_read], cities_file="/home/klischat/Downloads/xodr_out/extracted/out.mp4")
 # print(" - - video successfully - -")
 
 

@@ -12,7 +12,13 @@ from crdesigner.map_conversion.osm2cr.converter_modules.utility.labeling_create_
 geonames_tree = create_tree_from_file()
 
 
-def convert_osm_file(osm_file: Path) -> None:
+def convert_to_osm_file(osm_file: Path) -> None:
+    """
+    Convert an OSM file to a CommonRoad XML file.
+
+    Args:
+        osm_file (Path): Path to the OSM file.
+    """
     # conversion
     print(f"======== Converting {osm_file.stem} ========")
     commonroad_file = osm_file.parent.joinpath("..", "commonroad", f"{osm_file.stem}.xml")
@@ -66,6 +72,20 @@ def convert_osm_file(osm_file: Path) -> None:
     cr_fw.write_scenario_to_file(str(commonroad_file), OverwriteExistingFile.ALWAYS)
 
 
-osm_files = Path("extracted_maps").glob("*.osm")
-for osm_file in osm_files:
-    convert_osm_file(osm_file)
+def convert_to_osm_files(extracted_maps_folder: Path) -> Path:
+    """
+    Convert all OSM files in the extracted_maps directory to CommonRoad XML files.
+
+    Args:
+        extracted_maps_folder (Path): Path to the folder with the extracted OSM maps.
+
+    Returns:
+        Path: Path to the folder with the converted CommonRoad XML files.
+    """
+    output_folder = extracted_maps_folder.parent.joinpath("commonroad/")
+    output_folder.mkdir(parents=True, exist_ok=True)
+    osm_files = extracted_maps_folder.glob("*.osm")
+    for osm_file in osm_files:
+        convert_to_osm_file(osm_file)
+
+    return output_folder
