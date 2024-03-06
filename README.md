@@ -1,4 +1,7 @@
 # Generation of CommonRoad Scenarios with SUMO
+[![pipeline status](https://gitlab.lrz.de/cps/commonroad/sumocr-scenario-generation/badges/develop/pipeline.svg)](https://gitlab.lrz.de/cps/commonroad/sumocr-scenario-generation/-/commits/develop)
+[![coverage report](https://gitlab.lrz.de/cps/commonroad/sumocr-scenario-generation/badges/develop/coverage.svg)](https://gitlab.lrz.de/cps/commonroad/sumocr-scenario-generation/-/commits/develop)
+
 This repo refactors code which was developed mainly by Moritz Klischat. It can generate interactive and non-interactive CommonRoad traffic scenario, as used, e.g., in the CommonRoad competition.
 
 ## Installation
@@ -11,7 +14,7 @@ You might be able to skip some of the installation steps if the respective softw
 6. Clone this repository.
 7. Install poetry environment `poetry install`.
 8. Run the [`generate_senarios.py`](scripts/generate_senarios.py) script to create interactive scenarios: `poetry run python scripts/generate_scenarios.py`. With the default settings, 13 solution files should be generated. You'll find these in the output folder.
-
+[README.md](README.md)
 The scenario generation proceeds in three steps:
 - First, OSM data is converted into CommonRoad LaneletNetworks.
 - Second, relevant intersections are chosen using the globetrotter tool.
