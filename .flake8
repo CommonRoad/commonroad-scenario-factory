@@ -1,0 +1,8 @@
+[flake8]
+# Those checks are omitted, because they clash with the ruleset of black
+ignore = E501, W503, E722, E203
+
+max-line-length = 120
+
+# Ignore unused imports in __init__.py files
+per-file-ignores = __init__.py:F401
