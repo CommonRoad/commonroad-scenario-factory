@@ -95,7 +95,7 @@ def create_scenarios(
         scenario_counter = 0
         for i_scenario in range(scenarios_per_map):
             try:
-                with ((Timeout(seconds=timeout))):
+                with Timeout(seconds=timeout):
                     sumo_conf_tmp = deepcopy(sumo_config)
                     scenario_name = location_name + "-" + str(map_nr) + "_" + str(i_scenario + 1)
                     scenario_dir_name = intermediate_sumo_files_path.joinpath(scenario_name)
@@ -205,7 +205,6 @@ def create_scenarios(
                     pass
 
     except Exception as e:
-        print(e)
         logging.warning(f"UNEXPECTED ERROR, continue with next scenario: {traceback.format_exc()}")
         try:
             sumo_sim.stop()

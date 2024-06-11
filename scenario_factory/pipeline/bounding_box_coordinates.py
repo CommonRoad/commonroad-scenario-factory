@@ -1,35 +1,14 @@
+from dataclasses import dataclass
 import math
+from typing import Optional, Tuple, Iterator, Iterable
+import csv
 from pathlib import Path
-from typing import Tuple
 
 import numpy as np
-import pandas as pd
 
+from scenario_factory.pipeline.context import PipelineContext, PipelineStepArguments
 
-def update_cities_file(cities_file: Path, radius: float, do_overwrite: bool = False) -> None:
-    """
-    Update bounding box coordinates in the cities file.
-
-    Args:
-        cities_file (Path): Path to the cities file.
-        radius (float): Radius in km.
-        do_overwrite (bool): Overwrite the file.
-    """
-    with open(cities_file, newline="") as csvfile:
-        cities = pd.read_csv(csvfile)
-
-    for ind, lat, lon in zip(range(len(cities)), cities.Lat, cities.Lon):
-        bbox = compute_bounding_box_coordinates(lat, lon, radius)
-        (
-            cities.loc[(ind, "West")],
-            cities.loc[(ind, "South")],
-            cities.loc[(ind, "East")],
-            cities.loc[(ind, "North")],
-        ) = bbox
-
-    print(cities)
-    if do_overwrite:
-        cities.to_csv(cities_file, index=False)
+RADIUS_EARTH: float = 6.371 * 1e3
 
 
 def compute_bounding_box_coordinates(lat: float, lon: float, radius: float) -> Tuple[float, float, float, float]:
@@ -44,11 +23,96 @@ def compute_bounding_box_coordinates(lat: float, lon: float, radius: float) -> T
     Returns:
         Tuple[float, float, float, float]: West, South, East, North coordinates
     """
-    radius_earth = 6.371 * 1e3
-    dist_degree = radius / radius_earth * 180 / math.pi
+
+    dist_degree = radius / RADIUS_EARTH * 180 / math.pi
     west = lon - dist_degree / np.cos(np.deg2rad(lat))
     south = lat - dist_degree
     east = lon + dist_degree / np.cos(np.deg2rad(lat))
     north = lat + dist_degree
 
     return west, south, east, north
+
+
+@dataclass
+class PlainCity:
+    country: str
+    name: str
+    lat: float
+    lon: float
+
+
+@dataclass
+class BoundingBox:
+    west: float
+    south: float
+    east: float
+    north: float
+
+    def __str__(self):
+        return f"{self.west},{self.south},{self.east},{self.north}"
+
+
+@dataclass
+class BoundedCity(PlainCity):
+    bounding_box: BoundingBox
+
+
+@dataclass
+class LoadCitiesFromFileArguments(PipelineStepArguments):
+    cities_path: Path
+
+
+def load_cities_from_file(ctx: PipelineContext, args: Optional[LoadCitiesFromFileArguments]) -> Iterator[PlainCity]:
+    assert args is not None
+    with args.cities_path.open() as csvfile:
+        cities_reader = csv.DictReader(csvfile)
+        for city in cities_reader:
+            yield PlainCity(city["Country"], city["City"], float(city["Lat"]), float(city["Lon"]))
+
+
+@dataclass
+class ComputeBoundingBoxForCityArguments(PipelineStepArguments):
+    radius: float
+
+
+def compute_bounding_box_for_city(
+    ctx: PipelineContext, city: PlainCity, args: Optional[ComputeBoundingBoxForCityArguments]
+) -> BoundedCity:
+    assert args is not None
+    bounding_box_tuple = compute_bounding_box_coordinates(city.lat, city.lon, args.radius)
+    bounding_box = BoundingBox(*bounding_box_tuple)
+    return BoundedCity(city.country, city.name, city.lat, city.lon, bounding_box=bounding_box)
+
+
+@dataclass
+class WriteCitiesToFileArguments(PipelineStepArguments):
+    cities_path: Path
+
+
+def write_cities_to_file(ctx: PipelineContext, cities: Iterable[BoundedCity], args: WriteCitiesToFileArguments) -> None:
+    """
+    Update bounding box coordinates in the cities file.
+
+    Args:
+        cities_file (Path): Path to the cities file.
+        radius (float): Radius in km.
+        do_overwrite (bool): Overwrite the file.
+    """
+    with args.cities_path.open() as csvfile:
+        writer = csv.writer(csvfile)
+        # Write the header first
+        # TODO: Merge the reader and writer to create a matching schema
+        writer.writerow(["Country", "City", "Lat", "Lon", "West", "South", "East", "North"])
+        for city in cities:
+            writer.writerow(
+                [
+                    city.country,
+                    city.name,
+                    city.lat,
+                    city.lon,
+                    city.bounding_box.west,
+                    city.bounding_box.south,
+                    city.bounding_box.east,
+                    city.bounding_box.north,
+                ]
+            )

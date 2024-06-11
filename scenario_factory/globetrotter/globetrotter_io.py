@@ -1,6 +1,6 @@
 import os.path
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import crdesigner.map_conversion.osm2cr.converter_modules.converter as converter
 import numpy as np
@@ -13,6 +13,7 @@ from crdesigner.map_conversion.osm2cr.converter_modules.graph_operations.road_gr
 from crdesigner.map_conversion.osm2cr.converter_modules.utility.geonamesID import get_geonamesID
 
 from scenario_factory.globetrotter.intersection import Intersection
+from scenario_factory.pipeline.context import PipelineContext, PipelineStepArguments
 
 
 def save_as_cr(graph: rg.Graph, file_path: str) -> None:
@@ -85,8 +86,23 @@ def save_intersections(intersections: List[Intersection], output_dir: Path, name
     :param intersections: A list of intersections to save
     :param output_dir: The output directory
     """
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
     for i, intersection in enumerate(intersections):
         intersection.intersection_to_xml(os.path.join(output_dir, f"{name}-{i+1}.xml"))
+
+
+def extract_forking_points(
+    ctx: PipelineContext, scenario: Scenario, args: Optional[PipelineStepArguments]
+) -> Tuple[Scenario, np.ndarray]:
+    lanelets = scenario.lanelet_network.lanelets
+    forking_set = set()
+
+    lanelet_ids = [lanelet.lanelet_id for lanelet in lanelets]
+
+    for lanelet in lanelets:
+        if len(lanelet.predecessor) > 1 and set(lanelet.predecessor).issubset(lanelet_ids):
+            forking_set.add((lanelet.center_vertices[0][0], lanelet.center_vertices[0][1]))
+        if len(lanelet.successor) > 1 and set(lanelet.successor).issubset(lanelet_ids):
+            forking_set.add((lanelet.center_vertices[-1][0], lanelet.center_vertices[-1][1]))
+
+    forking_points = np.array(list(forking_set))
+    return scenario, forking_points

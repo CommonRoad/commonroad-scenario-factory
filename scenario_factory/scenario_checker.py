@@ -1,4 +1,4 @@
-from typing import Dict, Set, Tuple, Union
+from typing import Dict, Set, Tuple, Union, Optional
 
 from commonroad.scenario.obstacle import Obstacle
 from commonroad.scenario.scenario import Scenario
@@ -25,7 +25,7 @@ def check_collision(
     obstacles: Dict[int, Obstacle],
     return_colliding_ids: bool = False,
     get_all: bool = False,
-    max_collisions: int = None,
+    max_collisions: Optional[int] = None,
 ) -> Union[bool, Tuple[bool, Set[int]]]:
     """
     Returns true if vehicles in scenario collide.
@@ -69,7 +69,6 @@ def check_collision(
 
 
 def check_extreme_states(scenario: Scenario):
-
     for obs in scenario.dynamic_obstacles:
         for state in obs.prediction.trajectory.state_list:
             if abs(state.acceleration) > 11.0:

@@ -7,6 +7,7 @@ from crdesigner.map_conversion.sumo_map.config import SumoConfig
 
 from scenario_factory.config_files.scenario_config import ScenarioConfig
 from scenario_factory.generate_senarios import create_scenarios
+from scenario_factory.pipeline.context import PipelineContext
 
 np.random.seed(123456)
 
