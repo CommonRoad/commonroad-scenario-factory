@@ -1,8 +1,8 @@
-from dataclasses import dataclass
-import math
-from typing import Optional, Tuple, Iterator, Iterable
 import csv
+import math
+from dataclasses import dataclass
 from pathlib import Path
+from typing import AsyncIterator, Iterable, Iterator, Optional, Tuple
 
 import numpy as np
 

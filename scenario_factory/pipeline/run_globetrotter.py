@@ -1,11 +1,11 @@
 from pathlib import Path
-from typing import Optional, Tuple, List
-import numpy as np
+from typing import List, Optional, Tuple
 
+import numpy as np
 from commonroad.scenario.scenario import Scenario
-from scenario_factory.globetrotter.intersection import Intersection
 
 from scenario_factory.globetrotter.clustering import generate_intersections
+from scenario_factory.globetrotter.intersection import Intersection
 from scenario_factory.pipeline.context import PipelineContext, PipelineStepArguments
 
 

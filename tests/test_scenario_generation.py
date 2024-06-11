@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import scenario_factory
-
 from scenario_factory.globetrotter.globetrotter_io import extract_forking_points
 from scenario_factory.globetrotter.intersection import Intersection
 from scenario_factory.pipeline.bounding_box_coordinates import (

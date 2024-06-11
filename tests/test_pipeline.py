@@ -1,6 +1,6 @@
+import sys
 from pathlib import Path
 from typing import Iterator
-import sys
 
 import pytest
 

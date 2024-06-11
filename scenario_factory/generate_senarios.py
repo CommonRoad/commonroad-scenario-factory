@@ -219,8 +219,6 @@ if __name__ == "__main__":
     # set parameters
     CREATE_VIDEO = False
     NUM_POOL = 6
-    CREATE_INTERACTIVE = True
-    CREATE_NON_INTERACTIVE = True
     np.random.seed(102)
     timestr = time.strftime("%Y%m%d-%H%M%S")
 

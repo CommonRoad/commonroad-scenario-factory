@@ -1,11 +1,11 @@
-from typing import Optional
-from dataclasses import dataclass
 import logging
 import os
+from dataclasses import dataclass
 from pathlib import Path
-from scenario_factory.pipeline.context import PipelineContext, PipelineStepArguments
-from scenario_factory.pipeline.bounding_box_coordinates import BoundedCity
+from typing import Optional
 
+from scenario_factory.pipeline.bounding_box_coordinates import BoundedCity
+from scenario_factory.pipeline.context import PipelineContext, PipelineStepArguments
 
 # TODO: This mapping is far from ideal. A better alternative would be to either use a transparent proxy to GeoFabrik and download the maps on demand or use a static index using types (maybe those from commonroad-io?)
 _CITY_TO_MAP_MAPPING = {

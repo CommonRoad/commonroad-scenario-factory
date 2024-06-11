@@ -1,15 +1,37 @@
 from copy import deepcopy
 from multiprocessing import Pool
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
 
 from scenario_factory.config_files.scenario_config import ScenarioConfig
 from scenario_factory.generate_senarios import create_scenarios
-from scenario_factory.pipeline.context import PipelineContext
+from scenario_factory.pipeline.context import PipelineContext, PipelineStepArguments
 
 np.random.seed(123456)
+
+
+def simulate_scenario(ctx: PipelineContext, intersection_path: Path, args: Optional[PipelineStepArguments]):
+    scenario_config = ScenarioConfig()
+    sumo_config = SumoConfig()
+    scenarios_per_map = 2
+    create_noninteractive: bool = True
+    create_interactive: bool = True
+
+    output_folder = ctx.get_output_folder("output")
+    scenario_number, path = create_scenarios(
+        intersection_path,
+        sumo_config,
+        scenario_config,
+        scenarios_per_map,
+        output_folder,
+        create_noninteractive=create_noninteractive,
+        create_interactive=create_interactive,
+    )
+
+    return scenario_number, path
 
 
 def generate_scenarios(

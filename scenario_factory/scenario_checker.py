@@ -1,4 +1,4 @@
-from typing import Dict, Set, Tuple, Union, Optional
+from typing import Dict, Optional, Set, Tuple, Union
 
 from commonroad.scenario.obstacle import Obstacle
 from commonroad.scenario.scenario import Scenario

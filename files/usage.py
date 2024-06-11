@@ -1,5 +1,5 @@
-from pathlib import Path
 import logging
+from pathlib import Path
 
 from scenario_factory.globetrotter.globetrotter_io import extract_forking_points
 from scenario_factory.pipeline.bounding_box_coordinates import (
@@ -9,14 +9,13 @@ from scenario_factory.pipeline.bounding_box_coordinates import (
     load_cities_from_file,
     write_cities_to_file,
 )
-from scenario_factory.pipeline.context import Pipeline, PipelineContext, PipelineStepArguments
+from scenario_factory.pipeline.context import Pipeline, PipelineContext
 from scenario_factory.pipeline.conversion_to_commonroad import convert_osm_file_to_commonroad_scenario
-from scenario_factory.pipeline.generate_scenarios import generate_scenarios
+from scenario_factory.pipeline.generate_scenarios import generate_scenarios, simulate_scenario
 from scenario_factory.pipeline.osm_map_extraction import ExractOsmMapArguments, extract_osm_map
 from scenario_factory.pipeline.run_globetrotter import extract_intersections, write_intersection_to_file
-from scenario_factory.pipeline.visualize import generate_videos
 from scenario_factory.pipeline.utils import flatten, keep
-
+from scenario_factory.pipeline.visualize import generate_videos
 
 logging.getLogger().setLevel(logging.DEBUG)
 
@@ -35,7 +34,8 @@ pipeline.map(extract_forking_points)
 pipeline.map(extract_intersections)
 pipeline.reduce(flatten)
 pipeline.map(write_intersection_to_file)
-# # use the result, to make sure that everything is evaluated
+pipeline.map(simulate_scenario, num_processes=1)
+# use the result, to make sure that everything is evaluated
 pipeline.drain(keep)
 pipeline.report_results()
 

@@ -1,16 +1,26 @@
-from contextlib import redirect_stderr, redirect_stdout
+import io
+from multiprocessing import Pool
+import time
 import traceback
+from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterable, Iterator, Optional, Any, List, TypeVar
-import time
-import io
+from typing import Any, Callable, Generic, Iterable, Iterator, List, Optional, TypeVar
+
+
+class PipelineStepArguments: ...
+
+
+_PipelineStepArgumentsType = TypeVar("_PipelineStepArgumentsType", bound=PipelineStepArguments, covariant=True)
+_PipelineStepInputType = TypeVar("_PipelineStepInputType")
+_PipelineStepOutputType = TypeVar("_PipelineStepOutputType")
 
 
 @dataclass
-class PipelineStepResult:
+class PipelineStepResult(Generic[_PipelineStepInputType, _PipelineStepOutputType]):
     step: str
-    input: Any
+    input: _PipelineStepInputType
+    output: Optional[_PipelineStepOutputType]
     error: Optional[Exception]
     log: io.StringIO
     exec_time: int
@@ -27,14 +37,6 @@ class PipelineContext:
         output_folder = self._output_path.joinpath(suffix)
         output_folder.mkdir(parents=True, exist_ok=True)
         return output_folder
-
-
-class PipelineStepArguments: ...
-
-
-_PipelineStepArgumentsType = TypeVar("_PipelineStepArgumentsType", bound=PipelineStepArguments, covariant=True)
-_PipelineStepInputType = TypeVar("_PipelineStepInputType")
-_PipelineStepOutputType = TypeVar("_PipelineStepOutputType")
 
 
 class Pipeline:
@@ -95,35 +97,47 @@ class Pipeline:
     def map(
         self,
         func: Callable[
-            [PipelineContext, _PipelineStepInputType, Optional[_PipelineStepArgumentsType]], _PipelineStepOutputType
+            [PipelineContext, _PipelineStepInputType, Optional[_PipelineStepArgumentsType]],
+            _PipelineStepOutputType,
         ],
         args: Optional[_PipelineStepArgumentsType] = None,
+        num_processes: Optional[int] = None,
     ):
-        _values = map(lambda entry: self._wrap_func(func, entry, args), self._stack)
-        self._stack = filter(lambda value: value is not None, _values)
+        results = []
+        if num_processes is None:
+            results = [self._wrap_func(func, stack_elem, args) for stack_elem in self._stack]
+        else:
+            pool = Pool(
+                processes=num_processes,
+            )
+            input = [(func, stack_elem, args) for stack_elem in self._stack]
+            results = pool.starmap(self._wrap_func, input)
+
+        self._results.extend(results)
+        self._stack = [result.output for result in results if result.output is not None]
 
     def _wrap_func(
         self,
         func: Callable[
-            [PipelineContext, _PipelineStepInputType, Optional[_PipelineStepArgumentsType]], _PipelineStepOutputType
+            [PipelineContext, _PipelineStepInputType, Optional[_PipelineStepArgumentsType]],
+            _PipelineStepOutputType,
         ],
-        entry: _PipelineStepInputType,
+        input: _PipelineStepInputType,
         args: Optional[_PipelineStepArgumentsType],
-    ) -> Optional[_PipelineStepOutputType]:
+    ) -> PipelineStepResult[_PipelineStepInputType, _PipelineStepOutputType]:
         stream = io.StringIO()
         value, error = None, None
         with redirect_stdout(stream):
             with redirect_stderr(stream):
                 start_time = time.time_ns()
                 try:
-                    value = func(self._ctx, entry, args)
+                    value = func(self._ctx, input, args)
                 except Exception as e:
                     error = e
                 end_time = time.time_ns()
 
-        result = PipelineStepResult(str(func.__name__), entry, error, stream, end_time - start_time)
-        self._results.append(result)
-        return value
+        result = PipelineStepResult(str(func.__name__), input, value, error, stream, end_time - start_time)
+        return result
 
     @_guard_against_unpopulated
     def reduce(
