@@ -1,10 +1,9 @@
-import sys
 from pathlib import Path
 from typing import Iterator
 
 import pytest
 
-from scenario_factory.pipeline.context import Pipeline, PipelineContext
+from scenario_factory.pipeline.context import EmptyPipelineError, Pipeline, PipelineContext
 from scenario_factory.pipeline.utils import keep
 
 
@@ -13,14 +12,11 @@ class TestPipeline:
         ctx = PipelineContext(Path("."))
         pipeline = Pipeline(ctx)
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(EmptyPipelineError):
             pipeline.map(keep)
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(EmptyPipelineError):
             pipeline.reduce(keep)
-
-        with pytest.raises(RuntimeError):
-            pipeline.drain(keep)
 
     def test_populate_fails_on_exception(self, capfd):
         ctx = PipelineContext(Path("."))

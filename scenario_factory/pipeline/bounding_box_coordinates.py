@@ -2,11 +2,16 @@ import csv
 import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AsyncIterator, Iterable, Iterator, Optional, Tuple
+from typing import Iterable, Iterator, Tuple
 
 import numpy as np
 
-from scenario_factory.pipeline.context import PipelineContext, PipelineStepArguments
+from scenario_factory.pipeline.context import (
+    PipelineContext,
+    PipelineStepArguments,
+    pipeline_map_with_args,
+    pipeline_populate_with_args,
+)
 
 RADIUS_EARTH: float = 6.371 * 1e3
 
@@ -58,12 +63,12 @@ class BoundedCity(PlainCity):
 
 
 @dataclass
-class LoadCitiesFromFileArguments(PipelineStepArguments):
+class LoadCitiesFromCsvArguments(PipelineStepArguments):
     cities_path: Path
 
 
-def load_cities_from_file(ctx: PipelineContext, args: Optional[LoadCitiesFromFileArguments]) -> Iterator[PlainCity]:
-    assert args is not None
+@pipeline_populate_with_args
+def load_cities_from_csv(ctx: PipelineContext, args: LoadCitiesFromCsvArguments) -> Iterator[PlainCity]:
     with args.cities_path.open() as csvfile:
         cities_reader = csv.DictReader(csvfile)
         for city in cities_reader:
@@ -75,10 +80,12 @@ class ComputeBoundingBoxForCityArguments(PipelineStepArguments):
     radius: float
 
 
+@pipeline_map_with_args
 def compute_bounding_box_for_city(
-    ctx: PipelineContext, city: PlainCity, args: Optional[ComputeBoundingBoxForCityArguments]
+    ctx: PipelineContext,
+    args: ComputeBoundingBoxForCityArguments,
+    city: PlainCity,
 ) -> BoundedCity:
-    assert args is not None
     bounding_box_tuple = compute_bounding_box_coordinates(city.lat, city.lon, args.radius)
     bounding_box = BoundingBox(*bounding_box_tuple)
     return BoundedCity(city.country, city.name, city.lat, city.lon, bounding_box=bounding_box)

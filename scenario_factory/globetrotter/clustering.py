@@ -1,7 +1,6 @@
 from copy import deepcopy
 from typing import List, Tuple
 
-import commonroad
 import numpy as np
 from commonroad.scenario.lanelet import Lanelet
 from commonroad.scenario.scenario import Scenario
@@ -159,7 +158,8 @@ def cut_area(scenario, center, max_distance) -> Scenario:
     intersections = relevant_intersections(scenario.lanelet_network.intersections, lanelets_not_none)
 
     # create new scenario
-    cut_lanelet_scenario = commonroad.scenario.scenario.Scenario(0.1)
+    cut_lanelet_scenario = Scenario(0.1)
+    cut_lanelet_scenario.scenario_id = deepcopy(scenario.scenario_id)
     cut_lanelet_network = scenario.lanelet_network.create_from_lanelet_list(lanelets_not_none, cleanup_ids=False)
     cut_lanelet_scenario.location = scenario.location
     cut_lanelet_scenario.replace_lanelet_network(cut_lanelet_network)
@@ -229,7 +229,8 @@ def generate_intersections(
     print(f"Clustering completed. Found {len(clusters)} intersections")
 
     intersections = []
-    for key in centroids:
+    for idx, key in enumerate(centroids):
         intersection = create_intersection(scenario, centroids[key], distances[key], clusters[key])
+        intersection.scenario.scenario_id.map_id = idx + 1
         intersections.append(intersection)
     return intersections, clustering_result

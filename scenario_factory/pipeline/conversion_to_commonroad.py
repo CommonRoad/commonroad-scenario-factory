@@ -1,21 +1,18 @@
 from pathlib import Path
-from typing import Optional
 
-from commonroad.scenario.scenario import Location, Scenario
+from commonroad.scenario.scenario import Location, Scenario, ScenarioID
 from commonroad.scenario.traffic_sign import TrafficSignIDZamunda
 from crdesigner.map_conversion.osm2cr.converter_modules.converter import GraphScenario
 from crdesigner.map_conversion.osm2cr.converter_modules.cr_operations.export import create_scenario_intermediate
 from crdesigner.map_conversion.osm2cr.converter_modules.utility.geonamesID import get_geonamesID
 from crdesigner.map_conversion.osm2cr.converter_modules.utility.labeling_create_tree import create_tree_from_file
 
-from scenario_factory.pipeline.context import PipelineContext, PipelineStepArguments
+from scenario_factory.pipeline.context import PipelineContext
 
 geonames_tree = create_tree_from_file()
 
 
-def convert_osm_file_to_commonroad_scenario(
-    ctx: PipelineContext, osm_file: Path, args: Optional[PipelineStepArguments]
-) -> Scenario:
+def convert_osm_file_to_commonroad_scenario(ctx: PipelineContext, osm_file: Path) -> Scenario:
     """
     Convert an OSM file to a CommonRoad XML file.
 
@@ -24,12 +21,9 @@ def convert_osm_file_to_commonroad_scenario(
     """
     # conversion
     print(f"======== Converting {osm_file.stem} ========")
-    output_folder = ctx.get_output_folder("commonroad")
-    commonroad_file = output_folder.joinpath(f"{osm_file.stem}.xml")
 
     graph = GraphScenario(str(osm_file)).graph
     scenario, intermediate_format = create_scenario_intermediate(graph)
-    # problemset = intermediate_format.get_dummy_planning_problem_set()
     location = Location(
         gps_latitude=graph.center_point[0],
         gps_longitude=graph.center_point[1],
@@ -68,34 +62,10 @@ def convert_osm_file_to_commonroad_scenario(
     scenario_repaired = scenario
 
     # TODO: Use correct scenario_id
-    scenario_repaired.scenario_id = f"ZAM_{osm_file.stem.split('_')[-1]}-0_0_T-0"
+    country_id = osm_file.stem.split("_")[0]
+    map_name = osm_file.stem.split("_")[-1]
+    scenario_repaired.scenario_id = ScenarioID(country_id=country_id, map_name=map_name)
+    # scenario_repaired.scenario_id = f"ZAM_{osm_file.stem.split('_')[-1]}-0_0_T-0"
     scenario_repaired.location = location
 
     return scenario_repaired
-
-    # # map saving
-    # cr_fw = CommonRoadFileWriter(
-    #     scenario_repaired, None, "Florian Finkeldei", "TUM - Cyber-Physical Systems", "Open Street Map", set(), location
-    # )
-    # cr_fw.write_scenario_to_file(str(commonroad_file), OverwriteExistingFile.ALWAYS)
-
-    return commonroad_file
-
-
-def convert_to_osm_files(extracted_maps_folder: Path) -> Path:
-    """
-    Convert all OSM files in the extracted_maps directory to CommonRoad XML files.
-
-    Args:
-        extracted_maps_folder (Path): Path to the folder with the extracted OSM maps.
-
-    Returns:
-        Path: Path to the folder with the converted CommonRoad XML files.
-    """
-    output_folder = extracted_maps_folder.parent.joinpath("commonroad/")
-    output_folder.mkdir(parents=True, exist_ok=True)
-    osm_files = extracted_maps_folder.glob("*.osm")
-    for osm_file in osm_files:
-        convert_osm_file_to_commonroad_scenario(osm_file)
-
-    return output_folder

@@ -11,6 +11,7 @@ from pathlib import Path
 import libsumo
 import numpy as np
 from commonroad.common.file_reader import CommonRoadFileReader
+from commonroad.scenario.scenario import Scenario
 
 # Options
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
@@ -39,6 +40,40 @@ class Timeout:
 
     def __exit__(self, type, value, traceback):
         signal.alarm(0)
+
+
+def convert_commonroad_scenario_to_sumo(commonroad_scenario: Scenario, output_folder: Path) -> CR2SumoMapConverter:
+    sumo_config = SumoConfig.from_scenario(commonroad_scenario)
+    sumo_config.highway_mode = False
+
+    intermediate_sumo_files_path = output_folder.joinpath("intermediate", str(commonroad_scenario.scenario_id))
+    intermediate_sumo_files_path.mkdir(parents=True, exist_ok=True)
+    sumo_net_path = intermediate_sumo_files_path.joinpath(sumo_config.scenario_name + ".net.xml")
+
+    cr2sumo = CR2SumoMapConverter(commonroad_scenario, sumo_config)
+    cr2sumo._convert_map()
+    intermediary_files = cr2sumo.write_intermediate_files(str(sumo_net_path))
+    conversion_possible = cr2sumo.merge_intermediate_files(str(sumo_net_path), True, *intermediary_files)
+
+    if not conversion_possible:
+        raise RuntimeError(f"Failed to convert CommonRoad scenario {commonroad_scenario.scenario_id} to SUMO")
+
+    return cr2sumo
+
+
+def generate_random_traffic_on_sumo_network(
+    cr2sumo_map_converter: CR2SumoMapConverter, net_file: Path
+) -> ScenarioWrapper:
+    rou_files, _additional_file, _sumo_cfg_file = cr2sumo_map_converter._create_random_routes(
+        net_file, scenario_name=cr2sumo_map_converter.conf.scenario_name, return_files=True
+    )
+
+    scenario_wrapper = ScenarioWrapper()
+    scenario_wrapper.net_file = str(net_file)
+    scenario_wrapper.sumo_cfg_file = _sumo_cfg_file
+    scenario_wrapper.initial_scenario = cr2sumo_map_converter.initial_scenario
+
+    return scenario_wrapper
 
 
 def create_scenarios(
@@ -204,7 +239,7 @@ def create_scenarios(
                 except Exception:
                     pass
 
-    except Exception as e:
+    except Exception:
         logging.warning(f"UNEXPECTED ERROR, continue with next scenario: {traceback.format_exc()}")
         try:
             sumo_sim.stop()

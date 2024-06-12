@@ -1,11 +1,11 @@
 import logging
-import os
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
 from scenario_factory.pipeline.bounding_box_coordinates import BoundedCity
-from scenario_factory.pipeline.context import PipelineContext, PipelineStepArguments
+from scenario_factory.pipeline.context import PipelineContext, PipelineStepArguments, pipeline_map_with_args
 
 # TODO: This mapping is far from ideal. A better alternative would be to either use a transparent proxy to GeoFabrik and download the maps on demand or use a static index using types (maybe those from commonroad-io?)
 _CITY_TO_MAP_MAPPING = {
@@ -60,12 +60,17 @@ class NoOsmMapInputFileException(Exception):
 
 
 @dataclass
-class ExractOsmMapArguments(PipelineStepArguments):
+class ExtractOsmMapArguments(PipelineStepArguments):
     input_maps_folder: Path
     overwrite: bool
 
 
-def extract_osm_map(ctx: PipelineContext, city: BoundedCity, args: Optional[ExractOsmMapArguments]) -> Path:
+@pipeline_map_with_args
+def extract_osm_map(
+    ctx: PipelineContext,
+    args: ExtractOsmMapArguments,
+    city: BoundedCity,
+) -> Path:
     """
     Extract the OSM map according to bounding box specified in the cities_file. Calls osmium library.
 
@@ -77,7 +82,6 @@ def extract_osm_map(ctx: PipelineContext, city: BoundedCity, args: Optional[Exra
     Returns:
         Path: Path to the folder with the extracted OSM maps.
     """
-    assert args is not None
     output_folder = ctx.get_output_folder("extracted_maps")
     output_file = output_folder.joinpath(f"{city.country}_{city.name}.osm")
 
@@ -90,9 +94,17 @@ def extract_osm_map(ctx: PipelineContext, city: BoundedCity, args: Optional[Exra
         raise NoOsmMapInputFileException(city, input_file)
 
     logging.info(f"Extracting {city.country}_{city.name}")
-    overwr = "--overwrite" if args.overwrite else ""
-    os.system(f"osmium extract --bbox {city.bounding_box} -o {output_file} {input_file} {overwr}")
-    # if not, the converted file is (almost) empty -- conversion was not successful
-    # TODO: Could the osmium exit could be used instead?
-    assert os.path.getsize(output_file) > 200
+
+    cmd = ["osmium", "extract", "--bbox", str(city.bounding_box), "-o", str(output_file), str(input_file)]
+    if args.overwrite:
+        cmd.append("--overwrite")
+
+    logging.debug(f"Osmium extraction command: {' '.join(cmd)}")
+    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if proc.returncode > 1 or output_file.stat().st_size <= 200:
+        logging.debug(proc.stdout)
+        raise RuntimeError(
+            f"Failed to extract bounding box for {city.country}_{city.name} from {input_file} using osmium"
+        )
+
     return output_file

@@ -1,16 +1,20 @@
 import io
-from multiprocessing import Pool
+import logging
 import time
-import traceback
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
+from multiprocessing import Pool
 from pathlib import Path
-from typing import Any, Callable, Generic, Iterable, Iterator, List, Optional, TypeVar
+from typing import Callable, Generic, Iterable, Iterator, List, Optional, TypeAlias, TypeVar
+
+_logger = logging.getLogger("scenario_factory")
 
 
-class PipelineStepArguments: ...
+class PipelineStepArguments:
+    ...
 
 
+# We want to use PipelineStepArguments as a type parameter in Callable, which requires covariant types
 _PipelineStepArgumentsType = TypeVar("_PipelineStepArgumentsType", bound=PipelineStepArguments, covariant=True)
 _PipelineStepInputType = TypeVar("_PipelineStepInputType")
 _PipelineStepOutputType = TypeVar("_PipelineStepOutputType")
@@ -32,17 +36,85 @@ class PipelineContext:
     def __init__(self, output_path: Path):
         self._output_path = output_path
 
-    # TODO: The handling and passing around of output directories is not ideal and should be replaced by a more sound approach
-    def get_output_folder(self, suffix: str) -> Path:
-        output_folder = self._output_path.joinpath(suffix)
+    def get_output_folder(self, folder_name: str) -> Path:
+        """
+        Get the path to a folder that is guaranteed to exist.
+        """
+        output_folder = self._output_path.joinpath(folder_name)
         output_folder.mkdir(parents=True, exist_ok=True)
         return output_folder
 
 
-class Pipeline:
-    """ """
+_PipelineMapType: TypeAlias = Callable[[PipelineContext, _PipelineStepInputType], _PipelineStepOutputType]
+_PipelineMapWithArgsType: TypeAlias = Callable[
+    [PipelineContext, _PipelineStepArgumentsType, _PipelineStepInputType], _PipelineStepOutputType
+]
 
-    _stack: Iterable
+_PipelinePopulateType: TypeAlias = Callable[[PipelineContext], Iterator[_PipelineStepOutputType]]
+_PipelinePopulateWithArgsType: TypeAlias = Callable[
+    [PipelineContext, _PipelineStepArgumentsType], Iterator[_PipelineStepOutputType]
+]
+
+
+def pipeline_populate_with_args(func: _PipelinePopulateWithArgsType):
+    def inner_wrapper(
+        args: PipelineStepArguments,
+    ) -> _PipelinePopulateType:
+        def inner_pipeline_step(ctx: PipelineContext) -> Iterator[_PipelineStepOutputType]:
+            return func(ctx, args)
+
+        return inner_pipeline_step
+
+    return inner_wrapper
+
+
+def pipeline_map_with_args(
+    func: _PipelineMapWithArgsType,
+) -> Callable[[PipelineStepArguments], _PipelineMapType]:
+    def inner_wrapper(
+        args: PipelineStepArguments,
+    ) -> _PipelineMapType:
+        def inner_pipeline_step(ctx: PipelineContext, input_value: _PipelineStepInputType) -> _PipelineStepOutputType:
+            return func(ctx, args, input_value)
+
+        # Make sure that we can report the correct name of the function and do not report 'inner_pipeline_step' as the function name
+        inner_pipeline_step.__name__ = func.__name__
+        return inner_pipeline_step
+
+    return inner_wrapper
+
+
+def pipeline_map(func: _PipelineMapType) -> _PipelineMapType:
+    return func
+
+
+def _execute_pipeline_function(
+    ctx: PipelineContext,
+    func: _PipelineMapType,
+    input: _PipelineStepInputType,
+) -> PipelineStepResult[_PipelineStepInputType, _PipelineStepOutputType]:
+    stream = io.StringIO()
+    value, error = None, None
+    with redirect_stdout(stream):
+        with redirect_stderr(stream):
+            start_time = time.time_ns()
+            try:
+                value = func(ctx, input)
+            except Exception as e:
+                error = e
+            end_time = time.time_ns()
+
+    result = PipelineStepResult(func.__name__, input, value, error, stream, end_time - start_time)
+    return result
+
+
+class EmptyPipelineError(Exception):
+    def __init__(self, method: str):
+        super().__init__(f"Cannot perform {method} on an empty pipeline!")
+
+
+class Pipeline:
+    _state: List
 
     def __init__(self, ctx: PipelineContext):
         self._ctx = ctx
@@ -53,14 +125,12 @@ class Pipeline:
     @staticmethod
     def _guard_against_unpopulated(guarded_method):
         """
-        Only execute the guarded method if the internal state was populated and the _populated flag was set. Otherwise a RuntimeError is generated.
+        Only execute the guarded method if the internal state was populated and the _populated flag was set. Otherwise an EmptyPipelineError is generated.
         """
 
         def wrapper(self, *args, **kwargs):
-            if not self._populated:
-                raise RuntimeError(
-                    f"Cannot perform {guarded_method.__name__} on an empty pipeline: pipeline was not yet populated!"
-                )
+            if not self._populated or len(self._state) == 0:
+                raise EmptyPipelineError(guarded_method.__name__)
 
             guarded_method(self, *args, **kwargs)
 
@@ -68,99 +138,67 @@ class Pipeline:
 
     def populate(
         self,
-        populate_func: Callable[[PipelineContext, Optional[_PipelineStepArgumentsType]], Iterator[Any]],
-        args: Optional[_PipelineStepArgumentsType] = None,
+        populate_func: _PipelinePopulateType,
     ):
         """
         Populates the internal state with the result from the populate_func.
         """
-        new_stack = None
+        new_state = None
         stream = io.StringIO()
         try:
             with redirect_stderr(stream):
                 with redirect_stdout(stream):
-                    new_stack = populate_func(self._ctx, args)
+                    new_state = populate_func(self._ctx)
         except Exception as e:
             print(stream.getvalue(), end=None)
             raise e
 
-        if new_stack is None:
+        if new_state is None:
             print(stream.getvalue())
             raise RuntimeError(
                 f"Could not populate pipeline: The populate function {populate_func.__name__} did not produce a value."
             )
 
-        self._stack = new_stack
+        self._state = list(new_state)
         self._populated = True
 
     @_guard_against_unpopulated
     def map(
         self,
-        func: Callable[
-            [PipelineContext, _PipelineStepInputType, Optional[_PipelineStepArgumentsType]],
-            _PipelineStepOutputType,
-        ],
-        args: Optional[_PipelineStepArgumentsType] = None,
+        map_func: _PipelineMapType,
         num_processes: Optional[int] = None,
     ):
-        results = []
+        _logger.debug(f"Mapping '{map_func.__name__}' on '{self._state}'")
         if num_processes is None:
-            results = [self._wrap_func(func, stack_elem, args) for stack_elem in self._stack]
+            results = [_execute_pipeline_function(self._ctx, map_func, stack_elem) for stack_elem in self._state]
         else:
             pool = Pool(
                 processes=num_processes,
             )
-            input = [(func, stack_elem, args) for stack_elem in self._stack]
-            results = pool.starmap(self._wrap_func, input)
+            input = [(self._ctx, map_func, stack_elem) for stack_elem in self._state]
+            results = pool.starmap(_execute_pipeline_function, input)
 
         self._results.extend(results)
-        self._stack = [result.output for result in results if result.output is not None]
-
-    def _wrap_func(
-        self,
-        func: Callable[
-            [PipelineContext, _PipelineStepInputType, Optional[_PipelineStepArgumentsType]],
-            _PipelineStepOutputType,
-        ],
-        input: _PipelineStepInputType,
-        args: Optional[_PipelineStepArgumentsType],
-    ) -> PipelineStepResult[_PipelineStepInputType, _PipelineStepOutputType]:
-        stream = io.StringIO()
-        value, error = None, None
-        with redirect_stdout(stream):
-            with redirect_stderr(stream):
-                start_time = time.time_ns()
-                try:
-                    value = func(self._ctx, input, args)
-                except Exception as e:
-                    error = e
-                end_time = time.time_ns()
-
-        result = PipelineStepResult(str(func.__name__), input, value, error, stream, end_time - start_time)
-        return result
+        # Only collect non None values
+        self._state = [result.output for result in results if result.output is not None]
 
     @_guard_against_unpopulated
     def reduce(
         self,
         reduce_func: Callable[[PipelineContext, Iterable[_PipelineStepInputType]], Iterable[_PipelineStepOutputType]],
     ):
-        self._stack = reduce_func(self._ctx, self._stack)
-
-    @_guard_against_unpopulated
-    def drain(
-        self, drain_func: Callable[[PipelineContext, Iterable[_PipelineStepInputType]], _PipelineStepOutputType]
-    ) -> _PipelineStepOutputType:
-        self._stack = list(self._stack)
-        return drain_func(self._ctx, self._stack)
+        _logger.debug(f"Using '{reduce_func.__name__}' to reduce '{self._state}'")
+        self._state = list(reduce_func(self._ctx, self._state))
 
     def report_results(self):
         for result in self._results:
-            if result.error is None:
-                continue
+            if result.error is not None:
+                print(f"Failed to process '{result.input}' in step '{result.step}': {result.error}")
 
-            print(f"Error in '{result.step}' while processing '{result.input}'")
-            out = result.log.getvalue().strip()
-            if len(out) > 0:
-                print(out)
+    @property
+    def errors(self):
+        return [result for result in self._results if result.error is not None]
 
-            traceback.print_exception(result.error)
+    @property
+    def state(self):
+        return self._state
