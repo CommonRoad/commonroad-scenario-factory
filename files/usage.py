@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 
 from scenario_factory.globetrotter.globetrotter_io import extract_forking_points
@@ -11,8 +10,10 @@ from scenario_factory.pipeline.bounding_box_coordinates import (
 from scenario_factory.pipeline.context import Pipeline, PipelineContext
 from scenario_factory.pipeline.conversion_to_commonroad import convert_osm_file_to_commonroad_scenario
 from scenario_factory.pipeline.generate_scenarios import (
+    GenerateCommonRoadScenariosArguments,
     GenerateRandomTrafficArguments,
     create_sumo_configuration_for_commonroad_scenario,
+    generate_cr_scenarios,
     generate_random_traffic,
     simulate_scenario,
 )
@@ -22,12 +23,6 @@ from scenario_factory.pipeline.run_globetrotter import (
     extract_intersections,
 )
 from scenario_factory.pipeline.utils import flatten
-
-_logger = logging.getLogger("scenario_factory")
-_logger.setLevel(logging.INFO)
-handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter(fmt="%(asctime)s|%(name)s|%(levelname)s|%(message)s"))
-_logger.addHandler(handler)
 
 cities_file = Path("cities_selected.csv")
 input_maps_folder = Path("input_maps")
@@ -42,13 +37,14 @@ pipeline.map(convert_osm_file_to_commonroad_scenario)
 pipeline.map(extract_forking_points)
 pipeline.map(extract_intersections)
 pipeline.reduce(flatten)
-# pipeline.map(write_intersection_to_file)
 pipeline.map(convert_intersection_to_commonroad_scenario)
 pipeline.map(create_sumo_configuration_for_commonroad_scenario)
 pipeline.map(generate_random_traffic(GenerateRandomTrafficArguments(scenarios_per_map=2)))
 pipeline.reduce(flatten)
 pipeline.map(simulate_scenario)
-# use the result, to make sure that everything is evaluated
+pipeline.map(
+    generate_cr_scenarios(GenerateCommonRoadScenariosArguments(create_noninteractive=True, create_interactive=False)),
+)
 pipeline.report_results()
 
 # output_path = generate_scenarios(ctx.get_output_folder("globetrotter"), number_of_processes=16)

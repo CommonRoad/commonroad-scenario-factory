@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pathlib import Path
 
 from commonroad.scenario.scenario import Location, Scenario, ScenarioID
@@ -9,7 +10,11 @@ from crdesigner.map_conversion.osm2cr.converter_modules.utility.labeling_create_
 
 from scenario_factory.pipeline.context import PipelineContext
 
-geonames_tree = create_tree_from_file()
+
+@lru_cache
+def get_geonames_tree():
+    geonames_tree = create_tree_from_file()
+    return geonames_tree
 
 
 def convert_osm_file_to_commonroad_scenario(ctx: PipelineContext, osm_file: Path) -> Scenario:
@@ -19,6 +24,7 @@ def convert_osm_file_to_commonroad_scenario(ctx: PipelineContext, osm_file: Path
     Args:
         osm_file (Path): Path to the OSM file.
     """
+    geonames_tree = get_geonames_tree()
     # conversion
     print(f"======== Converting {osm_file.stem} ========")
 

@@ -1,6 +1,7 @@
 import io
 import logging
 import time
+import traceback
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from multiprocessing import Pool
@@ -71,6 +72,10 @@ def pipeline_populate_with_args(func: _PipelinePopulateWithArgsType):
 def pipeline_map_with_args(
     func: _PipelineMapWithArgsType,
 ) -> Callable[[PipelineStepArguments], _PipelineMapType]:
+    """
+    Decorate a function to indicate its use as a map function for the pipeline. This decorator will partially apply the function by setting the args parameter.
+    """
+
     def inner_wrapper(
         args: PipelineStepArguments,
     ) -> _PipelineMapType:
@@ -85,6 +90,9 @@ def pipeline_map_with_args(
 
 
 def pipeline_map(func: _PipelineMapType) -> _PipelineMapType:
+    """
+    Decorate a function to indicate that is used as a map function for the pipeline.
+    """
     return func
 
 
@@ -114,6 +122,10 @@ class EmptyPipelineError(Exception):
 
 
 class Pipeline:
+    """
+    Generic pipeline that can apply map or reduce functions on an internal state. This pipeline enables easier orchestration of functions, by centralizing the executing of individual steps and following a functional paradigm.
+    """
+
     _state: List
 
     def __init__(self, ctx: PipelineContext):
@@ -125,7 +137,7 @@ class Pipeline:
     @staticmethod
     def _guard_against_unpopulated(guarded_method):
         """
-        Only execute the guarded method if the internal state was populated and the _populated flag was set. Otherwise an EmptyPipelineError is generated.
+        Only execute the guarded method if the internal state was populated and the _populated flag was set. Otherwise an EmptyPipelineError is raised.
         """
 
         def wrapper(self, *args, **kwargs):
@@ -168,6 +180,9 @@ class Pipeline:
         map_func: _PipelineMapType,
         num_processes: Optional[int] = None,
     ):
+        """
+        Apply map_func individually on every element of the internal state. The results of each map_func invocation are gathered and set as the new internal state of the pipeline.
+        """
         _logger.debug(f"Mapping '{map_func.__name__}' on '{self._state}'")
         if num_processes is None:
             results = [_execute_pipeline_function(self._ctx, map_func, stack_elem) for stack_elem in self._state]
@@ -187,13 +202,17 @@ class Pipeline:
         self,
         reduce_func: Callable[[PipelineContext, Iterable[_PipelineStepInputType]], Iterable[_PipelineStepOutputType]],
     ):
+        """
+        Apply reduce_func on the whole internal state and set its result as the new internal state.
+        """
         _logger.debug(f"Using '{reduce_func.__name__}' to reduce '{self._state}'")
         self._state = list(reduce_func(self._ctx, self._state))
 
     def report_results(self):
         for result in self._results:
             if result.error is not None:
-                print(f"Failed to process '{result.input}' in step '{result.step}': {result.error}")
+                print(f"Failed to process '{result.input}' in step '{result.step}' with error {type(result.error)}:")
+                traceback.print_exception(result.error)
 
     @property
     def errors(self):
@@ -202,3 +221,15 @@ class Pipeline:
     @property
     def state(self):
         return self._state
+
+
+__all__ = [
+    "Pipeline",
+    "PipelineStepArguments",
+    "PipelineContext",
+    "PipelineStepResult",
+    "EmptyPipelineError",
+    "pipeline_map",
+    "pipeline_map_with_args",
+    "pipeline_populate_with_args",
+]

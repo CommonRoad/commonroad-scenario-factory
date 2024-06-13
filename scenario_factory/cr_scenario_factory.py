@@ -1,6 +1,7 @@
 """
 This class contains functions for creation of final CommonRoad scenario files.
 """
+
 import copy
 import logging
 import os
@@ -783,7 +784,6 @@ class GenerateCRScenarios:
             self.logger.info(f"Commonroad scenario file created for {k + 1 + scenario_counter}th planning problem")
 
             if self.conf_scenario.save_ego_solution_file:
-
                 for s in self.list_ego_obstacles[k].prediction.trajectory.state_list:
                     s.steering_angle = 0
 

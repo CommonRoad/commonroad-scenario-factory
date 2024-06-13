@@ -18,6 +18,7 @@ scikit-learn = "^1.3.2"
 osmium = ">=2.16.0"
 pyproj = "^3.6.1"
 eclipse-sumo = "^1.19.0"
+click = "^8.1.7"
 
 [tool.poetry.group.tests]
 optional = true
@@ -39,3 +40,6 @@ line_length = 120
 
 [tool.coverage.run]
 source = ["scenario_factory"]
+
+[tool.poetry.scripts]
+scenario-factory = "scenario_factory.cli:generate"

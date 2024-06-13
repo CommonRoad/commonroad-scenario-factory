@@ -5,7 +5,6 @@ import signal
 import time
 import traceback
 from copy import deepcopy
-from multiprocessing import Pool
 from pathlib import Path
 
 import libsumo
@@ -23,7 +22,6 @@ from sumocr.sumo_config.default import SUMO_VEHICLE_PREFIX, InteractiveSumoConfi
 from scenario_factory.config_files.scenario_config import ScenarioConfig
 from scenario_factory.cr_scenario_factory import GenerateCRScenarios
 from scenario_factory.scenario_checker import DeleteScenario
-from scenario_factory.scenario_util import init_logging
 
 
 class Timeout:
@@ -248,42 +246,3 @@ def create_scenarios(
         return obtained_scenario_number, cr_file
 
     return obtained_scenario_number, cr_file
-
-
-if __name__ == "__main__":
-    # set parameters
-    CREATE_VIDEO = False
-    NUM_POOL = 6
-    np.random.seed(102)
-    timestr = time.strftime("%Y%m%d-%H%M%S")
-
-    # set sumo config
-    sumo_config = SumoConfig()
-    sumo_config.highway_mode = False
-
-    # set scenario config
-    scenario_config = ScenarioConfig()
-    scenario_directory = scenario_config.scenario_directory
-
-    # load files
-    filenames = list(Path(scenario_directory).rglob("*.xml"))
-    filenames = [file for file in filenames]  # if 'DEU' not in str(file)
-    # random.shuffle(filenames)
-
-    solution_folder = os.path.join(scenario_config.output_folder, timestr, "solutions")
-    os.makedirs(solution_folder, exist_ok=False)
-
-    # start logging, choose logging levels logging.INFO, logging.CRITICAL, logging.DEBUG
-    logger = init_logging(__name__, logging.DEBUG)
-
-    pool = Pool(processes=NUM_POOL)
-    res0 = pool.map(create_scenarios, zip(filenames, [deepcopy(sumo_config) for _ in range(len(filenames))]))
-
-    res = {}
-    for r in res0:
-        if type(r) is tuple and len(r) == 2:
-            res[r[1]] = r[0]
-
-    res = {r[1]: r[0] for r in res0}
-
-    logger.info(f"obtained_scenario_number: {sum(list(res.values()))}")

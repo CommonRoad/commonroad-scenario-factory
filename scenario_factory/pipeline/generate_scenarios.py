@@ -1,8 +1,6 @@
 import shutil
 from copy import deepcopy
 from dataclasses import dataclass
-from multiprocessing import Pool
-from pathlib import Path
 from typing import Iterable
 
 import numpy as np
@@ -13,12 +11,18 @@ from sumocr.interface.sumo_simulation import SumoSimulation
 from sumocr.maps.sumo_scenario import ScenarioWrapper
 
 from scenario_factory.config_files.scenario_config import ScenarioConfig
+from scenario_factory.cr_scenario_factory import GenerateCRScenarios
 from scenario_factory.generate_senarios import (
     convert_commonroad_scenario_to_sumo,
-    create_scenarios,
     generate_random_traffic_on_sumo_network,
 )
-from scenario_factory.pipeline.context import PipelineContext, PipelineStepArguments, pipeline_map_with_args
+from scenario_factory.pipeline.context import (
+    PipelineContext,
+    PipelineStepArguments,
+    pipeline_map,
+    pipeline_map_with_args,
+)
+from scenario_factory.scenario_checker import DeleteScenario
 
 np.random.seed(123456)
 
@@ -62,9 +66,10 @@ def generate_random_traffic(
         yield generate_random_traffic_on_sumo_network(cr2sumo_map_converter, sumo_net_copy)
 
 
+@pipeline_map
 def simulate_scenario(ctx: PipelineContext, scenario_wrapper: ScenarioWrapper) -> Scenario:
     sumo_conf = SumoConfig()
-    sumo_conf.simulation_steps = 100
+    sumo_conf.simulation_steps = 300
     sumo_sim = SumoSimulation()
     sumo_sim.initialize(sumo_conf, scenario_wrapper)
 
@@ -79,59 +84,62 @@ def simulate_scenario(ctx: PipelineContext, scenario_wrapper: ScenarioWrapper) -
     return scenario
 
 
-def generate_scenarios(
-    globetrotter_folder: Path,
-    scenario_config: ScenarioConfig = ScenarioConfig(),
-    sumo_config: SumoConfig = SumoConfig(),
-    scenarios_per_map: int = 2,
-    create_noninteractive: bool = True,
-    create_interactive: bool = True,
-    number_of_processes: int = 4,
-) -> Path:
-    """
-    Generate scenarios from the CommonRoad files.
+@dataclass
+class GenerateCommonRoadScenariosArguments(PipelineStepArguments):
+    create_noninteractive: bool
+    create_interactive: bool
 
-    Args:
-        globetrotter_folder (Path): Path to the folder containing the CommonRoad files.
-        scenario_config (ScenarioConfig): Configuration for the scenario generation.
-        sumo_config (SumoConfig): Configuration for the SUMO simulation.
-        scenarios_per_map (int): Number of scenarios to generate per map.
-        create_noninteractive (bool): Whether to create non-interactive scenarios.
-        create_interactive (bool): Whether to create interactive scenarios.
-        number_of_processes (int): Number of processes to use for the parallel processing.
 
-    Returns:
-        Path: Path to the folder containing the generated scenarios.
-    """
-    sumo_config.highway_mode = False
+@pipeline_map_with_args
+def generate_cr_scenarios(ctx: PipelineContext, args: GenerateCommonRoadScenariosArguments, scenario: Scenario) -> bool:
+    sumo_conf = SumoConfig.from_scenario(scenario)
+    sumo_conf.simulation_steps = 300
+    scenario_config = ScenarioConfig()
+    # Because GenerateCRScenarios will split based on this format, we must provide it in exactly this format...
+    scenario_config.map_name = f"{scenario.scenario_id}_{scenario.scenario_id.map_name}-{scenario.scenario_id.map_id}"
+    output_path = ctx.get_output_folder("output")
+    try:
+        cr_scenarios = GenerateCRScenarios(
+            scenario,
+            sumo_conf.simulation_steps,
+            sumo_conf.scenario_name,
+            scenario_config,
+            "",
+            "",
+        )
+    except DeleteScenario:
+        raise RuntimeError("Remove scenario with to many collisions!")
 
-    filenames = globetrotter_folder.rglob("*.xml")
-    output_folder = globetrotter_folder.parent.joinpath("output")
-    output_folder.mkdir(parents=True, exist_ok=True)
+    scenario_counter = scenario.scenario_id.configuration_id
+    assert scenario_counter is not None
+    map_nr = scenario.scenario_id.map_id
+    scenario_counter_prev = scenario_counter
+    scenario_counter = cr_scenarios.create_cr_scenarios(map_nr, scenario_counter)
+    scenario_nr_added = 0
+    if args.create_noninteractive:
+        output_noninteractive = output_path.joinpath("noninteractive")
+        output_noninteractive.mkdir(parents=True, exist_ok=True)
+        scenario_nr_added += cr_scenarios.write_cr_file_and_video(
+            scenario_counter_prev,
+            create_video=False,
+            check_validity=False,  # TODO set True
+            output_path=output_noninteractive,
+        )
 
-    pool = Pool(processes=number_of_processes)
-    res0 = pool.starmap(
-        create_scenarios,
-        [
-            (
-                filename,
-                deepcopy(sumo_config),
-                deepcopy(scenario_config),
-                scenarios_per_map,
-                output_folder,
-                create_noninteractive,
-                create_interactive,
-            )
-            for filename in filenames
-        ],
-    )
+    if args.create_interactive:
+        raise RuntimeError("Creating interactive scenarios is currently not possible")
+        # output_interactive = output_path.joinpath("interactive")
+        # output_interactive.mkdir(parents=True, exist_ok=True)
+        # scenario_nr_added += cr_scenarios.write_interactive_scenarios_and_videos(
+        #     scenario_counter_prev,
+        #     sumo_sim.ids_cr2sumo[SUMO_VEHICLE_PREFIX],
+        #     sumo_net_path=sumo_net_copy,
+        #     rou_files=rou_files,
+        #     config=sumo_conf_tmp,
+        #     default_config=InteractiveSumoConfigDefault(),
+        #     create_video=False,
+        #     check_validity=False,  # TODO set True
+        #     output_path=output_interactive,
+        # )
 
-    res = {}
-    for r in res0:
-        if type(r) is tuple and len(r) == 2:
-            res[r[1]] = r[0]
-
-    res = {r[1]: r[0] for r in res0}
-
-    print(f"obtained_scenario_number: {sum(list(res.values()))}")
-    return output_folder
+    return True

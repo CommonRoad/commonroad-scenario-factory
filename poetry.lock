@@ -228,10 +228,7 @@ develop = false
 
 [package.dependencies]
 antlr4-python3-runtime = "4.9.3"
-commonroad-drivability-checker = [
-    {version = "2023.1", markers = "python_version < \"3.11\""},
-    {git = "git@gitlab.lrz.de:cps/commonroad-drivability-checker.git", rev = "development", markers = "python_version >= \"3.11\""},
-]
+commonroad-drivability-checker = {version = "2023.1", markers = "python_version < \"3.11\""}
 commonroad-io = {git = "https://github.com/CommonRoad/commonroad-io.git", rev = "develop"}
 eclipse-sumo = "^1.19.0"
 iso3166 = "^2.1.1"
@@ -1333,8 +1330,8 @@ files = [
 
 [package.dependencies]
 numpy = [
-    {version = ">=1.21.0", markers = "python_version >= \"3.10\" and python_version < \"3.11\""},
     {version = ">=1.23.2", markers = "python_version >= \"3.11\""},
+    {version = ">=1.21.0", markers = "python_version >= \"3.10\" and python_version < \"3.11\""},
 ]
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
@@ -2282,4 +2279,4 @@ test = ["websockets"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "12d8db6c6e79c6294eff4f6a54327b36d2002d26eb091e3be44c00e888f6abc0"
+content-hash = "76cd3872e8b2b5584dd460402d053e05c602e893f272ee3c84228745c9ec6a13"
