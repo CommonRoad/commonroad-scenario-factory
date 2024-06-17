@@ -81,6 +81,7 @@ def generate(cities: str, output: str, maps: str, radius: float):
         generate_cr_scenarios(
             GenerateCommonRoadScenariosArguments(create_noninteractive=True, create_interactive=False)
         ),
+        num_processes=4,
     )
     pipeline.report_results()
     logger.info(f"Successfully generated {len(pipeline.state)} scenarios")

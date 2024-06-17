@@ -67,8 +67,8 @@ class ExtractOsmMapArguments(PipelineStepArguments):
 
 @pipeline_map_with_args
 def extract_osm_map(
-    ctx: PipelineContext,
     args: ExtractOsmMapArguments,
+    ctx: PipelineContext,
     city: BoundedCity,
 ) -> Path:
     """

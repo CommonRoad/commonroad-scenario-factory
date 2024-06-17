@@ -68,7 +68,7 @@ class LoadCitiesFromCsvArguments(PipelineStepArguments):
 
 
 @pipeline_populate_with_args
-def load_cities_from_csv(ctx: PipelineContext, args: LoadCitiesFromCsvArguments) -> Iterator[PlainCity]:
+def load_cities_from_csv(args: LoadCitiesFromCsvArguments, ctx: PipelineContext) -> Iterator[PlainCity]:
     with args.cities_path.open() as csvfile:
         cities_reader = csv.DictReader(csvfile)
         for city in cities_reader:
@@ -82,8 +82,8 @@ class ComputeBoundingBoxForCityArguments(PipelineStepArguments):
 
 @pipeline_map_with_args
 def compute_bounding_box_for_city(
-    ctx: PipelineContext,
     args: ComputeBoundingBoxForCityArguments,
+    ctx: PipelineContext,
     city: PlainCity,
 ) -> BoundedCity:
     bounding_box_tuple = compute_bounding_box_coordinates(city.lat, city.lon, args.radius)

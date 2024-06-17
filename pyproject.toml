@@ -20,6 +20,7 @@ pyproj = "^3.6.1"
 eclipse-sumo = "^1.19.0"
 click = "^8.1.7"
 
+multiprocess = "^0.70.16"
 [tool.poetry.group.tests]
 optional = true
 
