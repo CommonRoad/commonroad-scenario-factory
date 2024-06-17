@@ -8,8 +8,6 @@ from crdesigner.map_conversion.osm2cr.converter_modules.cr_operations.export imp
 from crdesigner.map_conversion.osm2cr.converter_modules.utility.geonamesID import get_geonamesID
 from crdesigner.map_conversion.osm2cr.converter_modules.utility.labeling_create_tree import create_tree_from_file
 
-from scenario_factory.pipeline.context import PipelineContext
-
 
 @lru_cache
 def get_geonames_tree():
@@ -17,7 +15,7 @@ def get_geonames_tree():
     return geonames_tree
 
 
-def convert_osm_file_to_commonroad_scenario(ctx: PipelineContext, osm_file: Path) -> Scenario:
+def convert_osm_file_to_commonroad_scenario(osm_file: Path) -> Scenario:
     """
     Convert an OSM file to a CommonRoad XML file.
 
@@ -64,14 +62,10 @@ def convert_osm_file_to_commonroad_scenario(ctx: PipelineContext, osm_file: Path
             if tse.traffic_sign_element_id == TrafficSignIDZamunda.YIELD:
                 tse.additional_values = []
 
-    # scenario_repaired, repair_result = verify_and_repair_scenario(scenario)
-    scenario_repaired = scenario
-
     # TODO: Use correct scenario_id
     country_id = osm_file.stem.split("_")[0]
     map_name = osm_file.stem.split("_")[-1]
-    scenario_repaired.scenario_id = ScenarioID(country_id=country_id, map_name=map_name)
-    # scenario_repaired.scenario_id = f"ZAM_{osm_file.stem.split('_')[-1]}-0_0_T-0"
-    scenario_repaired.location = location
+    scenario.scenario_id = ScenarioID(country_id=country_id, map_name=map_name)
+    scenario.location = location
 
-    return scenario_repaired
+    return scenario

@@ -13,7 +13,6 @@ from crdesigner.map_conversion.osm2cr.converter_modules.graph_operations.road_gr
 from crdesigner.map_conversion.osm2cr.converter_modules.utility.geonamesID import get_geonamesID
 
 from scenario_factory.globetrotter.intersection import Intersection
-from scenario_factory.pipeline.context import PipelineContext
 
 
 def save_as_cr(graph: rg.Graph, file_path: str) -> None:
@@ -90,7 +89,7 @@ def save_intersections(intersections: List[Intersection], output_dir: Path, name
         intersection.intersection_to_xml(os.path.join(output_dir, f"{name}-{i+1}.xml"))
 
 
-def extract_forking_points(ctx: PipelineContext, scenario: Scenario) -> Tuple[Scenario, np.ndarray]:
+def extract_forking_points(scenario: Scenario) -> np.ndarray:
     lanelets = scenario.lanelet_network.lanelets
     forking_set = set()
 
@@ -103,4 +102,4 @@ def extract_forking_points(ctx: PipelineContext, scenario: Scenario) -> Tuple[Sc
             forking_set.add((lanelet.center_vertices[-1][0], lanelet.center_vertices[-1][1]))
 
     forking_points = np.array(list(forking_set))
-    return scenario, forking_points
+    return forking_points

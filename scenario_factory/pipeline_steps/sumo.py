@@ -3,7 +3,6 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Iterable
 
-import numpy as np
 from commonroad.scenario.scenario import Scenario
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
 from crdesigner.map_conversion.sumo_map.cr2sumo.converter import CR2SumoMapConverter
@@ -16,18 +15,12 @@ from scenario_factory.generate_senarios import (
     convert_commonroad_scenario_to_sumo,
     generate_random_traffic_on_sumo_network,
 )
-from scenario_factory.pipeline.context import (
-    PipelineContext,
-    PipelineStepArguments,
-    pipeline_map,
-    pipeline_map_with_args,
-)
+from scenario_factory.pipeline import PipelineContext, PipelineStepArguments, pipeline_map, pipeline_map_with_args
 from scenario_factory.scenario_checker import DeleteScenario
 
-np.random.seed(123456)
 
-
-def create_sumo_configuration_for_commonroad_scenario(
+@pipeline_map
+def pipeline_create_sumo_configuration_for_commonroad_scenario(
     ctx: PipelineContext, commonroad_scenario: Scenario
 ) -> CR2SumoMapConverter:
     output_folder = ctx.get_output_folder("output")
@@ -41,12 +34,11 @@ class GenerateRandomTrafficArguments(PipelineStepArguments):
 
 
 @pipeline_map_with_args
-def generate_random_traffic(
+def pipeline_generate_random_traffic(
     args: GenerateRandomTrafficArguments, ctx: PipelineContext, cr2sumo: CR2SumoMapConverter
 ) -> Iterable[ScenarioWrapper]:
     output_folder = ctx.get_output_folder("output")
     intermediate_sumo_files_path = output_folder.joinpath("intermediate", str(cr2sumo.initial_scenario.scenario_id))
-
     sumo_net_path = intermediate_sumo_files_path.joinpath(str(cr2sumo.initial_scenario.scenario_id) + ".net.xml")
     for i in range(args.scenarios_per_map):
         scenario = deepcopy(cr2sumo.initial_scenario)
@@ -67,7 +59,7 @@ def generate_random_traffic(
 
 
 @pipeline_map
-def simulate_scenario(ctx: PipelineContext, scenario_wrapper: ScenarioWrapper) -> Scenario:
+def pipeline_simulate_scenario(ctx: PipelineContext, scenario_wrapper: ScenarioWrapper) -> Scenario:
     sumo_conf = SumoConfig()
     sumo_conf.simulation_steps = 300
     sumo_sim = SumoSimulation()
@@ -91,7 +83,9 @@ class GenerateCommonRoadScenariosArguments(PipelineStepArguments):
 
 
 @pipeline_map_with_args
-def generate_cr_scenarios(args: GenerateCommonRoadScenariosArguments, ctx: PipelineContext, scenario: Scenario) -> bool:
+def pipeline_generate_cr_scenarios(
+    args: GenerateCommonRoadScenariosArguments, ctx: PipelineContext, scenario: Scenario
+) -> bool:
     sumo_conf = SumoConfig.from_scenario(scenario)
     sumo_conf.simulation_steps = 300
     scenario_config = ScenarioConfig()
@@ -143,3 +137,13 @@ def generate_cr_scenarios(args: GenerateCommonRoadScenariosArguments, ctx: Pipel
         # )
 
     return True
+
+
+__all__ = [
+    "pipeline_create_sumo_configuration_for_commonroad_scenario",
+    "pipeline_generate_random_traffic",
+    "pipeline_simulate_scenario",
+    "GenerateCommonRoadScenariosArguments",
+    "pipeline_generate_cr_scenarios",
+    "GenerateRandomTrafficArguments",
+]

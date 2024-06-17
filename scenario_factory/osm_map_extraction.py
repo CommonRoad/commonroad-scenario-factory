@@ -1,11 +1,9 @@
 import logging
 import subprocess
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from scenario_factory.pipeline.bounding_box_coordinates import BoundedCity
-from scenario_factory.pipeline.context import PipelineContext, PipelineStepArguments, pipeline_map_with_args
+from scenario_factory.city import BoundedCity
 
 # TODO: This mapping is far from ideal. A better alternative would be to either use a transparent proxy to GeoFabrik and download the maps on demand or use a static index using types (maybe those from commonroad-io?)
 _CITY_TO_MAP_MAPPING = {
@@ -59,44 +57,34 @@ class NoOsmMapInputFileException(Exception):
         super().__init__(f"Could not find input file {input_file} for {city.country}_{city.name}.")
 
 
-@dataclass
-class ExtractOsmMapArguments(PipelineStepArguments):
-    input_maps_folder: Path
-    overwrite: bool
-
-
-@pipeline_map_with_args
-def extract_osm_map(
-    args: ExtractOsmMapArguments,
-    ctx: PipelineContext,
-    city: BoundedCity,
+def extract_bounding_box_from_osm_map(
+    city: BoundedCity, output_file: Path, input_maps_folder: Path, overwrite: bool
 ) -> Path:
     """
-    Extract the OSM map according to bounding box specified in the cities_file. Calls osmium library.
+    Extract the OSM map according to bounding box specified for the city by calling osmium.
 
     Args:
-        cities_file (Path): Path to the cities file.
-        input_maps_folder (Path): Path to the folder containing the input OSM map files.
-        overwrite (bool): Overwrite existing OSM map extraction files.
+        city (BoundedCity): The city for which the map should be extracted.
+        output_file (Path): Path to the file, where the OSM map should be placed.
+        input_maps_folder (Path): Folder containing the input OSM maps, from which the extract will be created.
+        overwrite (bool): Whether existing extracts should be overwritten
 
     Returns:
-        Path: Path to the folder with the extracted OSM maps.
+        Path: Path to the extracted OSM maps.
     """
-    output_folder = ctx.get_output_folder("extracted_maps")
-    output_file = output_folder.joinpath(f"{city.country}_{city.name}.osm")
 
     map_file = _get_map_file_for_city(city)
     if map_file is None:
         raise OsmFileExtractionIsNotAutomatedException(city, output_file)
 
-    input_file = args.input_maps_folder.joinpath(map_file)
+    input_file = input_maps_folder.joinpath(map_file)
     if not input_file.exists():
         raise NoOsmMapInputFileException(city, input_file)
 
     logging.info(f"Extracting {city.country}_{city.name}")
 
     cmd = ["osmium", "extract", "--bbox", str(city.bounding_box), "-o", str(output_file), str(input_file)]
-    if args.overwrite:
+    if overwrite:
         cmd.append("--overwrite")
 
     logging.debug(f"Osmium extraction command: {' '.join(cmd)}")

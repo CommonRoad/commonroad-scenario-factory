@@ -92,7 +92,6 @@ class GenerateCRScenarios:
         timestr: str = None,
         ego_selection_criteria: List[Callable] = None,
         delete_collising_obstacles: bool = True,
-        seed=100,
     ):
         """
 
@@ -105,7 +104,6 @@ class GenerateCRScenarios:
         :param timestr: time stamp which will be written in folder name for file tracking
         :param delete_collising_obstacles: delete obstacles that are colliding with others
         """
-        random.seed(seed)
         self.scenario: Scenario = scenario
         if delete_collising_obstacles is True:
             self.delete_colliding_obstacles(scenario, all=True, max_collisions=None)

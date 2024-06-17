@@ -2,6 +2,7 @@ import functools
 import io
 import itertools
 import logging
+import random
 import time
 import traceback
 from contextlib import redirect_stderr, redirect_stdout
@@ -9,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Generic, Iterable, Iterator, List, Optional, TypeAlias, TypeVar
 
+import numpy as np
 from multiprocess import Pool
 
 _logger = logging.getLogger("scenario_factory")
@@ -41,8 +43,12 @@ class PipelineStepResult(Generic[_PipelineStepInputType, _PipelineStepOutputType
 class PipelineContext:
     """The context contains metadata that needs to be passed between the different stages of the scenario factory pipeline"""
 
-    def __init__(self, output_path: Path):
+    def __init__(self, output_path: Path, seed: Optional[int] = None):
         self._output_path = output_path
+
+        if seed is not None:
+            random.seed(seed)
+            np.random.seed(seed)
 
     def get_output_folder(self, folder_name: str) -> Path:
         """
