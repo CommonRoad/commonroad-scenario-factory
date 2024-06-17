@@ -8,7 +8,7 @@ from commonroad.scenario.scenario import Scenario
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
 from crdesigner.map_conversion.sumo_map.cr2sumo.converter import CR2SumoMapConverter
 from sumocr.interface.sumo_simulation import SumoSimulation
-from sumocr.maps.sumo_scenario import ScenarioWrapper
+from sumocr.scenario.scenario_wrapper import ScenarioWrapper
 
 from scenario_factory.config_files.scenario_config import ScenarioConfig
 from scenario_factory.cr_scenario_factory import GenerateCRScenarios
