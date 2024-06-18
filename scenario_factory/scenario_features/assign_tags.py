@@ -28,7 +28,7 @@ from scenario_factory.scenario_features.features import (
 
 
 def assign_tags(list_ego_obstacles, scenario):
-    tags = {Tag("simulated")}
+    tags = {Tag.SIMULATED}
     lanelet_network = scenario.lanelet_network
     # dt = scenario.dt
     lanelets_ego_passed_through = set()
@@ -36,20 +36,20 @@ def assign_tags(list_ego_obstacles, scenario):
     for ego_vehicle in list_ego_obstacles:
         ego_states = get_obstacle_states(ego_vehicle)
         ego_lanelets = get_lanelets_ego_passed_through(lanelet_network, ego_states)
-        if Tag("traffic_jam") not in tags and merging_lanes(ego_lanelets):
-            tags.add(Tag("merging_lanes"))
+        if Tag.TRAFFIC_JAM not in tags and merging_lanes(ego_lanelets):
+            tags.add(Tag.MERGING_LANES)
 
         if lane_following(ego_vehicle):
-            tags.add(Tag("lane_following"))
+            tags.add(Tag.LANE_FOLLOWING)
 
         lanelets_ego_passed_through.update(ego_lanelets)
 
-        if Tag("traffic_jam") not in tags and is_traffic_jam(ego_states, obstacles):
-            tags.add(Tag("traffic_jam"))
-        if Tag("emergency_braking") not in tags and is_emergency_braking(ego_states):
-            tags.add(Tag("emergency_braking"))
-        if Tag("oncoming_traffic") not in tags and identify_oncoming_traffic(lanelet_network, ego_states, obstacles):
-            tags.add(Tag("oncoming_traffic"))
+        if Tag.TRAFFIC_JAM not in tags and is_traffic_jam(ego_states, obstacles):
+            tags.add(Tag.TRAFFIC_JAM)
+        if Tag.EMERGENCY_BRAKING not in tags and is_emergency_braking(ego_states):
+            tags.add(Tag.EMERGENCY_BRAKING)
+        if Tag.ONCOMING_TRAFFIC not in tags and identify_oncoming_traffic(lanelet_network, ego_states, obstacles):
+            tags.add(Tag.ONCOMING_TRAFFIC)
 
         # comfort, critical, evasive, illegal_cut_in, lane_change
         tags.update(feature_wrapper_tags(scenario, ego_vehicle))
@@ -122,15 +122,15 @@ def feature_wrapper_tags(scenario: Scenario, ego_vehicle: DynamicObstacle):
     min_acc = get_min_ego_acc(ego_vehicle, dt)
 
     if is_critical(min_dhw, min_thw, min_ttc):
-        tags.add(Tag("critical"))
+        tags.add(Tag.CRITICAL)
     if lane_change(lc_ts):
-        tags.add(Tag("lane_change"))
+        tags.add(Tag.LANE_CHANGE)
     if illegal_cut_in(cut_in_ts, ego_vehicle, dt):
-        tags.add(Tag("illegal_cut_in"))
+        tags.add(Tag.ILLEGAL_CUTIN)
     if is_comfort(min_acc):
-        tags.add(Tag("comfort"))
+        tags.add(Tag.COMFORT)
     if has_evasive_behavior(min_ttc, min_ttc_ts):
-        tags.add(Tag("evasive"))
+        tags.add(Tag.EVASIVE)
     return tags
 
 
@@ -176,9 +176,9 @@ def determine_turn_directions(ego_states: [TraceState], turning_detection_thresh
         diff = orientations[i] - orientations[i - 1]
         diff = make_valid_orientation(diff)
         if diff > turning_detection_threshold:
-            tags.add(Tag("turn_right"))
+            tags.add(Tag.TURN_RIGHT)
         if diff < -turning_detection_threshold:
-            tags.add(Tag("turn_left"))
+            tags.add(Tag.TURN_LEFT)
     return tags
 
 
@@ -307,7 +307,7 @@ def tag_traffic_sign(lanelet_network: LaneletNetwork, lanelets: {Lanelet}, count
                         tags.add(Tag("RACE_TRACK"))
                 if sign := getattr(traffic_sign_ids, "ROUNDABOUT", None):
                     if elem.traffic_sign_element_id == sign:
-                        tags.add(Tag("ROUNDABOUT"))
+                        tags.add(Tag.ROUNDABOUT)
     return tags
 
 
@@ -317,42 +317,42 @@ def tag_lanelet(lanelets: {Lanelet}):
 
     for lanelet in lanelets:
         if lanelet.adj_left is None and lanelet.adj_right is None:
-            tags.add(Tag("single_lane"))
+            tags.add(Tag.SINGLE_LANE)
 
         if (lanelet.adj_left is not None or lanelet.adj_right is not None) and (
             lanelet.adj_left_same_direction or lanelet.adj_right_same_direction
         ):
-            tags.add(Tag("two_lane"))  # same direction
+            tags.add(Tag.TWO_LANE)  # same direction
 
         if (lanelet.adj_left is not None and lanelet.adj_right is not None) and (
             lanelet.adj_left_same_direction is False or lanelet.adj_right_same_direction is False
         ):
-            tags.add(Tag("multi_lane"))  # opposite directions
+            tags.add(Tag.MULTI_LANE)  # opposite directions
 
         if (lanelet.adj_left is not None and lanelet.adj_right is not None) and (
             lanelet.adj_left_same_direction and lanelet.adj_right_same_direction
         ):
-            tags.add(Tag("parallel_lanes"))
+            tags.add(Tag.PARALLEL_LANES)
 
         if lanelet.lanelet_type:
             all_lanelet_types.update(lanelet.lanelet_type)
 
     if LaneletType.COUNTRY in all_lanelet_types:
-        tags.add(Tag("rural"))
+        tags.add(Tag.RURAL)
 
     if LaneletType.EXIT_RAMP or LaneletType.ACCESS_RAMP in all_lanelet_types:
-        tags.add(Tag("slip_road"))
+        tags.add(Tag.SLIP_ROAD)
 
     if LaneletType.HIGHWAY in all_lanelet_types:
-        tags.add(Tag("highway"))
+        tags.add(Tag.HIGHWAY)
 
     if LaneletType.INTERSTATE in all_lanelet_types:
-        tags.add(Tag("interstate"))
+        tags.add(Tag.INTERSTATE)
 
     if LaneletType.INTERSECTION in all_lanelet_types:
-        tags.add(Tag("intersection"))
+        tags.add(Tag.INTERSECTION)
 
     if LaneletType.URBAN in all_lanelet_types:
-        tags.add(Tag("urban"))
+        tags.add(Tag.URBAN)
 
     return tags

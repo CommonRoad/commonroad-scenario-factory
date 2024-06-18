@@ -197,23 +197,9 @@ def cut_area(scenario, center, max_distance) -> Scenario:
     return cut_lanelet_scenario
 
 
-def create_intersection(scenario: Scenario, center: np.ndarray, max_distance: float, points: list) -> Intersection:
-    """
-    Method to create intersection object
-
-    :param points:
-    :param max_distance:
-    :param center:
-    :param scenario:
-    :return: New intersection object
-    """
-    scenario_new = cut_area(scenario, center, max_distance)
-    return Intersection(scenario_new, center, points)
-
-
 def generate_intersections(
     scenario: Scenario, forking_points: np.ndarray
-) -> Tuple[List[Intersection], AgglomerativeClustering]:
+) -> Tuple[List[Scenario], AgglomerativeClustering]:
     print("Scenario generated:")
     print(scenario)
     print(f"Found {len(forking_points)} forking points")
@@ -230,7 +216,7 @@ def generate_intersections(
 
     intersections = []
     for idx, key in enumerate(centroids):
-        intersection = create_intersection(scenario, centroids[key], distances[key], clusters[key])
-        intersection.scenario.scenario_id.map_id = idx + 1
-        intersections.append(intersection)
+        scenario_new = cut_area(scenario, centroids[key], distances[key])
+        scenario_new.scenario_id.map_id = idx + 1
+        intersections.append(scenario_new)
     return intersections, clustering_result

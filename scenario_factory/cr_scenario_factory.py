@@ -12,10 +12,9 @@ import warnings
 from collections import defaultdict
 from math import cos, sin
 from pathlib import Path
-from typing import Callable, Dict, List, Tuple, Union
+from typing import Callable, Dict, Generator, List, Optional, Set, Tuple, Union
 from xml.etree import cElementTree as ET
 
-import matplotlib.pyplot as plt
 import numpy as np
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
 from commonroad.common.solution import (
@@ -36,8 +35,6 @@ from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.scenario import Scenario, ScenarioID, Tag
 from commonroad.scenario.state import InitialState, State
 from commonroad.scenario.trajectory import Trajectory
-from commonroad.visualization.drawable import IDrawable
-from commonroad.visualization.mp_renderer import MPRenderer
 from commonroad_dc.collision.collision_detection.pycrcc_collision_dispatch import create_collision_checker
 from commonroad_dc.pycrcc import RectOBB
 from crdesigner.map_conversion.sumo_map.config import EGO_ID_START, SumoConfig
@@ -47,7 +44,7 @@ from sumocr.sumo_config.default import InteractiveSumoConfigDefault, ParamType
 
 from scenario_factory.config_files.scenario_config import ScenarioConfig
 from scenario_factory.enums import EgoSelectionCriterion
-from scenario_factory.scenario_checker import check_collision
+from scenario_factory.scenario_checker import get_colliding_dynamic_obstacles_in_scenario, has_scenario_collisions
 from scenario_factory.scenario_features.assign_tags import assign_tags
 from scenario_factory.scenario_features.features import changes_lane, get_obstacle_state_list
 from scenario_factory.scenario_features.models.scenario_model import ScenarioModel
@@ -58,6 +55,8 @@ from scenario_factory.scenario_util import (
     select_by_vehicle_type,
     sort_by_list,
 )
+
+_logger = logging.getLogger(__name__)
 
 
 class StateList(list):
@@ -76,7 +75,7 @@ class StateList(list):
         return array
 
 
-class GenerateCRScenarios:
+class ScenarioFactory:
     """
     Class for generating CommonRoad scenarios from recorded scenarios.
     """
@@ -85,13 +84,9 @@ class GenerateCRScenarios:
         self,
         scenario: Scenario,
         scenario_length: int,
-        scenario_name: str,
         config: ScenarioConfig,
         map_folder: str,
-        solution_folder: str = None,
-        timestr: str = None,
-        ego_selection_criteria: List[Callable] = None,
-        delete_collising_obstacles: bool = True,
+        ego_selection_criteria: Optional[List[Callable]] = None,
     ):
         """
 
@@ -105,17 +100,12 @@ class GenerateCRScenarios:
         :param delete_collising_obstacles: delete obstacles that are colliding with others
         """
         self.scenario: Scenario = scenario
-        if delete_collising_obstacles is True:
-            self.delete_colliding_obstacles(scenario, all=True, max_collisions=None)
-        self.cc = create_collision_checker(scenario)
-        self._object_dict_cc = None
+        self._collision_checker = create_collision_checker(scenario)
         self.scenario_length = scenario_length
         self.conf_scenario: ScenarioConfig = config
         self.lanelet_network: LaneletNetwork = scenario.lanelet_network
         self.map_folder = map_folder
         self.output_dir_name = os.path.join(self.map_folder, "../")
-        self.scenario_name = scenario_name
-        self.timestr = timestr
 
         self.state_dict = {}
         self.veh_ids = set()
@@ -127,10 +117,6 @@ class GenerateCRScenarios:
         self.ego_selection_criteria = (
             ego_selection_criteria if ego_selection_criteria is not None else self._default_ego_selection_criteria()
         )
-        if self.conf_scenario.save_ego_solution_file is True:
-            assert solution_folder is not None, "Provide a solution_folder if conf_scenario.save_ego_solution_file=True"
-        self.solution_folder = solution_folder
-        self.logger = self._init_logging()
 
     @property
     def scenario(self) -> Scenario:
@@ -148,24 +134,6 @@ class GenerateCRScenarios:
     def scenario_model(self, scenario_model: ScenarioModel):
         self._scenario_model = scenario_model
 
-    def _init_logging(self):
-        # Create a custom logger
-        logger = logging.getLogger(self.__class__.__name__)
-        logger.setLevel(level=getattr(logging, self.conf_scenario.logging_level))
-
-        if not logger.hasHandlers():
-            # Create handlers
-            c_handler = logging.StreamHandler()
-
-            # Create formatters and add it to handlers
-            c_format = logging.Formatter("<%(name)s.%(funcName)s> %(message)s")
-            c_handler.setFormatter(c_format)
-
-            # Add handlers to the logger
-            logger.addHandler(c_handler)
-
-        return logger
-
     def _default_ego_selection_criteria(self) -> List[Callable]:
         """:returns default list of selection criteria"""
         mapping = {
@@ -177,7 +145,7 @@ class GenerateCRScenarios:
         }
         return [mapping[crit] for crit in self.conf_scenario.ego_selection_criteria]
 
-    def create_cr_scenarios(self, map_nr, scenario_counter=0):
+    def generate_commonroad_scenarios(self, country_id: str, map_name: str, map_id: int, configuration_id: int):
         """
         convert simulated sumo states of all vehicles to cr scenarios and create planning problems
         """
@@ -203,25 +171,22 @@ class GenerateCRScenarios:
         ) = self.create_planning_problem(
             obstacles,
             self.conf_scenario.planning_pro_with_lanelet,
-            self.conf_scenario.visualize_ego,
             self.conf_scenario.planning_pro_per_scen,
         )
         # Write cr scenarios for each planning problem
 
         for i_sc, obstacles in enumerate(list_obstacles):
-            scenario_counter += 1
+            prediction_id = i_sc + 1
             scenario_id = ScenarioID(
                 cooperative=False,
-                country_id=self.conf_scenario.map_name.split("_")[0],
-                map_name=self.conf_scenario.map_name.split("_")[1].split("-")[0],
-                map_id=int(self.conf_scenario.map_name.split("_")[1].split("-")[1]),
-                configuration_id=scenario_counter,
+                country_id=country_id,
+                map_name=map_name,
+                map_id=map_id,
+                configuration_id=configuration_id,
                 scenario_version="2020a",
+                prediction_id=prediction_id,
+                obstacle_behavior="T",
             )
-            scenario_id.obstacle_behavior = (
-                "I"  # TODO must be checked whether interactive or which type of obstacle prediction
-            )
-            scenario_id.prediction_id = 1
             cr_scenario = Scenario(
                 self.scenario.dt,
                 scenario_id=scenario_id,
@@ -234,22 +199,6 @@ class GenerateCRScenarios:
             cr_scenario.add_objects(self.lanelet_network)
             cr_scenario.add_objects(list(obstacles.values()))
             self.list_cr_scenarios.append(cr_scenario)
-            if self.conf_scenario.visualize_ego is True:
-                obstacles_with_ego = list_obstacles_with_ego[i_sc]
-                cr_scenario_with_ego = Scenario(
-                    self.scenario.dt,
-                    scenario_id=scenario_id,
-                    location=self.scenario.location,
-                    tags=self.scenario.tags,
-                    author=self.scenario.author,
-                    affiliation=self.scenario.affiliation,
-                    source=self.scenario.source,
-                )
-                cr_scenario_with_ego.lanelet_network = self.lanelet_network
-                cr_scenario_with_ego.add_objects(list(obstacles_with_ego.values()))
-                self.list_cr_scenarios_with_ego.append(cr_scenario_with_ego)
-
-        return scenario_counter
 
     def _choose_ego_from_obstacles(self, planning_pro_per_scen: int, obstacles: Dict[int, DynamicObstacle]):
         """
@@ -299,7 +248,7 @@ class GenerateCRScenarios:
             #     break
 
         if len(ego_list) < num_planning_pro:
-            self.logger.info(f"Only {len(ego_list)} planning problems found.")
+            _logger.info(f"Only {len(ego_list)} planning problems found.")
             num_planning_pro = len(ego_list)
 
         if len(ego_list) > num_planning_pro:
@@ -369,9 +318,7 @@ class GenerateCRScenarios:
             pass
         return new_obs
 
-    def create_planning_problem(
-        self, obstacles, planning_pro_with_lanelet=False, visualize_ego=False, planning_pro_per_scen=1
-    ):
+    def create_planning_problem(self, obstacles, planning_pro_with_lanelet=False, planning_pro_per_scen=1):
         """
         Define planning problem for commonroad scenarios.
         :param obstacles: commonroad scenarios converted by _get_all_cr_obstacles
@@ -383,7 +330,7 @@ class GenerateCRScenarios:
         lanelet_network = self.lanelet_network
 
         # find some ego vehicles
-        self.logger.debug("start searching for interesting ego vehicles")
+        _logger.debug("start searching for interesting ego vehicles")
         (
             num_planning_pro,
             ego_list,
@@ -397,7 +344,7 @@ class GenerateCRScenarios:
         list_obstacles_with_ego = []  # used when parameter "visualize_ego" is true
         list_planning_problem_set = []
         for i in range(num_planning_pro):
-            self.logger.info(f"create scenario for vehicle {ego_ids[i]}")
+            _logger.info(f"create scenario for vehicle {ego_ids[i]}")
             ego = ego_list[i]
             obstacles_short = obs_list[i]
 
@@ -451,12 +398,12 @@ class GenerateCRScenarios:
                             raise ValueError(f"No reachable goal position can be found for ego {ego.obstacle_id}!")
                         lanelet_of_goal_position = [lanelet_of_goal_position_tmp]
 
-                    self.logger.debug(f"{i + 1}th goal lanelet defined at lanelet {lanelet_of_goal_position}")
+                    _logger.debug(f"{i + 1}th goal lanelet defined at lanelet {lanelet_of_goal_position}")
                     goal_lanelet = {0: lanelet_of_goal_position}
                     state_list[0].position = lanelet_network.find_lanelet_by_id(lanelet_of_goal_position[0]).polygon
                     goal_region = GoalRegion(state_list, goal_lanelet)
                 else:
-                    self.logger.warning(f"No goal lanelet found for the {i + 1}th planning problem.")
+                    _logger.warning(f"No goal lanelet found for the {i + 1}th planning problem.")
                     break
 
             # combine elements of a planning problem and generate planning problem set
@@ -466,9 +413,6 @@ class GenerateCRScenarios:
 
             list_obstacles.append(obstacles_short)
             list_planning_problem_set.append(planning_problem_set)
-            if visualize_ego is True:
-                obstacles_with_ego = obs_list_with_ego[i]
-                list_obstacles_with_ego.append(obstacles_with_ego)
 
         return (
             list_obstacles,
@@ -492,7 +436,7 @@ class GenerateCRScenarios:
             min_accel, max_accel = self.check_acceleration(vehicle)
             return min_accel < self.conf_scenario.max_decel or max_accel > self.conf_scenario.max_accel
         else:
-            raise self.logger.error("No selection_function {} defined.".format(selection_function))
+            raise _logger.error("No selection_function {} defined.".format(selection_function))
 
     @staticmethod
     def check_acceleration(obstacle: DynamicObstacle):
@@ -522,7 +466,7 @@ class GenerateCRScenarios:
             velocity_diff[obstacle.obstacle_id] = self._velocity_diff_of_trajectory(obstacle)
 
         if all(i >= threshold for i in list(velocity_diff.values())):
-            self.logger.warning(
+            _logger.warning(
                 "All the velocity differences exceed the threshold."
                 "Please consider using selection function 'accel' instead of 'v_diff'."
             )
@@ -576,82 +520,6 @@ class GenerateCRScenarios:
         for id_remove in to_remove:
             if id_remove in obstacles_copy:
                 del obstacles_copy[id_remove]
-
-    def write_cr_file_and_video(self, scenario_counter, output_path: Path, create_video=False, check_validity=True):
-        """
-        Write commonroad scenario file and create corresponding videos.
-        :param output_path:
-        :param check_validity:
-        :param create_video:
-        :param scenario_counter: counter for generated scenarios from the i-th map
-        :return: nothing
-        """
-        # create for each planning problem a cr scenario file and the corresponding videos
-        generated_scenarios = 0
-        for k in range(len(self.list_cr_scenarios)):
-            commonroad_scenario = self.list_cr_scenarios[k]
-
-            if check_validity:
-                if check_collision(commonroad_scenario._dynamic_obstacles) is True:
-                    warnings.warn("<write_cr_file_and_video> Collision detected! Skipping scenario.")
-                    continue
-                else:
-                    self.logger.info("Scenario contains no collision.")
-            planning_problem_set = self.list_planning_problem_set[k]
-            # write cr file without ego
-            commonroad_scenario.scenario_id.prediction_id = 1
-            commonroad_scenario.scenario_id.obstacle_behavior = "T"
-            filename = output_path.joinpath(str(commonroad_scenario.scenario_id) + ".xml")
-            self.write_final_cr_file(filename, commonroad_scenario, planning_problem_set, check_validity)
-            self.logger.info(f"Commonroad scenario file created for {k + 1 + scenario_counter}th planning problem")
-
-            # write cr file with ego
-            if self.conf_scenario.visualize_ego:
-                filename_ego = os.path.join(self.output_dir_name, str(commonroad_scenario.scenario_id) + "_ego.xml")
-                commonroad_scenario_with_ego = self.list_cr_scenarios_with_ego[k]
-                self.write_final_cr_file(filename_ego, commonroad_scenario_with_ego, planning_problem_set)
-                self.logger.info(
-                    f"Commonroad scenario file with ego created for" f"{k + 1 + scenario_counter} th planning problem"
-                )
-
-            generated_scenarios += 1
-            if create_video is True:
-                # create ego centered video
-                if self.conf_scenario.visualize_ego is True:
-                    cr_scenario_with_ego = self.list_cr_scenarios_with_ego[k]
-                    ego_vehicle = cr_scenario_with_ego.obstacle_by_id(self.conf_scenario.default_ego_id)
-                    video_center_traj = []
-                    ego_state_list = ego_vehicle.prediction.trajectory.state_list
-                    for state in ego_state_list:
-                        video_center_traj.append(state.position)
-                    video_center_traj = tuple(video_center_traj)
-                    video_with_ego_centered_path = os.path.join(
-                        self.output_dir_name, str(commonroad_scenario.scenario_id) + "_with_ego_centered.mp4"
-                    )
-                    self.create_scenario_video_ego_centered(
-                        [cr_scenario_with_ego, planning_problem_set],
-                        time_begin=0,
-                        time_end=self.conf_scenario.cr_scenario_time_steps,
-                        file_path=video_with_ego_centered_path,
-                        draw_params={
-                            "scenario": {
-                                "dynamic_obstacle": {"show_label": self.conf_scenario.visualize_veh_id},
-                                "lanelet_network": {"lanelet": {"show_label": self.conf_scenario.visualize_lanelet_id}},
-                            }
-                        },
-                        fps=10,
-                        dpi=120,
-                        ego_centric_threshold=self.conf_scenario.ego_centric_threshold,
-                        ego_id=ego_vehicle.obstacle_id,
-                    )
-                    self.logger.info(
-                        f"Video created for {k + 1 + scenario_counter}th planning problem"
-                        f"(ego visualized & ego centered)"
-                    )
-
-                # self.logger.info(f"Video created for {k + 1 + scenario_counter}th planning problem (ego visualized)")
-
-        return generated_scenarios
 
     def write_final_cr_file(
         self, filename, commonroad_scenario: Scenario, planning_problem_set=None, check_validity=False
@@ -761,11 +629,11 @@ class GenerateCRScenarios:
             )
             # check_validity
             if check_validity:
-                if check_collision(commonroad_scenario._dynamic_obstacles) is True:
+                if has_scenario_collisions(commonroad_scenario) is True:
                     warnings.warn("<write_cr_file_and_video> Collision detected! Skipping scenario.")
                     continue
                 else:
-                    self.logger.info("Scenario contains no collision.")
+                    _logger.info("Scenario contains no collision.")
 
             # write cr file without ego
             planning_problem_set: PlanningProblemSet = self.list_planning_problem_set[k]
@@ -779,7 +647,7 @@ class GenerateCRScenarios:
                 default_config,
                 check_validity,
             )
-            self.logger.info(f"Commonroad scenario file created for {k + 1 + scenario_counter}th planning problem")
+            _logger.info(f"Commonroad scenario file created for {k + 1 + scenario_counter}th planning problem")
 
             if self.conf_scenario.save_ego_solution_file:
                 for s in self.list_ego_obstacles[k].prediction.trajectory.state_list:
@@ -807,43 +675,9 @@ class GenerateCRScenarios:
                 filename_ego = os.path.join(self.output_dir_name, str(commonroad_scenario.scenario_id) + "_ego.xml")
                 commonroad_scenario_with_ego = self.list_cr_scenarios_with_ego[k]
                 self.write_final_cr_file(filename_ego, commonroad_scenario_with_ego, planning_problem_set)
-                self.logger.info(
+                _logger.info(
                     f"Commonroad scenario file with ego created for" f"{k + 1 + scenario_counter} th planning problem"
                 )
-
-            if create_video is True:
-                # create ego centered video
-                if self.conf_scenario.visualize_ego is True:
-                    cr_scenario_with_ego = self.list_cr_scenarios_with_ego[k]
-                    ego_vehicle = cr_scenario_with_ego.obstacle_by_id(self.conf_scenario.default_ego_id)
-                    video_center_traj = []
-                    ego_state_list = ego_vehicle.prediction.trajectory.state_list
-                    for state in ego_state_list:
-                        video_center_traj.append(state.position)
-                    video_center_traj = tuple(video_center_traj)
-                    video_with_ego_centered_path = os.path.join(
-                        self.output_dir_name, str(commonroad_scenario.scenario_id) + "_with_ego_centered.mp4"
-                    )
-                    self.create_scenario_video_ego_centered(
-                        [cr_scenario_with_ego, planning_problem_set],
-                        time_begin=0,
-                        time_end=self.conf_scenario.cr_scenario_time_steps,
-                        file_path=video_with_ego_centered_path,
-                        draw_params={
-                            "scenario": {
-                                "dynamic_obstacle": {"show_label": self.conf_scenario.visualize_veh_id},
-                                "lanelet_network": {"lanelet": {"show_label": self.conf_scenario.visualize_lanelet_id}},
-                            }
-                        },
-                        fps=10,
-                        dpi=120,
-                        ego_centric_threshold=self.conf_scenario.ego_centric_threshold,
-                        ego_id=ego_vehicle.obstacle_id,
-                    )
-                    self.logger.info(
-                        f"Video created for {k + 1 + scenario_counter}th planning problem"
-                        f"(ego visualized & ego centered)"
-                    )
 
             generated_scenarios += 1
 
@@ -913,85 +747,6 @@ class GenerateCRScenarios:
         #     ppp=0
         # yaml.dump(out_config, f, default_flow_style=False)
 
-    @staticmethod
-    def create_scenario_video_ego_centered(
-        obj: Union[IDrawable, List[IDrawable]],
-        time_begin: int,
-        time_end: int,
-        file_path: str,
-        draw_params: Union[dict, None] = None,
-        fig_size: Union[list, None] = None,
-        fps: int = 10,
-        dpi=80,
-        ego_centric_threshold=100,
-        ego_id=False,
-    ):
-        """
-        Create scenario video in gif format given the path to the scenario xml
-        :param filename: Name of the video to be saved
-        :param scenarios_path: path to the scenario xml used for creating the video gif
-        :param add_only: true if you are only creating new videos and not updating the old ones
-        :return:
-        """
-        file_path = os.path.normpath(file_path)
-        assert (
-            time_begin < time_end
-        ), f"<video/create_scenario_video> time_begin={time_begin} needs to smaller than time_end={time_end}."
-
-        if fig_size is None:
-            fig_size = [15, 8]
-
-        plt.close("all")
-        # fig = plt.figure(figsize=(fig_size[0], fig_size[1]))
-        # ln, = plt.plot([], [], animated=True)
-        """
-        plot_limits = [
-            -ego_centric_threshold / 2,
-            ego_centric_threshold / 2,
-            -ego_centric_threshold / 2,
-            ego_centric_threshold / 2,
-        ]
-        """
-        renderer = MPRenderer()
-        if not isinstance(obj, list):
-            obj = [obj]
-
-        if draw_params is not None:
-            draw_params = copy.copy(draw_params)
-        else:
-            draw_params = {}
-
-        draw_params["focus_obstacle_id"] = ego_id
-        draw_params["time_begin"] = time_begin
-        draw_params["time_end"] = time_end
-        renderer.create_video(obj, file_path=file_path, delta_time_steps=2, plotting_horizon=0, draw_params=draw_params)
-        # def update(frame=0):
-        #     # plot frame
-        #     plt.clf()
-        #     ax = plt.gca()
-        #     ax.set_aspect('equal')
-        #     ax.set_xlim(video_center_traj[frame][0] - ego_centric_threshold / 2,
-        #                 video_center_traj[frame][0] + ego_centric_threshold / 2)
-        #     ax.set_ylim(video_center_traj[frame][1] - ego_centric_threshold / 2,
-        #                 video_center_traj[frame][1] + ego_centric_threshold / 2)
-        #     draw_params.update({'time_begin': time_begin + frame,
-        #                         'time_end': time_begin + min(frame_count, frame + duration)})
-        #     renderer.draw_list(obj, draw_params=draw_params)
-        #
-        #     return ln,
-        #
-        # frame_count = max(50, len(video_center_traj))
-        # # Interval determines the duration of each frame
-        # interval = 1.0 / fps
-        #
-        # # length of trajecotry steps
-        # duration = 1
-        #
-        # anim = FuncAnimation(fig, update, frames=frame_count,
-        #                      init_func=update, blit=True, interval=interval)
-        # anim.save(cities_file, dpi=dpi,
-        #           writer='imagemagick')
-
     def select_ego_vehicles(
         self, obstacles: Dict[int, DynamicObstacle], ego_selection_criteria: List[Callable]
     ) -> Dict[int, int]:
@@ -1015,11 +770,11 @@ class GenerateCRScenarios:
         # apply simple pre-filtering to discard uninteresting scenarios
         delete_ids = []
         for obs_id, time_steps in ego_veh_init_times.items():
-            self.logger.debug(f"Checking {obs_id}")
+            _logger.debug(f"Checking {obs_id}")
             # DEBUG
             assert obstacles[obs_id].obstacle_id == obs_id, "bug: obstacle id != obs_id"
             if obs_id not in self.scenario._dynamic_obstacles:
-                self.logger.warning(f"{obs_id} not in scenario, there is a bug")
+                _logger.warning(f"{obs_id} not in scenario, there is a bug")
                 delete_ids.append(obs_id)
                 continue
 
@@ -1030,7 +785,7 @@ class GenerateCRScenarios:
                 < self.conf_scenario.cr_scenario_time_steps
             ):
                 delete_ids.append(obs_id)
-                self.logger.debug(f"vehicle {obs_id} skipped: time horizon too short")
+                _logger.debug(f"vehicle {obs_id} skipped: time horizon too short")
                 continue
 
             vel = StateList(obstacles[obs_id].prediction.trajectory.state_list).to_array("velocity").flatten()
@@ -1040,7 +795,7 @@ class GenerateCRScenarios:
                     obstacles[obs_id].prediction.trajectory.final_state.time_step - init_time
                     < self.conf_scenario.cr_scenario_time_steps
                 ):
-                    self.logger.debug(
+                    _logger.debug(
                         f"vehicle {obs_id} skipped:"
                         f"trajectory too short"
                         f"({obstacles[obs_id].prediction.trajectory.final_state.time_step - init_time})!"
@@ -1051,14 +806,13 @@ class GenerateCRScenarios:
                 try:
                     v_max = np.max(
                         vel[
-                            init_time
-                            - obstacles[obs_id].initial_state.time_step : init_time
+                            init_time - obstacles[obs_id].initial_state.time_step : init_time
                             - obstacles[obs_id].initial_state.time_step
                             + self.conf_scenario.cr_scenario_time_steps
                         ]
                     )
                     if v_max < self.conf_scenario.min_ego_velocity:
-                        self.logger.debug(f"vehicle {obs_id} skipped: v_max only {v_max} m/s!")
+                        _logger.debug(f"vehicle {obs_id} skipped: v_max only {v_max} m/s!")
                         continue
                 except Exception:
                     print(
@@ -1092,17 +846,17 @@ class GenerateCRScenarios:
                             or final_lanelet.adj_right_same_direction
                             or init_lanelet in self.lanelet_network.map_inc_lanelets_to_intersections
                         ):
-                            self.logger.debug(f"right {init_lanelet.adj_right} left {init_lanelet.adj_left}.")
-                            self.logger.debug(f"right {final_lanelet.adj_right} left {final_lanelet.adj_left}.")
+                            _logger.debug(f"right {init_lanelet.adj_right} left {init_lanelet.adj_left}.")
+                            _logger.debug(f"right {final_lanelet.adj_right} left {final_lanelet.adj_left}.")
                             if random.uniform(0, 1) > 0.4:
-                                self.logger.debug(f"vehicle {obs_id} skipped: boring single lane!")
+                                _logger.debug(f"vehicle {obs_id} skipped: boring single lane!")
                                 # disregard with a high probability
                                 continue
                     elif len(final_lanelets) == 0:
-                        self.logger.debug(f"vehicle {obs_id} skipped: not on map!")
+                        _logger.debug(f"vehicle {obs_id} skipped: not on map!")
                         continue
                 elif len(init_lanelets) == 0:
-                    self.logger.debug(f"vehicle {obs_id} skipped: not on map!")
+                    _logger.debug(f"vehicle {obs_id} skipped: not on map!")
                     continue
 
                 # filter vehicle in front
@@ -1129,9 +883,9 @@ class GenerateCRScenarios:
                 #     position=get_state_at_time(obstacles[obs_id], init_time).position,
                 #     time_step=init_time, range_min_vehicles=self.conf_scenario.range_min_vehicles,
                 #     obstacles=obstacles)
-                self.logger.debug(f"!!! front {front_vehicles}, back {rear_vehicles}")
+                _logger.debug(f"!!! front {front_vehicles}, back {rear_vehicles}")
                 if num_veh < self.conf_scenario.min_vehicles_in_range:
-                    self.logger.debug(f"vehicle {obs_id} skipped: only {num_veh} vehicles ahead.")
+                    _logger.debug(f"vehicle {obs_id} skipped: only {num_veh} vehicles ahead.")
                     continue
 
                 filtered_list.append(init_time)
@@ -1182,7 +936,7 @@ class GenerateCRScenarios:
             if delete:
                 del ego_dict[obs_id]
             else:
-                self.logger.debug(f"new default_ego_id: {obs_id} at init time={ego_dict[obs_id]}")
+                _logger.debug(f"new default_ego_id: {obs_id} at init time={ego_dict[obs_id]}")
         return ego_dict
 
     def turning_criterion(self, obstacles: Dict[int, DynamicObstacle]):
@@ -1197,7 +951,7 @@ class GenerateCRScenarios:
         for obs_id, obs in obstacles.items():
             turns, time_step = self._turning_heuristic(obs)
             if turns:
-                self.logger.debug(f"found turning vehicle {obs_id} at time step {time_step}")
+                _logger.debug(f"found turning vehicle {obs_id} at time step {time_step}")
                 ego_ids.append(obs.obstacle_id)
                 init_time.append(time_step)
 
@@ -1215,7 +969,7 @@ class GenerateCRScenarios:
         for obs_id, obs in obstacles.items():
             turns, time_step = self._acceleration_heuristic(obs)
             if turns:
-                self.logger.debug(f"found accelerating vehicle {obs_id} at time step {time_step}")
+                _logger.debug(f"found accelerating vehicle {obs_id} at time step {time_step}")
                 ego_ids.append(obs.obstacle_id)
                 init_time.append(time_step)
 
@@ -1233,7 +987,7 @@ class GenerateCRScenarios:
         for obs_id, obs in obstacles.items():
             brakes, time_step = self._braking_heuristic(obs)
             if brakes:
-                self.logger.debug(f"found braking vehicle {obs_id} at time step {time_step}")
+                _logger.debug(f"found braking vehicle {obs_id} at time step {time_step}")
                 ego_ids.append(obs.obstacle_id)
                 init_time.append(time_step)
 
@@ -1251,7 +1005,7 @@ class GenerateCRScenarios:
         for obs_id, obs in obstacles.items():
             changes_lane, time_step = self._lane_change_heuristic(obs)
             if changes_lane:
-                self.logger.debug(f"found lane-changing vehicle {obs_id} at time step {time_step}")
+                _logger.debug(f"found lane-changing vehicle {obs_id} at time step {time_step}")
                 acc_time_frame = [
                     max(1, time_step - 5),
                     min(obs.prediction.trajectory.final_state.time_step, time_step + 5),
@@ -1286,7 +1040,7 @@ class GenerateCRScenarios:
                 ]
                 if acc_time_frame[1] - acc_time_frame[0] < 10:
                     continue
-                self.logger.debug(f"found merging vehicle {obs_id} at time step {time_step}")
+                _logger.debug(f"found merging vehicle {obs_id} at time step {time_step}")
                 state_list = [
                     obs.prediction.trajectory.state_at_time_step(t) for t in range(acc_time_frame[0], acc_time_frame[1])
                 ]
@@ -1299,7 +1053,7 @@ class GenerateCRScenarios:
 
         ego_ids = sort_by_list(ego_ids, accelerations)
         init_time = sort_by_list(init_time, accelerations)
-        self.logger.debug(f"chosen steps {init_time[:3]}")
+        _logger.debug(f"chosen steps {init_time[:3]}")
         return ego_ids[:3], init_time[:3]
 
     def _turning_heuristic(self, obstacle: DynamicObstacle) -> Tuple[bool, Union[None, int]]:
@@ -1464,7 +1218,7 @@ class GenerateCRScenarios:
         if orientation is not None:
             center = position + np.array([cos(orientation), sin(orientation)]) * (length_ahead - 10.0)
             rect = RectOBB(3.0, length_ahead, orientation, center[0], center[1])
-            coll = self.cc.time_slice(time_step).find_all_colliding_objects(rect)
+            coll = self._collision_checker.time_slice(time_step).find_all_colliding_objects(rect)
             print("N colliding:", len(coll))
             return len(coll)
         else:
@@ -1477,18 +1231,23 @@ class GenerateCRScenarios:
 
         return counter
 
-    def delete_colliding_obstacles(self, scenario: Scenario, all=True, max_collisions=None):
+    def delete_colliding_obstacles(self, all=True) -> Set[int]:
         """
-        :param scenario:
+        Finds colliding dynamic obstacles in the scenario and removes them from the scenario.
+
         :param all: if True, both obstacles of a pair of colliding obstacles is deleted, otherwise only the first one
-        :return:
+        :param max_collisions:
+
+        :return: The IDs of the deleted dynamic obstacles
         """
-        collsion, ids = check_collision(
-            scenario._dynamic_obstacles, return_colliding_ids=True, get_all=all, max_collisions=max_collisions
-        )
-        print(len(ids), "COLLISOINSW;", len(scenario._dynamic_obstacles), "OBSTCALES")
+        ids = get_colliding_dynamic_obstacles_in_scenario(self.scenario, get_all=all)
         for id_ in ids:
-            self.scenario.remove_obstacle(scenario._dynamic_obstacles[id_])
+            obstacle = self.scenario.obstacle_by_id(id_)
+            assert (
+                obstacle is not None
+            ), f"Found a collision for dynamic obstacle {id_}, but this dynamic obstacle is not part of the scenario."
+            self.scenario.remove_obstacle(obstacle)
+        return ids
 
     @staticmethod
     def passes_merging_lane(obstacle: DynamicObstacle):

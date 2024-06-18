@@ -87,7 +87,7 @@ class Intersection:
             # self.density,
             self.mean_distance_fp_center,
             self.lanes_max_crossing,
-            self.max_pre_suc
+            self.max_pre_suc,
             # self.max_speedlimit,
         ]
 

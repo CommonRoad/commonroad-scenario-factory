@@ -20,7 +20,7 @@ from sumocr.scenario.scenario_wrapper import ScenarioWrapper
 from sumocr.sumo_config.default import SUMO_VEHICLE_PREFIX, InteractiveSumoConfigDefault
 
 from scenario_factory.config_files.scenario_config import ScenarioConfig
-from scenario_factory.cr_scenario_factory import GenerateCRScenarios
+from scenario_factory.cr_scenario_factory import ScenarioFactory
 from scenario_factory.scenario_checker import DeleteScenario
 
 
@@ -186,7 +186,7 @@ def create_scenarios(
 
                     # select ego vehicles for planning problems and postprocess final CommonRoad scenarios
                     try:
-                        cr_scenarios = GenerateCRScenarios(
+                        cr_scenarios = ScenarioFactory(
                             scenario,
                             sumo_conf_tmp.simulation_steps,
                             sumo_conf_tmp.scenario_name,

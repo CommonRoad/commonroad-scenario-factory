@@ -1,7 +1,7 @@
 import shutil
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, Optional
 
 from commonroad.scenario.scenario import Scenario
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
@@ -10,7 +10,7 @@ from sumocr.interface.sumo_simulation import SumoSimulation
 from sumocr.scenario.scenario_wrapper import ScenarioWrapper
 
 from scenario_factory.config_files.scenario_config import ScenarioConfig
-from scenario_factory.cr_scenario_factory import GenerateCRScenarios
+from scenario_factory.cr_scenario_factory import ScenarioFactory
 from scenario_factory.generate_senarios import (
     convert_commonroad_scenario_to_sumo,
     generate_random_traffic_on_sumo_network,
@@ -55,6 +55,8 @@ def pipeline_generate_random_traffic(
         sumo_net_copy = scenario_dir_name.joinpath(scenario_name + ".net.xml")
         shutil.copy(sumo_net_path, sumo_net_copy)  # copy sumo net file into scenario-specific sub-folder
 
+        cr2sumo_map_converter.conf.random_seed = ctx.seed
+        cr2sumo_map_converter.conf.random_seed_trip_generation = ctx.seed
         yield generate_random_traffic_on_sumo_network(cr2sumo_map_converter, sumo_net_copy)
 
 
@@ -80,41 +82,39 @@ def pipeline_simulate_scenario(ctx: PipelineContext, scenario_wrapper: ScenarioW
 class GenerateCommonRoadScenariosArguments(PipelineStepArguments):
     create_noninteractive: bool
     create_interactive: bool
+    max_collisions: Optional[int] = None
 
 
 @pipeline_map_with_args
 def pipeline_generate_cr_scenarios(
     args: GenerateCommonRoadScenariosArguments, ctx: PipelineContext, scenario: Scenario
-) -> bool:
+) -> Scenario:
     sumo_conf = SumoConfig.from_scenario(scenario)
     sumo_conf.simulation_steps = 300
     scenario_config = ScenarioConfig()
-    # Because GenerateCRScenarios will split based on this format, we must provide it in exactly this format...
-    scenario_config.map_name = f"{scenario.scenario_id}_{scenario.scenario_id.map_name}-{scenario.scenario_id.map_id}"
     output_path = ctx.get_output_folder("output")
-    try:
-        cr_scenarios = GenerateCRScenarios(
-            scenario,
-            sumo_conf.simulation_steps,
-            sumo_conf.scenario_name,
-            scenario_config,
-            "",
-            "",
-        )
-    except DeleteScenario:
-        raise RuntimeError("Remove scenario with to many collisions!")
+    print(f"Generating Scenarios for {scenario.scenario_id}")
 
-    scenario_counter = scenario.scenario_id.configuration_id
-    assert scenario_counter is not None
-    map_nr = scenario.scenario_id.map_id
-    scenario_counter_prev = scenario_counter
-    scenario_counter = cr_scenarios.create_cr_scenarios(map_nr, scenario_counter)
-    scenario_nr_added = 0
+    scenario_factory = ScenarioFactory(
+        scenario,
+        sumo_conf.simulation_steps,
+        scenario_config,
+        "",
+    )
+
+    num_collisions = len(scenario_factory.delete_colliding_obstacles(all=True))
+    if args.max_collisions is not None:
+        if num_collisions > args.max_collisions:
+            raise RuntimeError(
+                f"Skipping scenario {scenario.scenario_id} because it has {num_collisions}, but the maximum allowed number of collisions is {args.max_collisions}"
+            )
+
+    scenario_factory.generate_commonroad_scenarios()
+
     if args.create_noninteractive:
         output_noninteractive = output_path.joinpath("noninteractive")
         output_noninteractive.mkdir(parents=True, exist_ok=True)
-        scenario_nr_added += cr_scenarios.write_cr_file_and_video(
-            scenario_counter_prev,
+        scenario_factory.write_cr_file_and_video(
             create_video=False,
             check_validity=False,  # TODO set True
             output_path=output_noninteractive,
@@ -124,7 +124,7 @@ def pipeline_generate_cr_scenarios(
         raise RuntimeError("Creating interactive scenarios is currently not possible")
         # output_interactive = output_path.joinpath("interactive")
         # output_interactive.mkdir(parents=True, exist_ok=True)
-        # scenario_nr_added += cr_scenarios.write_interactive_scenarios_and_videos(
+        scenario_nr_added += scenario_factory.write_interactive_scenarios_and_videos()
         #     scenario_counter_prev,
         #     sumo_sim.ids_cr2sumo[SUMO_VEHICLE_PREFIX],
         #     sumo_net_path=sumo_net_copy,
@@ -137,6 +137,8 @@ def pipeline_generate_cr_scenarios(
         # )
 
     return True
+
+def pipeline_write_interactive_scenarios(ctx: PipelineContext) -> Tuple[Scenario, PlanningProblemSet]
 
 
 __all__ = [

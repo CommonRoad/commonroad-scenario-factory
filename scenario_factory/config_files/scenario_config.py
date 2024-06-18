@@ -1,22 +1,9 @@
-import os
-
 import numpy as np
 
-import scenario_factory
 from scenario_factory.enums import EgoSelectionCriterion
 
 
 class ScenarioConfig:
-    # logging level for logging module
-    logging_level = "WARNING"  # select DEBUG, INFO, WARNING, ERROR, CRITICAL
-
-    _scenario_directory = os.path.dirname(scenario_factory.__file__) + "/../files/globetrotter/"
-    _output_folder = os.path.dirname(scenario_factory.__file__) + "/../output/"
-
-    # GENERAL ##########################################################################################################
-    # Number of scenarios generated from one map
-    scen_per_map = 8
-
     # Number of planning problems generated from one scenario
     planning_pro_per_scen = 8
 
@@ -28,9 +15,6 @@ class ScenarioConfig:
 
     # vehicles are deleted from final scenario if not within sensor_range once
     sensor_range = 90
-
-    # default map name
-    map_name = "ZAM_NEW"
 
     # Tags in cr scenario file
     author = "Florian Finkeldei"
@@ -84,17 +68,3 @@ class ScenarioConfig:
 
     # OUT files
     save_ego_solution_file = True
-
-    # Create videos ####################################################################################################
-    visualize_ego = False
-    visualize_veh_id = True
-    visualize_lanelet_id = False
-    ego_centric_threshold = 100
-
-    @property
-    def scenario_directory(self):
-        return os.path.expanduser(self._scenario_directory)
-
-    @property
-    def output_folder(self):
-        return os.path.expanduser(self._output_folder)

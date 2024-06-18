@@ -8,10 +8,8 @@ from scenario_factory.pipeline_steps import (
     GenerateRandomTrafficArguments,
     LoadCitiesFromCsvArguments,
     pipeline_compute_bounding_box_for_city,
-    pipeline_convert_intersection_to_commonroad_scenario,
     pipeline_convert_osm_map_to_commonroad_scenario,
     pipeline_create_sumo_configuration_for_commonroad_scenario,
-    pipeline_extract_forking_points,
     pipeline_extract_intersections,
     pipeline_extract_osm_map,
     pipeline_flatten,
@@ -36,10 +34,8 @@ class TestScenarioGeneration:
 
         pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(input_maps_folder, overwrite=True)))
         pipeline.map(pipeline_convert_osm_map_to_commonroad_scenario)
-        pipeline.map(pipeline_extract_forking_points)
         pipeline.map(pipeline_extract_intersections)
         pipeline.reduce(pipeline_flatten)
-        pipeline.map(pipeline_convert_intersection_to_commonroad_scenario)
         pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario)
         pipeline.map(pipeline_generate_random_traffic(GenerateRandomTrafficArguments(scenarios_per_map=2)))
         pipeline.reduce(pipeline_flatten)

@@ -11,10 +11,8 @@ from scenario_factory.pipeline_steps import (
     GenerateRandomTrafficArguments,
     LoadCitiesFromCsvArguments,
     pipeline_compute_bounding_box_for_city,
-    pipeline_convert_intersection_to_commonroad_scenario,
     pipeline_convert_osm_map_to_commonroad_scenario,
     pipeline_create_sumo_configuration_for_commonroad_scenario,
-    pipeline_extract_forking_points,
     pipeline_extract_intersections,
     pipeline_extract_osm_map,
     pipeline_flatten,
@@ -22,6 +20,8 @@ from scenario_factory.pipeline_steps import (
     pipeline_generate_random_traffic,
     pipeline_load_plain_cities_from_csv,
     pipeline_simulate_scenario,
+    pipeline_write_commonroad_scenario_to_file,
+    WriteCommonRoadScenarioToFileArguments,
 )
 
 
@@ -65,11 +65,10 @@ def generate(cities: str, output: str, maps: str, radius: float, seed: int):
     pipeline.map(pipeline_compute_bounding_box_for_city(ComputeBoundingBoxForCityArguments(radius)))
     pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(Path(maps), overwrite=True)))
     pipeline.map(pipeline_convert_osm_map_to_commonroad_scenario)
-    pipeline.map(pipeline_extract_forking_points)
     pipeline.map(pipeline_extract_intersections)
     pipeline.reduce(pipeline_flatten)
     logger.info(f"Found {len(pipeline.state)} interesting intersections")
-    pipeline.map(pipeline_convert_intersection_to_commonroad_scenario)
+    # pipeline.map(pipeline_convert_intersection_to_commonroad_scenario)
     pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario)
     pipeline.map(pipeline_generate_random_traffic(GenerateRandomTrafficArguments(scenarios_per_map=2)))
     pipeline.reduce(pipeline_flatten)
@@ -81,7 +80,12 @@ def generate(cities: str, output: str, maps: str, radius: float, seed: int):
         ),
         num_processes=4,
     )
+    # pipeline.map(
+    #     pipeline_write_commonroad_scenario_to_file(WriteCommonRoadScenarioToFileArguments("output/noninteractive"))
+    # )
     pipeline.report_results()
+    [print(result.log.getvalue()) for result in pipeline.results if result.step == "pipeline_generate_cr_scenarios"]
+    print(pipeline.state)
     logger.info(f"Successfully generated {len(pipeline.state)} scenarios")
 
 

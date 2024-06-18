@@ -16,8 +16,7 @@ from multiprocess import Pool
 _logger = logging.getLogger("scenario_factory")
 
 
-class PipelineStepArguments:
-    ...
+class PipelineStepArguments: ...
 
 
 # We want to use PipelineStepArguments as a type parameter in Callable, which requires covariant types
@@ -43,12 +42,12 @@ class PipelineStepResult(Generic[_PipelineStepInputType, _PipelineStepOutputType
 class PipelineContext:
     """The context contains metadata that needs to be passed between the different stages of the scenario factory pipeline"""
 
-    def __init__(self, output_path: Path, seed: Optional[int] = None):
+    def __init__(self, output_path: Path, seed: int = 1):
         self._output_path = output_path
 
-        if seed is not None:
-            random.seed(seed)
-            np.random.seed(seed)
+        random.seed(seed)
+        np.random.seed(seed)
+        self.seed = seed
 
     def get_output_folder(self, folder_name: str) -> Path:
         """
@@ -204,11 +203,7 @@ class Pipeline:
         self._populated = True
 
     @_guard_against_unpopulated
-    def map(
-        self,
-        map_func: _PipelineMapType,
-        num_processes: Optional[int] = None,
-    ):
+    def map(self, map_func: _PipelineMapType, num_processes: Optional[int] = None):
         """
         Apply map_func individually on every element of the internal state. The results of each map_func invocation are gathered and set as the new internal state of the pipeline.
         """
@@ -238,14 +233,15 @@ class Pipeline:
         self._state = reduce_func(self._ctx, self._state)
 
     def report_results(self):
-        for result in self._results:
+        for result in self.results:
             if result.error is not None:
                 print(f"Failed to process '{result.input}' in step '{result.step}' with error {type(result.error)}:")
                 traceback.print_exception(result.error)
 
     @property
     def results(self) -> List[PipelineStepResult]:
-        self._results = list(self._results)
+        if not isinstance(self._results, list):
+            self._results = list(self._results)
         return self._results
 
     @property
@@ -254,7 +250,8 @@ class Pipeline:
 
     @property
     def state(self):
-        self._state = list(self._state)
+        if not isinstance(self._state, list):
+            self._state = list(self._state)
         return self._state
 
 
