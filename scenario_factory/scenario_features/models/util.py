@@ -1,9 +1,5 @@
 import numpy as np
-
-try:
-    from commonroad_dc.geometry.util import chaikins_corner_cutting, resample_polyline
-except ModuleNotFoundError:
-    from commonroad_ccosy.geometry.util import chaikins_corner_cutting, resample_polyline
+from commonroad_dc.geometry.util import chaikins_corner_cutting, resample_polyline
 
 
 def smoothen_polyline(polyline, resampling_distance: float = 1.5, n_lengthen=3):

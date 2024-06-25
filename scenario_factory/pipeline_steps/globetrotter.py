@@ -2,25 +2,17 @@ from typing import List
 
 from commonroad.scenario.scenario import Scenario
 
-from scenario_factory.globetrotter import generate_intersections, extract_forking_points
+from scenario_factory.globetrotter import extract_intersections_from_scenario
 from scenario_factory.pipeline import PipelineContext, pipeline_map
 
 
 @pipeline_map
 def pipeline_extract_intersections(ctx: PipelineContext, scenario: Scenario) -> List[Scenario]:
     """
-    Run the Globetrotter algorithm on the CommonRoad files.
-
-    Args:
-        commonroad_folder (Path): Path to the folder containing the CommonRoad files.
-
-    Returns:
-        Path: Path to the folder containing the generated Globetrotter files.
+    Extract all intersections from the scenario.
     """
-    forking_points = extract_forking_points(scenario)
 
-    new_scenarios, _ = generate_intersections(scenario, forking_points)
-
+    new_scenarios = extract_intersections_from_scenario(scenario)
     return new_scenarios
 
 

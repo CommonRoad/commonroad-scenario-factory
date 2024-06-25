@@ -16,7 +16,8 @@ from multiprocess import Pool
 _logger = logging.getLogger("scenario_factory")
 
 
-class PipelineStepArguments: ...
+class PipelineStepArguments:
+    ...
 
 
 # We want to use PipelineStepArguments as a type parameter in Callable, which requires covariant types
@@ -34,7 +35,7 @@ class PipelineStepResult(Generic[_PipelineStepInputType, _PipelineStepOutputType
     step: str
     input: _PipelineStepInputType
     output: Optional[_PipelineStepOutputType]
-    error: Optional[Exception]
+    error: Optional[str]
     log: io.StringIO
     exec_time: int
 
@@ -56,6 +57,9 @@ class PipelineContext:
         output_folder = self._output_path.joinpath(folder_name)
         output_folder.mkdir(parents=True, exist_ok=True)
         return output_folder
+
+    def get_logger(self, name: str) -> logging.Logger:
+        return logging.getLogger(name)
 
 
 # Type aliases to make the function definitions more readable
@@ -132,8 +136,8 @@ def _execute_pipeline_function(
             start_time = time.time_ns()
             try:
                 value = func(ctx, input)
-            except Exception as e:
-                error = e
+            except Exception:
+                error = traceback.format_exc()
             end_time = time.time_ns()
 
     result = PipelineStepResult(_get_function_name(func), input, value, error, stream, end_time - start_time)
@@ -235,8 +239,8 @@ class Pipeline:
     def report_results(self):
         for result in self.results:
             if result.error is not None:
-                print(f"Failed to process '{result.input}' in step '{result.step}' with error {type(result.error)}:")
-                traceback.print_exception(result.error)
+                print(f"Failed to process '{result.input}' in step '{result.step}' with traceback:")
+                print(result.error)
 
     @property
     def results(self) -> List[PipelineStepResult]:

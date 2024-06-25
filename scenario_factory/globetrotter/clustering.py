@@ -1,7 +1,10 @@
+import logging
+from collections import defaultdict
 from copy import deepcopy
-from typing import List, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 import numpy as np
+from commonroad.scenario.intersection import Intersection
 from commonroad.scenario.lanelet import Lanelet
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.traffic_light import TrafficLight
@@ -9,7 +12,7 @@ from commonroad.scenario.traffic_sign import TrafficSign
 from scipy.spatial import distance
 from sklearn.cluster import AgglomerativeClustering
 
-from scenario_factory.globetrotter.intersection import Intersection
+logger = logging.getLogger(__name__)
 
 
 def find_clusters_agglomerative(points: np.ndarray) -> AgglomerativeClustering:
@@ -19,9 +22,6 @@ def find_clusters_agglomerative(points: np.ndarray) -> AgglomerativeClustering:
     :param points: forking points used for the clustering process
     :return: Cluster with labeled forking points
     """
-
-    points = np.array(list(points))
-
     metric = "euclidean"
     linkage = "single"
     distance_treshold = 35
@@ -38,7 +38,7 @@ def find_clusters_agglomerative(points: np.ndarray) -> AgglomerativeClustering:
     return cluster
 
 
-def get_distance_to_outer_point(center, cluster):
+def get_distance_to_outer_point(center: np.ndarray, cluster: Sequence[np.ndarray]) -> float:
     """
     Euclidean distance between center and outer point
     See https://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
@@ -60,39 +60,42 @@ def get_distance_to_outer_point(center, cluster):
     return max_dis
 
 
-def centroids_and_distances(labels, points):
+def centroids_and_distances(
+    labels: np.ndarray, points: np.ndarray
+) -> Tuple[Dict[float, np.ndarray], Dict[float, float], Dict[float, List[np.ndarray]]]:
     """
     Create dictionaries with points assigned to each cluster, the clusters' centers and max distances in each cluster
 
     :param labels: The resulting labels from the clustering process for each forking point
     :param points: forking points
-    :return: Cluster, center and max_distance dictionaries
+    :return: center, max_distance and cluster dictionaries
     """
 
-    clusters = {i: [] for i in range(0, max(labels) + 1)}
-    centroids = {i: None for i in range(0, max(labels) + 1)}
-    distances = {i: 0.0 for i in range(0, max(labels) + 1)}
+    clusters = defaultdict(list)
+    centroids = dict()
+    distances = dict()
 
-    idx = 0
-    while idx < len(points):
-        cluster_n = labels[idx]
+    for point, cluster_n in zip(points, labels):
         # check for noise from DBSCAN
         if cluster_n != -1:
-            clusters[cluster_n].append(tuple(points[idx]))
-        idx += 1
+            clusters[cluster_n].append(tuple(point))
 
-    # compute center
+    # compute center and distances
     for key in clusters:
         centroids[key] = np.mean(clusters[key], axis=0)
-
-    # compute max distance
-    for key in distances:
         distances[key] = get_distance_to_outer_point(centroids[key], clusters[key])
 
     return centroids, distances, clusters
 
 
-def relevant_traffic_signs(traffic_signs: List[TrafficSign], lanelets: List[Lanelet]) -> List[TrafficSign]:
+def relevant_traffic_signs(traffic_signs: Sequence[TrafficSign], lanelets: Sequence[Lanelet]) -> List[TrafficSign]:
+    """
+    Select traffic signs that are referenced by at least one lanelet.
+
+    :param traffic_lights: The list of traffic_lights to check
+    :param lanelets: The list of lanelets to check against
+    :returns: The selected intersections
+    """
     referenced_traffic_signs = set()
 
     for lanelet in lanelets:
@@ -106,7 +109,14 @@ def relevant_traffic_signs(traffic_signs: List[TrafficSign], lanelets: List[Lane
     return [traffic_signs_dict[referenced_traffic_sign] for referenced_traffic_sign in referenced_traffic_signs]
 
 
-def relevant_traffic_lights(traffic_lights: List[TrafficLight], lanelets: List[Lanelet]) -> List[TrafficLight]:
+def relevant_traffic_lights(traffic_lights: Sequence[TrafficLight], lanelets: Sequence[Lanelet]) -> List[TrafficLight]:
+    """
+    Select traffic lights that are referenced by at least one lanelet.
+
+    :param traffic_lights: The list of traffic_lights to check
+    :param lanelets: The list of lanelets to check against
+    :returns: The selected intersections
+    """
     referenced_traffic_lights = set()
 
     for lanelet in lanelets:
@@ -121,7 +131,14 @@ def relevant_traffic_lights(traffic_lights: List[TrafficLight], lanelets: List[L
     return [traffic_lights_dict[referenced_traffic_light] for referenced_traffic_light in referenced_traffic_lights]
 
 
-def relevant_intersections(intersections: List[Intersection], lanelets: List[Lanelet]) -> List[Intersection]:
+def relevant_intersections(intersections: Sequence[Intersection], lanelets: Sequence[Lanelet]) -> List[Intersection]:
+    """
+    Select intersections with known incoming lanelets.
+
+    :param intersections: The list of intersections to check
+    :param lanelets: The list of lanelets to check against
+    :returns: The selected intersections
+    """
     referenced_intersections = set()
     lanelet_ids = set()
     for lanelet in lanelets:
@@ -129,6 +146,9 @@ def relevant_intersections(intersections: List[Intersection], lanelets: List[Lan
 
     for intersection in intersections:
         for incoming in intersection.incomings:
+            if incoming.incoming_lanelets is None:
+                continue
+
             for lt_id in incoming.incoming_lanelets:
                 if lt_id in lanelet_ids:
                     referenced_intersections.add(intersection)
@@ -136,16 +156,15 @@ def relevant_intersections(intersections: List[Intersection], lanelets: List[Lan
     return list(referenced_intersections)
 
 
-def cut_area(scenario, center, max_distance) -> Scenario:
+def cut_intersection_from_scenario(scenario: Scenario, center: np.ndarray, max_distance: float) -> Scenario:
     """
-    Create new scenario from old scenario, based on center and radius
+    Create new scenario from old scenario, by cutting the lanelet network around center with radius
 
     :param scenario: Original scenario
     :param center: Center of new scenario
     :param max_distance: Cut radius
     :return: New Scenario only containing desired intersection
     """
-    center = np.array(list(center))
 
     intersection_cut_margin = 30
     radius = max_distance + intersection_cut_margin
@@ -189,34 +208,54 @@ def cut_area(scenario, center, max_distance) -> Scenario:
             remove_intersection.add(intersection)
 
     for intersection in remove_intersection:
+        logger.debug(
+            f"Dicarded intersection {intersection} from scenario {cut_lanelet_scenario.scenario_id} because it does not contain "
+        )
         cut_lanelet_scenario.lanelet_network.remove_intersection(intersection)
-
-    print(f"Detected {len(traffic_lights)} traffic lights")
-    print(f"Detected {len(traffic_signs)} traffic signs")
 
     return cut_lanelet_scenario
 
 
-def generate_intersections(
-    scenario: Scenario, forking_points: np.ndarray
-) -> Tuple[List[Scenario], AgglomerativeClustering]:
-    print("Scenario generated:")
-    print(scenario)
-    print(f"Found {len(forking_points)} forking points")
+def extract_forking_points(lanelets: Sequence[Lanelet]) -> np.ndarray:
+    """
+    Extract the start/end point of a lanelet that has more than one predessor/successor
+    """
+    forking_set = set()
 
+    lanelet_ids = [lanelet.lanelet_id for lanelet in lanelets]
+
+    for lanelet in lanelets:
+        if len(lanelet.predecessor) > 1 and set(lanelet.predecessor).issubset(lanelet_ids):
+            forking_set.add((lanelet.center_vertices[0][0], lanelet.center_vertices[0][1]))
+        if len(lanelet.successor) > 1 and set(lanelet.successor).issubset(lanelet_ids):
+            forking_set.add((lanelet.center_vertices[-1][0], lanelet.center_vertices[-1][1]))
+
+    forking_points = np.array(list(forking_set))
+    return forking_points
+
+
+def generate_intersections(scenario: Scenario, forking_points: np.ndarray) -> List[Scenario]:
     if len(forking_points) < 2:
-        print("[ERROR] Not enough forking points detected")
-        exit(-1)
+        logger.error(
+            f"Scenario {scenario.scenario_id} only has {len(forking_points)}, but at least 2 are required to extract intersections"
+        )
+        return []
 
     clustering_result = find_clusters_agglomerative(forking_points)
     labels = clustering_result.labels_
     centroids, distances, clusters = centroids_and_distances(labels, forking_points)
 
-    print(f"Clustering completed. Found {len(clusters)} intersections")
+    logger.debug(f"Found {len(clusters)} new intersections for base scenario {scenario.scenario_id}")
 
     intersections = []
     for idx, key in enumerate(centroids):
-        scenario_new = cut_area(scenario, centroids[key], distances[key])
+        scenario_new = cut_intersection_from_scenario(scenario, centroids[key], distances[key])
         scenario_new.scenario_id.map_id = idx + 1
         intersections.append(scenario_new)
-    return intersections, clustering_result
+
+    return intersections
+
+
+def extract_intersections_from_scenario(scenario: Scenario) -> List[Scenario]:
+    forking_points = extract_forking_points(scenario.lanelet_network.lanelets)
+    return generate_intersections(scenario, forking_points)

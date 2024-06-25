@@ -391,7 +391,7 @@ def get_min_ttc(scenario: Scenario, ego_vehicle: DynamicObstacle, sensor_range=S
     return min_ttc, min_ttc_ts
 
 
-def changes_lane(lanelet_network, obstacle):
+def changes_lane(lanelet_network: LaneletNetwork, obstacle):
     obstacle_states = get_obstacle_state_list(obstacle)
     for x0, x1 in zip(obstacle_states[:-1], obstacle_states[1:]):
         x0_lanelet, _, _ = get_lanelets(lanelet_network, x0)

@@ -1,8 +1,7 @@
-from typing import Set, List
+from typing import List, Set
 
-from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.obstacle import DynamicObstacle
-
+from commonroad.scenario.scenario import Scenario
 from commonroad_dc.collision.collision_detection.pycrcc_collision_dispatch import create_collision_object
 from commonroad_dc.pycrcc import CollisionChecker
 
@@ -58,10 +57,3 @@ def get_colliding_dynamic_obstacles(
                 resulting_colliding_ids.add(cc_objects_to_obstacle_id[current_cc_object])
 
     return resulting_colliding_ids
-
-
-def check_extreme_states(scenario: Scenario):
-    for obs in scenario.dynamic_obstacles:
-        for state in obs.prediction.trajectory.state_list:
-            if abs(state.acceleration) > 11.0:
-                return False

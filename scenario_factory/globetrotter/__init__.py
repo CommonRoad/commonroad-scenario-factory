@@ -1,4 +1,3 @@
-from .globetrotter_io import extract_forking_points
-from .clustering import generate_intersections
+from .clustering import extract_forking_points, extract_intersections_from_scenario, generate_intersections
 
-__all__ = ["extract_forking_points", "generate_intersections"]
+__all__ = ["extract_forking_points", "generate_intersections", "extract_intersections_from_scenario"]

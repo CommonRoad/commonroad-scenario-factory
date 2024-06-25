@@ -1,248 +1,230 @@
-import logging
-import os
-import shutil
-import signal
-import time
-import traceback
-from copy import deepcopy
+import copy
+import math
 from pathlib import Path
+from typing import List, Optional, Set
 
-import libsumo
 import numpy as np
-from commonroad.common.file_reader import CommonRoadFileReader
-from commonroad.scenario.scenario import Scenario
+from commonroad.common.util import Interval
+from commonroad.geometry.shape import Rectangle, Shape
+from commonroad.planning.goal import GoalRegion
+from commonroad.planning.planning_problem import PlanningProblem, PlanningProblemSet
+from commonroad.prediction.prediction import TrajectoryPrediction
+from commonroad.scenario.lanelet import LaneletNetwork
+from commonroad.scenario.scenario import DynamicObstacle, Scenario
 
 # Options
+from commonroad.scenario.state import InitialState, PMState, TraceState
+from commonroad.scenario.trajectory import Trajectory
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
 from crdesigner.map_conversion.sumo_map.cr2sumo.converter import CR2SumoMapConverter
-from sumocr.interface.sumo_simulation import SumoSimulation
 from sumocr.scenario.scenario_wrapper import ScenarioWrapper
-from sumocr.sumo_config.default import SUMO_VEHICLE_PREFIX, InteractiveSumoConfigDefault
 
-from scenario_factory.config_files.scenario_config import ScenarioConfig
-from scenario_factory.cr_scenario_factory import ScenarioFactory
-from scenario_factory.scenario_checker import DeleteScenario
-
-
-class Timeout:
-    def __init__(self, seconds=1, error_message="Timeout"):
-        self.seconds = seconds
-        self.error_message = error_message
-
-    def handle_timeout(self, signum, frame):
-        raise TimeoutError(self.error_message)
-
-    def __enter__(self):
-        signal.signal(signal.SIGALRM, self.handle_timeout)
-        signal.alarm(self.seconds)
-
-    def __exit__(self, type, value, traceback):
-        signal.alarm(0)
+from scenario_factory.ego_vehicle_selector import EgoVehicleManeuver
+from scenario_factory.scenario_checker import get_colliding_dynamic_obstacles_in_scenario
+from scenario_factory.scenario_config import ScenarioConfig
 
 
-def convert_commonroad_scenario_to_sumo(commonroad_scenario: Scenario, output_folder: Path) -> CR2SumoMapConverter:
-    sumo_config = SumoConfig.from_scenario(commonroad_scenario)
-    sumo_config.highway_mode = False
-
+def convert_commonroad_scenario_to_sumo(
+    commonroad_scenario: Scenario, output_folder: Path, sumo_config: SumoConfig
+) -> ScenarioWrapper:
     intermediate_sumo_files_path = output_folder.joinpath("intermediate", str(commonroad_scenario.scenario_id))
     intermediate_sumo_files_path.mkdir(parents=True, exist_ok=True)
-    sumo_net_path = intermediate_sumo_files_path.joinpath(sumo_config.scenario_name + ".net.xml")
 
     cr2sumo = CR2SumoMapConverter(commonroad_scenario, sumo_config)
-    cr2sumo._convert_map()
-    intermediary_files = cr2sumo.write_intermediate_files(str(sumo_net_path))
-    conversion_possible = cr2sumo.merge_intermediate_files(str(sumo_net_path), True, *intermediary_files)
+    conversion_possible = cr2sumo.create_sumo_files(str(intermediate_sumo_files_path))
 
     if not conversion_possible:
         raise RuntimeError(f"Failed to convert CommonRoad scenario {commonroad_scenario.scenario_id} to SUMO")
 
-    return cr2sumo
-
-
-def generate_random_traffic_on_sumo_network(
-    cr2sumo_map_converter: CR2SumoMapConverter, net_file: Path
-) -> ScenarioWrapper:
-    rou_files, _additional_file, _sumo_cfg_file = cr2sumo_map_converter._create_random_routes(
-        net_file, scenario_name=cr2sumo_map_converter.conf.scenario_name, return_files=True
-    )
-
     scenario_wrapper = ScenarioWrapper()
-    scenario_wrapper.net_file = str(net_file)
-    scenario_wrapper.sumo_cfg_file = _sumo_cfg_file
-    scenario_wrapper.initial_scenario = cr2sumo_map_converter.initial_scenario
+    scenario_wrapper.sumo_cfg_file = cr2sumo.sumo_cfg_file
+    scenario_wrapper.initial_scenario = copy.deepcopy(commonroad_scenario)
 
     return scenario_wrapper
 
 
-def create_scenarios(
-    cr_file: Path,
-    sumo_config: SumoConfig,
+def _create_new_obstacle_in_time_frame(
+    orig_obstacle: DynamicObstacle, start_time: int, end_time: int, with_prediction: bool = True
+) -> Optional[DynamicObstacle]:
+    """
+    Create a copy of orig_obstacle with the states between start_time and end_time aligned to time step 0.
+    """
+    state_at_start = copy.deepcopy(orig_obstacle.state_at_time(start_time))
+    if state_at_start is None:
+        return None
+
+    # As state_at_start can also be a TraceState, an extra InitialState must be created from it
+    initial_state = InitialState(
+        time_step=0,
+        position=state_at_start.position,
+        orientation=state_at_start.orientation,
+        velocity=state_at_start.velocity,
+        acceleration=state_at_start.acceleration,
+    )
+
+    prediction = None
+    if with_prediction:
+        # The state_list creation is seperated in to two list comprehensions, so that mypy does not complain about possible None values...
+        state_list = [orig_obstacle.state_at_time(time_step) for time_step in range(start_time + 1, end_time)]
+        state_list = [copy.deepcopy(state) for state in state_list if state is not None]
+
+        for i, state in enumerate(state_list):
+            state.time_step = i + 1
+
+        prediction = TrajectoryPrediction(
+            Trajectory(initial_time_step=1, state_list=state_list), shape=orig_obstacle.obstacle_shape
+        )
+
+    new_obstacle = DynamicObstacle(
+        obstacle_id=orig_obstacle.obstacle_id,
+        obstacle_type=orig_obstacle.obstacle_type,
+        obstacle_shape=orig_obstacle.obstacle_shape,
+        initial_state=initial_state,
+        prediction=prediction,
+    )
+
+    return new_obstacle
+
+
+def _select_obstacles_in_sensor_range_of_ego_vehicle(
+    obstacles: List[DynamicObstacle],
+    ego_vehicle: DynamicObstacle,
+    sensor_range: int,
+) -> List[DynamicObstacle]:
+    relevant = [ego_vehicle]
+
+    assert isinstance(ego_vehicle.prediction, TrajectoryPrediction)
+
+    for ego_vehicle_state in ego_vehicle.prediction.trajectory.state_list:
+        proj_pos = ego_vehicle_state.position
+        proj_pos[0] += math.cos(ego_vehicle_state.orientation) + 2.0 * ego_vehicle_state.velocity
+        proj_pos[1] += math.sin(ego_vehicle_state.orientation) + 2.0 * ego_vehicle_state.velocity
+        for obstacle in obstacles:
+            if obstacle in relevant:
+                continue
+
+            obstacle_state = obstacle.state_at_time(ego_vehicle_state.time_step)
+            if obstacle_state is None:
+                continue
+
+            if np.less_equal(np.abs(obstacle_state.position[0] - proj_pos[0]), sensor_range) and np.less_equal(
+                np.abs(obstacle_state.position[1] - proj_pos[1]), sensor_range
+            ):
+                relevant.append(obstacle)
+
+    return relevant
+
+
+def _create_planning_problem_initial_state_for_ego_vehicle(
+    ego_vehicle: DynamicObstacle,
+) -> InitialState:
+    initial_state = copy.deepcopy(ego_vehicle.initial_state)
+    # TODO: Is this necessary?
+    initial_state.yaw_rate = 0.0
+    initial_state.slip_angle = 0.0
+    return initial_state
+
+
+def _create_planning_problem_goal_state_for_ego_vehicle(ego_vehicle: DynamicObstacle) -> TraceState:
+    final_state_of_ego_vehicle = copy.deepcopy(ego_vehicle.prediction.trajectory.final_state)
+    goal_state = PMState(
+        time_step=Interval(final_state_of_ego_vehicle.time_step - 1, final_state_of_ego_vehicle.time_step),
+        position=Rectangle(
+            length=6,
+            width=2,
+            center=final_state_of_ego_vehicle.position,
+            orientation=final_state_of_ego_vehicle.orientation,
+        ),
+    )
+    return goal_state
+
+
+def _find_most_likely_lanelet_by_state(lanelet_network: LaneletNetwork, state: TraceState) -> Optional[int]:
+    if not isinstance(state.position, Shape):
+        return None
+
+    lanelet_ids = lanelet_network.find_lanelet_by_shape(state.position)
+    if len(lanelet_ids) == 0:
+        return None
+
+    if len(lanelet_ids) == 1:
+        return lanelet_ids[0]
+
+    # TODO
+    return lanelet_ids[0]
+
+
+def create_planning_problem_set_for_ego_vehicle_maneuver(
+    scenario: Scenario,
     scenario_config: ScenarioConfig,
-    scenarios_per_map: int,
-    output_path: Path,
-    create_noninteractive: bool,
-    create_interactive: bool,
-    timeout: int = 60,
-):
-    logging.info(f"Start with map {cr_file}")
+    ego_vehicle_maneuver: EgoVehicleManeuver,
+) -> PlanningProblemSet:
+    initial_state = _create_planning_problem_initial_state_for_ego_vehicle(ego_vehicle_maneuver.ego_vehicle)
+    goal_state = _create_planning_problem_goal_state_for_ego_vehicle(ego_vehicle_maneuver.ego_vehicle)
 
-    # create unique scenario ids for each scenario
-    split_map_name = os.path.splitext(os.path.basename(cr_file))[0].replace("_", "-").rsplit("-")
-    if split_map_name[0] == "C":
-        del split_map_name[0]
-    location_name = split_map_name[0] + "_" + split_map_name[1]
-    orig_map_name = location_name + "-" + split_map_name[2]
+    goal_region_lanelet_mapping = None
+    if scenario_config.planning_pro_with_lanelet is True:
+        # We should create a planning problem goal region, that is associated with the lanelet on which the ego vehicle lands in its goal_state
+        lanelet_id_at_goal_state = _find_most_likely_lanelet_by_state(
+            lanelet_network=scenario.lanelet_network, state=goal_state
+        )
+        if lanelet_id_at_goal_state is None:
+            raise ValueError(
+                f"Tried to match maneuver {ego_vehicle_maneuver} to the lanelet in its goal state, but no lanelet could be found for state: {goal_state}"
+            )
 
-    map_nr = int(split_map_name[2])
-    obtained_scenario_number = 0
-    solution_folder = output_path.joinpath("interactive", "solutions")
-    solution_folder.mkdir(parents=True, exist_ok=True)
+        # Create the mapping to be used by the GoalRegion construction
+        goal_region_lanelet_mapping = {0: [lanelet_id_at_goal_state]}
 
-    try:
-        with Timeout(seconds=timeout):
-            # conversion from CommonRoad to SUMO map
-            intermediate_sumo_files_path = output_path.joinpath("intermediate", orig_map_name)
-            scenario_orig, _ = CommonRoadFileReader(cr_file).open()
-            scenario_orig.scenario_id = orig_map_name
-            sumo_config.scenario_name = str(scenario_orig.scenario_id)
-            cr2sumo = CR2SumoMapConverter(scenario_orig, sumo_config)
+        # Patch the postion of the goal state to match the whole lanelet
+        # TODO: This was the behaviour of the original code. Is this the correct behaviour?
+        lanelet_at_goal_state = scenario.lanelet_network.find_lanelet_by_id(lanelet_id_at_goal_state)
+        goal_state.position = lanelet_at_goal_state.polygon
 
-            sumo_net_path = os.path.join(intermediate_sumo_files_path, sumo_config.scenario_name + ".net.xml")
-            logging.info("Converting to SUMO Map")
-            cr2sumo._convert_map()
+    goal_region = GoalRegion([goal_state], goal_region_lanelet_mapping)
+    planning_problem_id = ego_vehicle_maneuver.ego_vehicle.obstacle_id
+    planning_problem = PlanningProblem(planning_problem_id, initial_state, goal_region)
+    planning_problem_set = PlanningProblemSet([planning_problem])
 
-            logging.info("Merging Intermediate Files")
-            intermediate_sumo_files_path.mkdir(parents=True, exist_ok=True)
-            intermediary_files = cr2sumo.write_intermediate_files(sumo_net_path)
-            conversion_possible = cr2sumo.merge_intermediate_files(sumo_net_path, True, *intermediary_files)
+    return planning_problem_set
 
-            if not conversion_possible:
-                logging.warning("Conversion to net file failed!")
-                return 0, cr_file
 
-            # wait for previous step to be finished
-            while not os.path.isfile(sumo_net_path):
-                time.sleep(0.05)
+def create_scenario_for_ego_vehicle_maneuver(
+    scenario: Scenario,
+    scenario_config: ScenarioConfig,
+    ego_vehicle_maneuver: EgoVehicleManeuver,
+    interactive: bool,
+) -> Scenario:
+    relevant_obstacles = _select_obstacles_in_sensor_range_of_ego_vehicle(
+        scenario.dynamic_obstacles, ego_vehicle_maneuver.ego_vehicle, scenario_config.sensor_range
+    )
+    new_obstacles = []
+    for obstacle in relevant_obstacles:
+        # Obstacles must have a trajectory that starts at least at the same time as the ego vehicle maneuver
+        if obstacle.initial_state.time_step > ego_vehicle_maneuver.start_time:
+            continue
 
-        # scenario generation and export
-        scenario_counter = 0
-        for i_scenario in range(scenarios_per_map):
-            try:
-                with Timeout(seconds=timeout):
-                    sumo_conf_tmp = deepcopy(sumo_config)
-                    scenario_name = location_name + "-" + str(map_nr) + "_" + str(i_scenario + 1)
-                    scenario_dir_name = intermediate_sumo_files_path.joinpath(scenario_name)
-                    sumo_conf_tmp.scenario_name = scenario_name
-                    sumo_conf_tmp.scenarios_path = scenario_dir_name
-                    sumo_conf_tmp.random_seed = int(np.random.uniform(100, 999))
-                    if scenario_dir_name.exists():
-                        shutil.rmtree(scenario_dir_name)
-                    scenario_dir_name.mkdir()
-                    sumo_net_copy = scenario_dir_name.joinpath(scenario_name + ".net.xml")
-                    cr_map_copy = scenario_dir_name.joinpath(scenario_name + ".cr.xml")
-                    shutil.copy(sumo_net_path, sumo_net_copy)  # copy sumo net file into scenario-specific sub-folder
-                    shutil.copy(cr_file, cr_map_copy)  # copy original commonroad file into scenario-specific sub-folder
-                    # TODO this file is redundant? do not copy? or only to upper directory?
+        new_obstacle = _create_new_obstacle_in_time_frame(
+            obstacle,
+            ego_vehicle_maneuver.start_time,
+            ego_vehicle_maneuver.start_time + scenario_config.cr_scenario_time_steps + 1,
+            with_prediction=not interactive,
+        )
+        if new_obstacle is not None:
+            new_obstacles.append(new_obstacle)
 
-                    # generate route file and additional files for SUMO simulation
-                    cr2sumo_converter = CR2SumoMapConverter(deepcopy(scenario_orig), sumo_config)
-                    rou_files, additional_file, sumo_cfg_file = cr2sumo_converter._create_random_routes(
-                        sumo_net_copy, scenario_name=scenario_name, return_files=True
-                    )
-                    while not os.path.isfile(cr2sumo_converter.sumo_cfg_file):
-                        time.sleep(0.05)
-                    time.sleep(0.1)
+    new_scenario = Scenario(dt=scenario.dt)
+    new_scenario.add_objects(new_obstacles)
+    new_scenario.add_objects(scenario.lanelet_network)
+    return new_scenario
 
-                    scenario_wrapper = ScenarioWrapper.init_from_scenario(
-                        sumo_conf_tmp, scenario_dir_name, cr_map_file=cr_map_copy
-                    )  # TODO parameters are redundant
 
-                    # simulate sumo scenario and extract scenario files
-                    sumo_sim = SumoSimulation()
-                    trials = 0
-                    maxtrials = 3
-                    while trials < maxtrials:
-                        try:
-                            print(scenario_wrapper)
-                            sumo_sim.initialize(sumo_conf_tmp, scenario_wrapper=scenario_wrapper)
-                        except libsumo.libsumo.TraCIException:
-                            time.sleep(0.1)
-                            trials += 1
-                        trials = maxtrials  # TODO why this?
-
-                    for step in range(sumo_conf_tmp.simulation_steps):
-                        sumo_sim.simulate_step()
-
-                    # logger.info("stopping sumo simulation")
-                    sumo_sim.stop()
-                    # logger.info("stopped sumo simulation")
-                    scenario = sumo_sim.commonroad_scenarios_all_time_steps()
-                    logging.info(f"obtained cr scenario with {len(scenario.dynamic_obstacles)} obstacles")
-
-                    scenario.scenario_id = orig_map_name
-                    scenario_config.map_name = orig_map_name
-                    scenario.location = scenario_orig.location
-                    scenario.tags = scenario_orig.tags
-
-                    # select ego vehicles for planning problems and postprocess final CommonRoad scenarios
-                    try:
-                        cr_scenarios = ScenarioFactory(
-                            scenario,
-                            sumo_conf_tmp.simulation_steps,
-                            sumo_conf_tmp.scenario_name,
-                            scenario_config,
-                            scenario_dir_name,
-                            solution_folder,
-                        )
-
-                    except DeleteScenario:
-                        shutil.rmtree(scenario_dir_name)
-                        logging.warning("Remove scenario with to many collisions!")
-                        return obtained_scenario_number, cr_file
-
-                    scenario_counter_prev = scenario_counter
-                    scenario_counter = cr_scenarios.create_cr_scenarios(map_nr, scenario_counter)
-                    scenario_nr_added = 0
-                    if create_noninteractive:
-                        output_noninteractive = output_path.joinpath("noninteractive")
-                        output_noninteractive.mkdir(parents=True, exist_ok=True)
-                        scenario_nr_added += cr_scenarios.write_cr_file_and_video(
-                            scenario_counter_prev,
-                            create_video=False,
-                            check_validity=False,  # TODO set True
-                            output_path=output_noninteractive,
-                        )
-
-                    if create_interactive:
-                        output_interactive = output_path.joinpath("interactive")
-                        output_interactive.mkdir(parents=True, exist_ok=True)
-                        scenario_nr_added += cr_scenarios.write_interactive_scenarios_and_videos(
-                            scenario_counter_prev,
-                            sumo_sim.ids_cr2sumo[SUMO_VEHICLE_PREFIX],
-                            sumo_net_path=sumo_net_copy,
-                            rou_files=rou_files,
-                            config=sumo_conf_tmp,
-                            default_config=InteractiveSumoConfigDefault(),
-                            create_video=False,
-                            check_validity=False,  # TODO set True
-                            output_path=output_interactive,
-                        )
-
-                    obtained_scenario_number += scenario_nr_added
-
-            except TimeoutError:
-                logging.warning("Timeout during simulation/extraction, continue with next scenario.")
-                try:
-                    sumo_sim.stop()
-                except Exception:
-                    pass
-
-    except Exception:
-        logging.warning(f"UNEXPECTED ERROR, continue with next scenario: {traceback.format_exc()}")
-        try:
-            sumo_sim.stop()
-        except Exception:
-            pass
-        return obtained_scenario_number, cr_file
-
-    return obtained_scenario_number, cr_file
+def delete_colliding_obstacles_from_scenario(scenario: Scenario, all: bool = True) -> Set[int]:
+    ids = get_colliding_dynamic_obstacles_in_scenario(scenario, get_all=all)
+    for id_ in ids:
+        obstacle = scenario.obstacle_by_id(id_)
+        assert (
+            obstacle is not None
+        ), f"Found a collision for dynamic obstacle {id_}, but this dynamic obstacle is not part of the scenario."
+        scenario.remove_obstacle(obstacle)
+    return ids

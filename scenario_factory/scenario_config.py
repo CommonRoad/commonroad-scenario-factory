@@ -1,7 +1,5 @@
 import numpy as np
 
-from scenario_factory.enums import EgoSelectionCriterion
-
 
 class ScenarioConfig:
     # Number of planning problems generated from one scenario
@@ -25,14 +23,6 @@ class ScenarioConfig:
     # EGO VEHICLE SELECTION ############################################################################################
     # obstacle_id of ego vehicles when ego vehicle is exported
     default_ego_id = 8888
-
-    # list of possible criteria for selecting ego vehicles
-    ego_selection_criteria = [
-        EgoSelectionCriterion.merging,
-        EgoSelectionCriterion.turning,
-        EgoSelectionCriterion.braking,
-        EgoSelectionCriterion.lane_change,
-    ]
 
     # additional filters to discard uninteresting situations
     min_ego_velocity = 22 / 3.6  # [m/s] velocity must exceed this value at least once

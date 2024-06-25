@@ -1,8 +1,6 @@
 import math
 
 import numpy as np
-
-# from scenario_factory.cr_scenario_factory import GenerateCRScenarios
 from commonroad.common.common_lanelet import LaneletType
 from commonroad.common.file_writer import Tag
 from commonroad.common.util import make_valid_orientation

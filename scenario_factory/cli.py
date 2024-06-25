@@ -8,7 +8,6 @@ from scenario_factory.pipeline_steps import (
     ComputeBoundingBoxForCityArguments,
     ExtractOsmMapArguments,
     GenerateCommonRoadScenariosArguments,
-    GenerateRandomTrafficArguments,
     LoadCitiesFromCsvArguments,
     pipeline_compute_bounding_box_for_city,
     pipeline_convert_osm_map_to_commonroad_scenario,
@@ -17,11 +16,8 @@ from scenario_factory.pipeline_steps import (
     pipeline_extract_osm_map,
     pipeline_flatten,
     pipeline_generate_cr_scenarios,
-    pipeline_generate_random_traffic,
     pipeline_load_plain_cities_from_csv,
     pipeline_simulate_scenario,
-    pipeline_write_commonroad_scenario_to_file,
-    WriteCommonRoadScenarioToFileArguments,
 )
 
 
@@ -58,6 +54,9 @@ def generate(cities: str, output: str, maps: str, radius: float, seed: int):
     handler.setFormatter(logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
     logger.addHandler(handler)
 
+    osm_logger = logging.getLogger("scenario_factory.osm")
+    osm_logger.setLevel(logging.DEBUG)
+
     ctx = PipelineContext(Path(output), seed=seed)
     pipeline = Pipeline(ctx)
     pipeline.populate(pipeline_load_plain_cities_from_csv(LoadCitiesFromCsvArguments(Path(cities))))
@@ -68,21 +67,17 @@ def generate(cities: str, output: str, maps: str, radius: float, seed: int):
     pipeline.map(pipeline_extract_intersections)
     pipeline.reduce(pipeline_flatten)
     logger.info(f"Found {len(pipeline.state)} interesting intersections")
-    # pipeline.map(pipeline_convert_intersection_to_commonroad_scenario)
     pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario)
-    pipeline.map(pipeline_generate_random_traffic(GenerateRandomTrafficArguments(scenarios_per_map=2)))
     pipeline.reduce(pipeline_flatten)
     logger.info(f"Generated random traffic on {len(pipeline.state)} scenarios")
     pipeline.map(pipeline_simulate_scenario)
+    logger.info("Extract final scenarios")
     pipeline.map(
         pipeline_generate_cr_scenarios(
             GenerateCommonRoadScenariosArguments(create_noninteractive=True, create_interactive=False)
         ),
         num_processes=4,
     )
-    # pipeline.map(
-    #     pipeline_write_commonroad_scenario_to_file(WriteCommonRoadScenarioToFileArguments("output/noninteractive"))
-    # )
     pipeline.report_results()
     [print(result.log.getvalue()) for result in pipeline.results if result.step == "pipeline_generate_cr_scenarios"]
     print(pipeline.state)
