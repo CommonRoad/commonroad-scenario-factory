@@ -44,3 +44,7 @@ source = ["scenario_factory"]
 
 [tool.poetry.scripts]
 scenario-factory = "scenario_factory.cli:generate"
+
+[[tool.mypy.overrides]]
+module = "scenario_factory.scenario_features.*"
+ignore_errors = true

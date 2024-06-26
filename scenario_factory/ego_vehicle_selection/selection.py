@@ -45,7 +45,7 @@ def _filter_ego_vehicle_maneuvers_in_scenario(
     maneuver_filters: Sequence[EgoVehicleManeuverFilter],
     maneuvers: List[EgoVehicleManeuver],
 ) -> List[EgoVehicleManeuver]:
-    filtered_maneuvers = maneuvers
+    filtered_maneuvers = filter(lambda _: True, maneuvers)
     for maneuver_filter in maneuver_filters:
         prepared_maneuver_filter = functools.partial(maneuver_filter.matches, scenario, scenario_time_steps)
         filtered_maneuvers = filter(prepared_maneuver_filter, filtered_maneuvers)

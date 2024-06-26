@@ -1,6 +1,6 @@
 from collections import defaultdict
 from functools import lru_cache
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 from commonroad.common.util import Interval
@@ -27,7 +27,7 @@ class ScenarioModel:
         :param scenario: CommonRoad scenario
         :param assign_vehicles_on_the_fly: if false, vehicles are initially assigned to lanelets for all time steps
         """
-        self.__assigned_time_steps = []
+        self.__assigned_time_steps: List[int] = []
         self.scenario: Scenario = scenario
         self.lanelet_network = scenario.lanelet_network
         self.assign_vehicles_on_the_fly = assign_vehicles_on_the_fly
@@ -37,7 +37,7 @@ class ScenarioModel:
         # handling lane_section-based coordinate systems
         self.lanelet_section_network = LaneletSectionNetwork.from_lanelet_network(self.lanelet_network)
         # stores longitudinal positions long_positions[lanelet_id[time_step[obstacle_id]]]
-        self.long_positions = defaultdict(lambda: defaultdict(dict))
+        self.long_positions: Dict[int, Dict[int, Dict[int, np.ndarray]]] = defaultdict(lambda: defaultdict(dict))
 
     def assign_vehicles_at_time_step(self, time_step):
         """:returns if vehicles were already assigned to lanelets at this time step"""

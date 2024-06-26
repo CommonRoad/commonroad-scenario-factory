@@ -8,7 +8,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Generic, Iterable, Iterator, List, Optional, TypeAlias, TypeVar
+from typing import Any, Callable, Generic, Iterable, Iterator, List, Optional, TypeAlias, TypeVar
 
 from commonroad.scenario.scenario import Scenario
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
@@ -162,7 +162,9 @@ def _execute_pipeline_function(
                 error = traceback.format_exc()
             end_time = time.time_ns()
 
-    result = PipelineStepResult(_get_function_name(func), input, value, error, stream, end_time - start_time)
+    result: PipelineStepResult[_PipelineStepInputType, _PipelineStepOutputType] = PipelineStepResult(
+        _get_function_name(func), input, value, error, stream, end_time - start_time
+    )
     return result
 
 
@@ -234,6 +236,8 @@ class Pipeline:
         Apply map_func individually on every element of the internal state. The results of each map_func invocation are gathered and set as the new internal state of the pipeline.
         """
         _logger.debug(f"Mapping '{_get_function_name(map_func)}' on '{self._state}'")
+        # TODO: correct type annotations for results
+        results: Any = []
         if num_processes is None:
             results = map(lambda elem: _execute_pipeline_function(self._ctx, map_func, elem), self._state)
         else:

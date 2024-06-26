@@ -1,5 +1,5 @@
 import math
-from typing import Sequence, Set
+from typing import List, Sequence, Set
 
 import numpy as np
 from commonroad.common.common_lanelet import LaneletType
@@ -72,7 +72,7 @@ def get_obstacle_states(obstacle: DynamicObstacle):
     return obstacle.prediction.trajectory.state_list
 
 
-def get_lanelets_ego_passed_through(lanelet_network: LaneletNetwork, ego_states: [TraceState]) -> [Lanelet]:
+def get_lanelets_ego_passed_through(lanelet_network: LaneletNetwork, ego_states: Sequence[TraceState]) -> List[Lanelet]:
     ego_lanelets = []
     for ego_state in ego_states:
         ego_lanelet_ids = lanelet_network.find_lanelet_by_position([ego_state.position])[0]
@@ -93,7 +93,7 @@ def lane_following(ego: DynamicObstacle):
     return bool(set(ids) & set.union(*assignments.values()))
 
 
-def merging_lanes(lanelets: [Lanelet]):
+def merging_lanes(lanelets: Sequence[Lanelet]):
     # input: lanelets the ego vehicle passed through
     for i in range(len(lanelets) - 1):
         current_lane = lanelets[i]
@@ -165,7 +165,7 @@ def has_evasive_behavior(min_ttc, min_ttc_ts, evasive_threshold=2.0):
     return min_ttc < evasive_threshold and min_ttc_ts != -1
 
 
-def determine_turn_directions(ego_states: [TraceState], turning_detection_threshold: float = np.deg2rad(30)):
+def determine_turn_directions(ego_states: Sequence[TraceState], turning_detection_threshold: float = np.deg2rad(30)):
     tags = set()
     orientations = [state.orientation for state in ego_states]
     for i in range(1, len(orientations)):

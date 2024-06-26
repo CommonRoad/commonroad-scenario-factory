@@ -3,16 +3,16 @@ __all__ = ["threshold_and_lag_detection", "threshold_and_max_detection"]
 from typing import Tuple
 
 import numpy as np
-import scipy.signal as signal
+import scipy.signal
 
 
 def _apply_smoothing_filter(array: np.ndarray, par1=0.05 / 2.5):
     if int(array.size) > 12:  # filter fails for length <= 12!
         # butterworth lowpass filter
-        b, a = signal.butter(1, par1, output="ba")
-        zi = signal.lfilter_zi(b, a)
-        z, _ = signal.lfilter(b, a, array, zi=zi * array[0])
-        return True, signal.filtfilt(b, a, array)
+        b, a = scipy.signal.butter(1, par1, output="ba")
+        zi = scipy.signal.lfilter_zi(b, a)
+        z, _ = scipy.signal.lfilter(b, a, array, zi=zi * array[0])
+        return True, scipy.signal.filtfilt(b, a, array)
     else:
         # use simple smoothing filter instead
         return False, array

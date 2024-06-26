@@ -15,7 +15,7 @@ from crdesigner.verification_repairing.config import MapVerParams
 from crdesigner.verification_repairing.repairing.map_repairer import MapRepairer
 from crdesigner.verification_repairing.verification.map_verifier import MapVerifier
 
-from scenario_factory.city import BoundedCity
+from scenario_factory.globetrotter.city import BoundedCity
 
 logger = logging.getLogger(__name__)
 
@@ -40,17 +40,17 @@ def _get_map_file_for_city(city: BoundedCity) -> Optional[str]:
     if city.country not in _CITY_TO_MAP_MAPPING:
         return None
 
-    if isinstance(_CITY_TO_MAP_MAPPING[city.country], str):
-        return _CITY_TO_MAP_MAPPING[city.country]
-    elif isinstance(_CITY_TO_MAP_MAPPING[city.country], dict):
+    country_entry = _CITY_TO_MAP_MAPPING[city.country]
+    if isinstance(country_entry, str):
+        return country_entry
+    elif isinstance(country_entry, dict):
         # There are multiple maps for a country present. Now the correct one for the city is selected.
-        country_maps = _CITY_TO_MAP_MAPPING[city.country]
 
-        if city.name in country_maps:
-            return country_maps[city.name]
+        if city.name in country_entry:
+            return country_entry[city.name]
 
-        if "default" in country_maps:
-            return country_maps["default"]
+        if "default" in country_entry:
+            return country_entry["default"]
 
     return None
 

@@ -44,20 +44,30 @@ class EgoVehicleSelectionCriterion(ABC):
 
 
 class AccelerationCriterion(EgoVehicleSelectionCriterion):
+    """
+    Criterion that matches if a dynamic obstacle is accelerating.
+
+    :param acceleration_detection_threshold: The minimum acceleration that must be exceed to be considered as accelerating
+    :param acceleration_detection_threshold_hold: The number of time steps over which the obstacle must exceed the threshold
+    :param acceleration_detection_start_time_offset: The start time offset for the resulting scenario
+    """
+
     def __init__(
         self,
         acceleration_detection_threshold: float = 2.0,
         acceleration_detection_threshold_hold: int = 3,
-        acceleration_detection_threshold_start_time_offset: float = 0.5,
+        acceleration_detection_start_time_offset: float = 0.5,
     ):
-        super().__init__(acceleration_detection_threshold_start_time_offset)
+        super().__init__(acceleration_detection_start_time_offset)
         self._acceleration_detection_threshold = acceleration_detection_threshold
         self._acceleration_detection_threshold_hold = acceleration_detection_threshold_hold
 
     def matches(self, scenario: Scenario, obstacle: DynamicObstacle) -> Tuple[bool, int]:
+        # prediction could also be SetPrediction, so it must be type checked...
         if not isinstance(obstacle.prediction, TrajectoryPrediction):
             return False, -1
 
+        # It is possible that not all states contain an acceleration attribute, so it must be checked
         if not all(hasattr(state, "acceleration") for state in obstacle.prediction.trajectory.state_list):
             return False, -1
 
@@ -69,6 +79,7 @@ class AccelerationCriterion(EgoVehicleSelectionCriterion):
 
         if found_match:
             assert isinstance(obstacle.initial_state.time_step, int)
+            # The time_step is relative as it basically represents an index into the accelerations array. Therefore it must be made absolute based on the initial time step.
             time_step += obstacle.initial_state.time_step
             logger.debug(f"AccelerationCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}")
 
@@ -76,6 +87,15 @@ class AccelerationCriterion(EgoVehicleSelectionCriterion):
 
 
 class BrakingCriterion(EgoVehicleSelectionCriterion):
+    # TODO: In theory a braking criterion is the same as an acceleration criterion so, the both could be merged
+    """
+    Criterion that matches if a dynamic obstacle is accelerating.
+
+    :param braking_detection_threshold: The minimum deceleration that must be exceed to be considered as accelerating
+    :param braking_detection_threshold_hold: The number of time steps over which the obstacle must exceed the threshold
+    :param braking_detection_start_time_offset: The start time offset for the resulting scenario
+    """
+
     def __init__(
         self,
         braking_detection_threshold: float = -3.0,
@@ -87,9 +107,11 @@ class BrakingCriterion(EgoVehicleSelectionCriterion):
         self._braking_detection_threshold_hold = braking_detection_threshold_hold
 
     def matches(self, scenario: Scenario, obstacle: DynamicObstacle) -> Tuple[bool, int]:
+        # prediction could also be SetPrediction, so it must be type checked...
         if not isinstance(obstacle.prediction, TrajectoryPrediction):
             return False, -1
 
+        # It is possible that not all states contain an acceleration attribute, so it must be checked
         if not all(hasattr(state, "acceleration") for state in obstacle.prediction.trajectory.state_list):
             return False, -1
 
@@ -100,6 +122,7 @@ class BrakingCriterion(EgoVehicleSelectionCriterion):
 
         if found_match:
             assert isinstance(obstacle.initial_state.time_step, int)
+            # The time_step is relative as it basically represents an index into the accelerations array. Therefore it must be made absolute based on the initial time step.
             time_step += obstacle.initial_state.time_step
             logger.debug(f"BrakingCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}")
 
@@ -107,29 +130,41 @@ class BrakingCriterion(EgoVehicleSelectionCriterion):
 
 
 class TurningCriterion(EgoVehicleSelectionCriterion):
+    """
+    Criterion that matches if a dynamic obstacle is turning.
+
+    :param turning_detection_threshold: The minimum turning radius in radians that must be exceed to be considered as turning
+    :param turning_detection_threshold_lag: The number of time steps over which the obstacle must exceed the threshold
+    :param turning_detection_start_time_offset: The start time offset for the resulting scenario
+    """
+
     def __init__(
         self,
         turning_detection_threshold: float = np.deg2rad(60.0),
         turning_detection_threshold_lag: float = np.deg2rad(6.0),
-        turning_detection_threshold_start_time_offset: float = 0.5,
+        turning_detection_start_time_offset: float = 0.5,
     ):
-        super().__init__(turning_detection_threshold_start_time_offset)
+        super().__init__(turning_detection_start_time_offset)
         self._turning_detection_threshold = turning_detection_threshold
         self._turning_detection_threshold_lag = turning_detection_threshold_lag
 
     def matches(self, scenario: Scenario, obstacle: DynamicObstacle) -> Tuple[bool, int]:
+        # prediction could also be SetPrediction, so it must be type checked...
         if not isinstance(obstacle.prediction, TrajectoryPrediction):
             return False, -1
-        orientations_ = np.array([state.orientation for state in obstacle.prediction.trajectory.state_list])
-        orientations = np.unwrap(orientations_)
+
+        # It is possible that not all states contain an orientation attribute, so it must be checked
+        plain_orientations = np.array([state.orientation for state in obstacle.prediction.trajectory.state_list])
+        unwrapped_orientations = np.unwrap(plain_orientations)
         turns, time_step = threshold_and_lag_detection(
-            orientations,
+            unwrapped_orientations,
             threshold=self._turning_detection_threshold,
             lag_threshold=self._turning_detection_threshold_lag,
         )
 
         if turns:
             assert isinstance(obstacle.initial_state.time_step, int)
+            # The time_step is relative as it basically represents an index into the plain_orientations array. Therefore it must be made absolute based on the initial time step.
             time_step += obstacle.initial_state.time_step
             logger.debug(f"TurningCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}")
 
@@ -137,8 +172,8 @@ class TurningCriterion(EgoVehicleSelectionCriterion):
 
 
 class LaneChangeCriterion(EgoVehicleSelectionCriterion):
-    def __init__(self, lc_detection_min_velocity: float = 10.0, lc_detection_threshold_start_time_offset: float = 0.5):
-        super().__init__(lc_detection_threshold_start_time_offset)
+    def __init__(self, lc_detection_min_velocity: float = 10.0, lc_detection_start_time_offset: float = 0.5):
+        super().__init__(lc_detection_start_time_offset)
         self._lc_detection_min_velocity = lc_detection_min_velocity
 
     def matches(self, scenario: Scenario, obstacle: DynamicObstacle) -> Tuple[bool, int]:
@@ -159,10 +194,8 @@ class LaneChangeCriterion(EgoVehicleSelectionCriterion):
 
 
 class MergingCriterion(EgoVehicleSelectionCriterion):
-    def __init__(
-        self, merge_detection_min_velocity: float = 10.0, merge_detection_threshold_start_time_offset: float = 0.5
-    ):
-        super().__init__(merge_detection_threshold_start_time_offset)
+    def __init__(self, merge_detection_min_velocity: float = 10.0, merge_detection_start_time_offset: float = 0.5):
+        super().__init__(merge_detection_start_time_offset)
         self._merge_detection_min_velocity = merge_detection_min_velocity
 
     @staticmethod

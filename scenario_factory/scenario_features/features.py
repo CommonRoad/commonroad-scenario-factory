@@ -273,7 +273,7 @@ def get_closest_front_obstacle(scenario, ego_state):
     return closest_obstacle
 
 
-def get_min_dhw(scenario: Scenario, ego_vehicle: DynamicObstacle, sensor_range=SENSOR_RANGE) -> (float, int):
+def get_min_dhw(scenario: Scenario, ego_vehicle: DynamicObstacle, sensor_range=SENSOR_RANGE) -> Tuple[float, int]:
     """
     Calculates the minimum Distance Headway for the ego vehicle.
 
@@ -346,7 +346,7 @@ def get_min_thw(scenario: Scenario, ego_vehicle: DynamicObstacle, sensor_range=S
     return min_thw, min_thw_ts
 
 
-def get_min_ttc(scenario: Scenario, ego_vehicle: DynamicObstacle, sensor_range=SENSOR_RANGE) -> (float, int):
+def get_min_ttc(scenario: Scenario, ego_vehicle: DynamicObstacle, sensor_range=SENSOR_RANGE) -> Tuple[float, int]:
     """
     Calculates the minimum Distance Headway for the ego vehicle.
 

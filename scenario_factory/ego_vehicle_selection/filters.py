@@ -8,7 +8,7 @@ __all__ = [
 
 import logging
 import random
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from commonroad.common.util import Interval
 from commonroad.prediction.prediction import TrajectoryPrediction
@@ -172,6 +172,7 @@ def _does_ego_vehicle_maneuver_have_enough_surrounding_vehicles(
 
 
 class EgoVehicleManeuverFilter(ABC):
+    @abstractmethod
     def matches(self, scenario: Scenario, scenario_time_steps: int, ego_vehicle_maneuver: EgoVehicleManeuver) -> bool:
         """
         :param scenario: The based scenario from which this ego vehicle maneuver was extracted
