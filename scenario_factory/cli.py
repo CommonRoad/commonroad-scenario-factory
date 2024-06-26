@@ -1,7 +1,12 @@
 import logging
+import random
+import tempfile
 from pathlib import Path
 
 import click
+import numpy as np
+from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
+from crdesigner.map_conversion.sumo_map.config import SumoConfig
 
 from scenario_factory.pipeline import Pipeline, PipelineContext
 from scenario_factory.pipeline_steps import (
@@ -19,6 +24,7 @@ from scenario_factory.pipeline_steps import (
     pipeline_load_plain_cities_from_csv,
     pipeline_simulate_scenario,
 )
+from scenario_factory.scenario_config import ScenarioFactoryConfig
 
 
 @click.command()
@@ -32,9 +38,9 @@ from scenario_factory.pipeline_steps import (
 @click.option(
     "--output",
     "-o",
-    type=click.Path(),
-    default="./files",
-    help="Directory where intermediate and final outputs will be placed",
+    type=click.Path(file_okay=False),
+    default="./files/output",
+    help="Directory where outputs will be written to",
 )
 @click.option(
     "--maps",
@@ -48,16 +54,26 @@ from scenario_factory.pipeline_steps import (
 )
 @click.option("--seed", type=int, default=12345)
 def generate(cities: str, output: str, maps: str, radius: float, seed: int):
+    output_path = Path(output)
+    if not output_path.exists():
+        output_path.mkdir(parents=True)
     logger = logging.getLogger("scenario_factory")
     logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
     logger.addHandler(handler)
 
-    osm_logger = logging.getLogger("scenario_factory.osm")
-    osm_logger.setLevel(logging.DEBUG)
+    sumo_config = SumoConfig()
+    sumo_config.simulation_steps = 600
+    sumo_config.random_seed = seed
+    sumo_config.random_seed_trip_generation = seed
+    random.seed(seed)
+    np.random.seed(seed)
 
-    ctx = PipelineContext(Path(output), seed=seed)
+    scenario_config = ScenarioFactoryConfig(cr_scenario_time_steps=150)
+
+    temp_dir = Path(tempfile.mkdtemp())
+    ctx = PipelineContext(temp_dir, scenario_config=scenario_config, sumo_config=sumo_config)
     pipeline = Pipeline(ctx)
     pipeline.populate(pipeline_load_plain_cities_from_csv(LoadCitiesFromCsvArguments(Path(cities))))
     logger.info(f"Processing {len(pipeline.state)} cities")
@@ -67,21 +83,32 @@ def generate(cities: str, output: str, maps: str, radius: float, seed: int):
     pipeline.map(pipeline_extract_intersections)
     pipeline.reduce(pipeline_flatten)
     logger.info(f"Found {len(pipeline.state)} interesting intersections")
-    pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario)
+    pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario, num_processes=16)
     pipeline.reduce(pipeline_flatten)
-    logger.info(f"Generated random traffic on {len(pipeline.state)} scenarios")
-    pipeline.map(pipeline_simulate_scenario)
-    logger.info("Extract final scenarios")
+    pipeline.map(pipeline_simulate_scenario, num_processes=16)
+    logger.info("Extracting final scenarios")
     pipeline.map(
         pipeline_generate_cr_scenarios(
-            GenerateCommonRoadScenariosArguments(create_noninteractive=True, create_interactive=False)
+            GenerateCommonRoadScenariosArguments(create_noninteractive=True, create_interactive=True)
         ),
-        num_processes=4,
+        num_processes=16,
     )
+    pipeline.reduce(pipeline_flatten)
     pipeline.report_results()
-    [print(result.log.getvalue()) for result in pipeline.results if result.step == "pipeline_generate_cr_scenarios"]
-    print(pipeline.state)
+    if len(pipeline.errors) == 0:
+        temp_dir.rmdir()
+    else:
+        logger.info(
+            f"Scenario factory encountered {len(pipeline.errors)} errors. For debugging purposes the temprorary directory at {temp_dir.name} will not be removed."
+        )
     logger.info(f"Successfully generated {len(pipeline.state)} scenarios")
+    for planning_problem_set, scenario in pipeline.state:
+        CommonRoadFileWriter(
+            scenario, planning_problem_set, author="test", affiliation="test", source="test", tags=set()
+        ).write_to_file(
+            str(output_path.joinpath(f"{scenario.scenario_id}.xml")),
+            overwrite_existing_file=OverwriteExistingFile.ALWAYS,
+        )
 
 
 if __name__ == "__main__":

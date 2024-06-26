@@ -1,15 +1,15 @@
 import copy
+import logging
 import math
 from pathlib import Path
 from typing import List, Optional, Set
 
 import numpy as np
 from commonroad.common.util import Interval
-from commonroad.geometry.shape import Rectangle, Shape
+from commonroad.geometry.shape import Rectangle
 from commonroad.planning.goal import GoalRegion
 from commonroad.planning.planning_problem import PlanningProblem, PlanningProblemSet
 from commonroad.prediction.prediction import TrajectoryPrediction
-from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.scenario import DynamicObstacle, Scenario
 
 # Options
@@ -19,19 +19,19 @@ from crdesigner.map_conversion.sumo_map.config import SumoConfig
 from crdesigner.map_conversion.sumo_map.cr2sumo.converter import CR2SumoMapConverter
 from sumocr.scenario.scenario_wrapper import ScenarioWrapper
 
-from scenario_factory.ego_vehicle_selector import EgoVehicleManeuver
+from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
 from scenario_factory.scenario_checker import get_colliding_dynamic_obstacles_in_scenario
-from scenario_factory.scenario_config import ScenarioConfig
+from scenario_factory.scenario_config import ScenarioFactoryConfig
+from scenario_factory.scenario_util import find_most_likely_lanelet_by_state
+
+logger = logging.getLogger(__name__)
 
 
 def convert_commonroad_scenario_to_sumo(
     commonroad_scenario: Scenario, output_folder: Path, sumo_config: SumoConfig
 ) -> ScenarioWrapper:
-    intermediate_sumo_files_path = output_folder.joinpath("intermediate", str(commonroad_scenario.scenario_id))
-    intermediate_sumo_files_path.mkdir(parents=True, exist_ok=True)
-
     cr2sumo = CR2SumoMapConverter(commonroad_scenario, sumo_config)
-    conversion_possible = cr2sumo.create_sumo_files(str(intermediate_sumo_files_path))
+    conversion_possible = cr2sumo.create_sumo_files(str(output_folder))
 
     if not conversion_possible:
         raise RuntimeError(f"Failed to convert CommonRoad scenario {commonroad_scenario.scenario_id} to SUMO")
@@ -47,7 +47,12 @@ def _create_new_obstacle_in_time_frame(
     orig_obstacle: DynamicObstacle, start_time: int, end_time: int, with_prediction: bool = True
 ) -> Optional[DynamicObstacle]:
     """
-    Create a copy of orig_obstacle with the states between start_time and end_time aligned to time step 0.
+    Create a copy of orig_obstacle aligned to time step 0.
+
+    :param orig_obstacle: The obstacle from which the new one will be derived
+    :param start_time: Start of the time frame (inclusive)
+    :param end_time: End of the time frame (exclusive)
+    :param with_prediction: Whether to include the aligned trajectory in the resulting obstacle
     """
     state_at_start = copy.deepcopy(orig_obstacle.state_at_time(start_time))
     if state_at_start is None:
@@ -91,12 +96,22 @@ def _select_obstacles_in_sensor_range_of_ego_vehicle(
     ego_vehicle: DynamicObstacle,
     sensor_range: int,
 ) -> List[DynamicObstacle]:
+    """
+    Select all dynamic obstacles that are at least once during their trajectory in the range around the ego vehicle. This method can be used to reduce the number of obstacles in the resulting scenario, to exclude obstacles that are too far away from an ego vehicle.
+
+    :param obstacles: The list of obstacles from which should be selected
+    :param ego_vehicle: The ego vehicle around which obstacles should be selected
+    :param sensor_range: The radius around the ego vehicle
+
+    :returns: The selected dynamic obstacles
+    """
     relevant = [ego_vehicle]
 
     assert isinstance(ego_vehicle.prediction, TrajectoryPrediction)
 
     for ego_vehicle_state in ego_vehicle.prediction.trajectory.state_list:
-        proj_pos = ego_vehicle_state.position
+        # Copy the position, because otherwise this would modify the resulting trajectory of the ego vehicle
+        proj_pos = copy.deepcopy(ego_vehicle_state.position)
         proj_pos[0] += math.cos(ego_vehicle_state.orientation) + 2.0 * ego_vehicle_state.velocity
         proj_pos[1] += math.sin(ego_vehicle_state.orientation) + 2.0 * ego_vehicle_state.velocity
         for obstacle in obstacles:
@@ -119,7 +134,6 @@ def _create_planning_problem_initial_state_for_ego_vehicle(
     ego_vehicle: DynamicObstacle,
 ) -> InitialState:
     initial_state = copy.deepcopy(ego_vehicle.initial_state)
-    # TODO: Is this necessary?
     initial_state.yaw_rate = 0.0
     initial_state.slip_angle = 0.0
     return initial_state
@@ -139,24 +153,9 @@ def _create_planning_problem_goal_state_for_ego_vehicle(ego_vehicle: DynamicObst
     return goal_state
 
 
-def _find_most_likely_lanelet_by_state(lanelet_network: LaneletNetwork, state: TraceState) -> Optional[int]:
-    if not isinstance(state.position, Shape):
-        return None
-
-    lanelet_ids = lanelet_network.find_lanelet_by_shape(state.position)
-    if len(lanelet_ids) == 0:
-        return None
-
-    if len(lanelet_ids) == 1:
-        return lanelet_ids[0]
-
-    # TODO
-    return lanelet_ids[0]
-
-
 def create_planning_problem_set_for_ego_vehicle_maneuver(
     scenario: Scenario,
-    scenario_config: ScenarioConfig,
+    scenario_config: ScenarioFactoryConfig,
     ego_vehicle_maneuver: EgoVehicleManeuver,
 ) -> PlanningProblemSet:
     initial_state = _create_planning_problem_initial_state_for_ego_vehicle(ego_vehicle_maneuver.ego_vehicle)
@@ -165,7 +164,7 @@ def create_planning_problem_set_for_ego_vehicle_maneuver(
     goal_region_lanelet_mapping = None
     if scenario_config.planning_pro_with_lanelet is True:
         # We should create a planning problem goal region, that is associated with the lanelet on which the ego vehicle lands in its goal_state
-        lanelet_id_at_goal_state = _find_most_likely_lanelet_by_state(
+        lanelet_id_at_goal_state = find_most_likely_lanelet_by_state(
             lanelet_network=scenario.lanelet_network, state=goal_state
         )
         if lanelet_id_at_goal_state is None:
@@ -191,9 +190,8 @@ def create_planning_problem_set_for_ego_vehicle_maneuver(
 
 def create_scenario_for_ego_vehicle_maneuver(
     scenario: Scenario,
-    scenario_config: ScenarioConfig,
+    scenario_config: ScenarioFactoryConfig,
     ego_vehicle_maneuver: EgoVehicleManeuver,
-    interactive: bool,
 ) -> Scenario:
     relevant_obstacles = _select_obstacles_in_sensor_range_of_ego_vehicle(
         scenario.dynamic_obstacles, ego_vehicle_maneuver.ego_vehicle, scenario_config.sensor_range
@@ -208,14 +206,23 @@ def create_scenario_for_ego_vehicle_maneuver(
             obstacle,
             ego_vehicle_maneuver.start_time,
             ego_vehicle_maneuver.start_time + scenario_config.cr_scenario_time_steps + 1,
-            with_prediction=not interactive,
+            with_prediction=True,
         )
         if new_obstacle is not None:
             new_obstacles.append(new_obstacle)
 
     new_scenario = Scenario(dt=scenario.dt)
+    new_scenario.scenario_id = copy.deepcopy(scenario.scenario_id)
     new_scenario.add_objects(new_obstacles)
     new_scenario.add_objects(scenario.lanelet_network)
+    return new_scenario
+
+
+def reduce_scenario_to_interactive_scenario(scenario: Scenario) -> Scenario:
+    new_scenario = copy.deepcopy(scenario)
+    for obstacle in new_scenario.dynamic_obstacles:
+        obstacle.prediction = None
+
     return new_scenario
 
 

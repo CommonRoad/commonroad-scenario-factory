@@ -1,28 +1,9 @@
-from typing import Dict, Iterable, Union
+from typing import Dict, Iterable, Optional, Union
 
-import numpy as np
-import scipy.signal as signal
+from commonroad.geometry.shape import Shape
+from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
-
-
-def apply_smoothing_filter(array: np.ndarray, par1=0.05 / 2.5):
-    if int(array.size) > 12:  # filter fails for length <= 12!
-        # butterworth lowpass filter
-        b, a = signal.butter(1, par1, output="ba")
-        zi = signal.lfilter_zi(b, a)
-        z, _ = signal.lfilter(b, a, array, zi=zi * array[0])
-        return True, signal.filtfilt(b, a, array)
-    else:
-        # use simple smoothing filter instead
-        return False, array
-
-
-def find_first_greater(vec: np.ndarray, item):
-    """return the index of the first occurence of item in vec"""
-    for i in range(len(vec)):
-        if item < vec[i]:
-            return i
-    return None
+from commonroad.scenario.state import TraceState
 
 
 def select_by_vehicle_type(
@@ -33,3 +14,18 @@ def select_by_vehicle_type(
         return {obs_id: obs for obs_id, obs in obstacles.items() if (obs.obstacle_type in vehicle_types)}
     else:
         return [obs for obs in obstacles if (obs.obstacle_type in vehicle_types)]
+
+
+def find_most_likely_lanelet_by_state(lanelet_network: LaneletNetwork, state: TraceState) -> Optional[int]:
+    if not isinstance(state.position, Shape):
+        return None
+
+    lanelet_ids = lanelet_network.find_lanelet_by_shape(state.position)
+    if len(lanelet_ids) == 0:
+        return None
+
+    if len(lanelet_ids) == 1:
+        return lanelet_ids[0]
+
+    # TODO
+    return lanelet_ids[0]

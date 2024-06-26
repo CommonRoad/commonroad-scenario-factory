@@ -28,7 +28,8 @@ class TestScenarioGeneration:
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_path = Path(tempdir)
-            ctx = PipelineContext(output_path, seed=1234)
+
+            ctx = PipelineContext(output_path)
             pipeline = Pipeline(ctx)
 
             pipeline.populate(pipeline_load_plain_cities_from_csv(LoadCitiesFromCsvArguments(cities_file)))

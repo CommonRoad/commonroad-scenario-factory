@@ -4,16 +4,16 @@ import numpy as np
 from commonroad.geometry.shape import Rectangle
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import ObstacleType
-from commonroad.scenario.scenario import DynamicObstacle
+from commonroad.scenario.scenario import DynamicObstacle, Scenario
 from commonroad.scenario.state import ExtendedPMState, InitialState, PMState, TraceState
 from commonroad.scenario.trajectory import Trajectory
 
-from scenario_factory.ego_vehicle_selector import (
+from scenario_factory.ego_vehicle_selection import (
     AccelerationCriterion,
     BrakingCriterion,
     EgoVehicleManeuver,
-    _does_ego_vehicle_maneuver_last_long_enough,
-    _does_ego_vehicle_maneuver_reach_minimum_velocity,
+    LongEnoughManeuverFilter,
+    MinimumVelocityFilter,
     threshold_and_lag_detection,
     threshold_and_max_detection,
 )
@@ -84,13 +84,15 @@ def _test_obstacle_with_trajectory(state_list: Sequence[TraceState]) -> DynamicO
 
 class TestBrakingCriertion:
     def test_should_not_detect_anything_if_acceleration_is_missing(self):
+        scenario = Scenario(dt=0.1)
         test_obstacle = _test_obstacle_with_trajectory([PMState(time_step=2)])
         criterion = BrakingCriterion()
-        matches, time_step = criterion.matches(test_obstacle)
+        matches, time_step = criterion.matches(scenario, test_obstacle)
         assert matches is False
         assert time_step < 0
 
     def test_should_not_detect_anything_when_not_braking(self):
+        scenario = Scenario(dt=0.1)
         test_obstacle = _test_obstacle_with_trajectory(
             [
                 ExtendedPMState(
@@ -100,11 +102,12 @@ class TestBrakingCriertion:
             ]
         )
         criterion = BrakingCriterion()
-        matches, time_step = criterion.matches(test_obstacle)
+        matches, time_step = criterion.matches(scenario, test_obstacle)
         assert matches is False
         assert time_step < 0
 
     def test_should_detect_if_braking(self):
+        scenario = Scenario(dt=0.1)
         state_list = [
             ExtendedPMState(time_step=i + 2, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=0.0)
             for i in range(0, 10)
@@ -121,11 +124,12 @@ class TestBrakingCriertion:
         test_obstacle = _test_obstacle_with_trajectory(state_list)
 
         criterion = BrakingCriterion()
-        matches, index = criterion.matches(test_obstacle)
+        matches, index = criterion.matches(scenario, test_obstacle)
         assert matches
-        assert index == 9
+        assert index == 10
 
     def test_should_detect_if_hold_not_met(self):
+        scenario = Scenario(dt=0.1)
         state_list = [
             ExtendedPMState(time_step=i + 2, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=0.0)
             for i in range(0, 10)
@@ -142,20 +146,22 @@ class TestBrakingCriertion:
         test_obstacle = _test_obstacle_with_trajectory(state_list)
 
         criterion = BrakingCriterion()
-        matches, index = criterion.matches(test_obstacle)
+        matches, index = criterion.matches(scenario, test_obstacle)
         assert matches is False
         assert index < 0
 
 
 class TestAccelerationCriertion:
     def test_should_not_detect_anything_if_acceleration_is_missing(self):
+        scenario = Scenario(dt=0.1)
         test_obstacle = _test_obstacle_with_trajectory([PMState(time_step=2)])
         criterion = AccelerationCriterion()
-        matches, time_step = criterion.matches(test_obstacle)
+        matches, time_step = criterion.matches(scenario, test_obstacle)
         assert matches is False
         assert time_step < 0
 
     def test_should_not_detect_anything_when_not_accelerating(self):
+        scenario = Scenario(dt=0.1)
         test_obstacle = _test_obstacle_with_trajectory(
             [
                 ExtendedPMState(
@@ -165,63 +171,64 @@ class TestAccelerationCriertion:
             ]
         )
         criterion = BrakingCriterion()
-        matches, time_step = criterion.matches(test_obstacle)
+        matches, time_step = criterion.matches(scenario, test_obstacle)
         assert matches is False
         assert time_step < 0
 
 
-class TestDoesEgoVehicleManeuverReachMinimumVelocity:
+class TestMinimumVelocityFilter:
     def test_should_reject_if_no_state_reach_minimum_velocity(self):
+        scenario = Scenario(dt=0.1)
         ego_vehicle = _test_obstacle_with_trajectory([PMState(time_step=2 + i, velocity=13.0) for i in range(0, 20)])
         maneuver = EgoVehicleManeuver(ego_vehicle, start_time=5)
-        assert (
-            _does_ego_vehicle_maneuver_reach_minimum_velocity(maneuver, scenario_time_steps=150, min_ego_velocity=23.5)
-            is False
-        )
-        assert (
-            _does_ego_vehicle_maneuver_reach_minimum_velocity(maneuver, scenario_time_steps=10, min_ego_velocity=20)
-            is False
-        )
+        filter = MinimumVelocityFilter(min_ego_velocity=23.5)
+        assert filter.matches(scenario, scenario_time_steps=150, ego_vehicle_maneuver=maneuver) is False
+        filter = MinimumVelocityFilter(min_ego_velocity=20)
+        assert filter.matches(scenario, scenario_time_steps=10, ego_vehicle_maneuver=maneuver) is False
 
     def test_should_accept_if_ego_vehicle_exactly_matches_minimum_velocity_at_least_once(self):
+        scenario = Scenario(dt=0.1)
         state_list = [PMState(time_step=2 + i, velocity=13.5) for i in range(0, 10)]
         state_list.append(PMState(time_step=22, velocity=30.0))
         state_list.extend([PMState(time_step=23 + i, velocity=13.0) for i in range(0, 10)])
         ego_vehicle = _test_obstacle_with_trajectory(state_list)
         maneuver = EgoVehicleManeuver(ego_vehicle, start_time=5)
-        assert _does_ego_vehicle_maneuver_reach_minimum_velocity(
-            maneuver, scenario_time_steps=150, min_ego_velocity=23.5
-        )
-        assert _does_ego_vehicle_maneuver_reach_minimum_velocity(
-            maneuver, scenario_time_steps=20, min_ego_velocity=29.0
-        )
+        filter = MinimumVelocityFilter(min_ego_velocity=23.5)
+        assert filter.matches(scenario, scenario_time_steps=150, ego_vehicle_maneuver=maneuver)
+        filter = MinimumVelocityFilter(min_ego_velocity=29.0)
+        assert filter.matches(scenario, scenario_time_steps=20, ego_vehicle_maneuver=maneuver)
 
     def test_should_reject_if_maneuver_start_time_is_after_state_that_reaches_minimum_velocity(self):
+        scenario = Scenario(dt=0.1)
         state_list = [PMState(time_step=2 + i, velocity=30) for i in range(0, 10)]
         state_list.extend([PMState(time_step=12 + i, velocity=13.0) for i in range(0, 10)])
         ego_vehicle = _test_obstacle_with_trajectory(state_list)
         maneuver = EgoVehicleManeuver(ego_vehicle, start_time=14)
-        assert (
-            _does_ego_vehicle_maneuver_reach_minimum_velocity(maneuver, scenario_time_steps=150, min_ego_velocity=23.5)
-            is False
-        )
+        filter = MinimumVelocityFilter(min_ego_velocity=23.5)
+        assert filter.matches(scenario, scenario_time_steps=150, ego_vehicle_maneuver=maneuver) is False
 
 
-class TestDoesEgoVehicleManeuverLastLongEnough:
+class TestLongEnoughManeuverFilter:
     def test_should_reject_maneuver_that_is_not_long_enough(self):
+        scenario = Scenario(dt=0.1)
         state_list = [PMState(time_step=2)]
         ego_vehicle = _test_obstacle_with_trajectory(state_list)
         maneuver = EgoVehicleManeuver(ego_vehicle, start_time=5)
-        assert _does_ego_vehicle_maneuver_last_long_enough(maneuver, scenario_time_steps=150) is False
+        filter = LongEnoughManeuverFilter()
+        assert filter.matches(scenario, scenario_time_steps=150, ego_vehicle_maneuver=maneuver) is False
 
     def test_should_accept_maneuver_that_is_exactly_long_enough(self):
+        scenario = Scenario(dt=0.1)
         state_list = [PMState(time_step=2 + i) for i in range(0, 10)]
         ego_vehicle = _test_obstacle_with_trajectory(state_list)
         maneuver = EgoVehicleManeuver(ego_vehicle, start_time=2)
-        assert _does_ego_vehicle_maneuver_last_long_enough(maneuver, scenario_time_steps=9)
+        filter = LongEnoughManeuverFilter()
+        assert filter.matches(scenario, scenario_time_steps=9, ego_vehicle_maneuver=maneuver)
 
     def test_should_reject_maneuver_that_starts_outside_of_trajectory(self):
+        scenario = Scenario(dt=0.1)
         state_list = [PMState(time_step=2 + i) for i in range(0, 10)]
         ego_vehicle = _test_obstacle_with_trajectory(state_list)
         maneuver = EgoVehicleManeuver(ego_vehicle, start_time=20)
-        assert _does_ego_vehicle_maneuver_last_long_enough(maneuver, scenario_time_steps=100) is False
+        filter = LongEnoughManeuverFilter()
+        assert filter.matches(scenario, scenario_time_steps=100, ego_vehicle_maneuver=maneuver) is False

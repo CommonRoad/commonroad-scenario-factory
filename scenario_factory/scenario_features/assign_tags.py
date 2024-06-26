@@ -1,4 +1,5 @@
 import math
+from typing import Sequence, Set
 
 import numpy as np
 from commonroad.common.common_lanelet import LaneletType
@@ -25,39 +26,33 @@ from scenario_factory.scenario_features.features import (
 )
 
 
-def assign_tags(list_ego_obstacles, scenario):
+def find_applicable_tags_for_scenario(scenario: Scenario, ego_vehicle: DynamicObstacle) -> Set[Tag]:
     tags = {Tag.SIMULATED}
+
     lanelet_network = scenario.lanelet_network
     # dt = scenario.dt
-    lanelets_ego_passed_through = set()
-    obstacles = [obs for obs in scenario._dynamic_obstacles.values()]
-    for ego_vehicle in list_ego_obstacles:
-        ego_states = get_obstacle_states(ego_vehicle)
-        ego_lanelets = get_lanelets_ego_passed_through(lanelet_network, ego_states)
-        if Tag.TRAFFIC_JAM not in tags and merging_lanes(ego_lanelets):
-            tags.add(Tag.MERGING_LANES)
+    ego_states = get_obstacle_states(ego_vehicle)
+    lanelets_ego_passed_through = get_lanelets_ego_passed_through(lanelet_network, ego_states)
+    if Tag.TRAFFIC_JAM not in tags and merging_lanes(lanelets_ego_passed_through):
+        tags.add(Tag.MERGING_LANES)
 
-        if lane_following(ego_vehicle):
-            tags.add(Tag.LANE_FOLLOWING)
+    if lane_following(ego_vehicle):
+        tags.add(Tag.LANE_FOLLOWING)
 
-        lanelets_ego_passed_through.update(ego_lanelets)
+    if Tag.TRAFFIC_JAM not in tags and is_traffic_jam(ego_states, scenario.dynamic_obstacles):
+        tags.add(Tag.TRAFFIC_JAM)
+    if Tag.EMERGENCY_BRAKING not in tags and is_emergency_braking(ego_states):
+        tags.add(Tag.EMERGENCY_BRAKING)
+    if Tag.ONCOMING_TRAFFIC not in tags and identify_oncoming_traffic(
+        lanelet_network, ego_states, scenario.dynamic_obstacles
+    ):
+        tags.add(Tag.ONCOMING_TRAFFIC)
 
-        if Tag.TRAFFIC_JAM not in tags and is_traffic_jam(ego_states, obstacles):
-            tags.add(Tag.TRAFFIC_JAM)
-        if Tag.EMERGENCY_BRAKING not in tags and is_emergency_braking(ego_states):
-            tags.add(Tag.EMERGENCY_BRAKING)
-        if Tag.ONCOMING_TRAFFIC not in tags and identify_oncoming_traffic(lanelet_network, ego_states, obstacles):
-            tags.add(Tag.ONCOMING_TRAFFIC)
+    # comfort, critical, evasive, illegal_cut_in, lane_change
+    tags.update(feature_wrapper_tags(scenario, ego_vehicle))
 
-        # comfort, critical, evasive, illegal_cut_in, lane_change
-        tags.update(feature_wrapper_tags(scenario, ego_vehicle))
-
-        # turn_left, turn_right
-        tags.update(determine_turn_directions(ego_states))
-
-    if Tag("oncoming_traffic") not in tags:
-        # there is no oncoming traffic in the whole scenario
-        tags.add(Tag("no_oncoming_traffic"))
+    # turn_left, turn_right
+    tags.update(determine_turn_directions(ego_states))
 
     # single, two, multi, parallel lane
     # rural, slip_road, highway, interstate, urban, intersection
@@ -65,6 +60,11 @@ def assign_tags(list_ego_obstacles, scenario):
 
     # speed_limit, race_track, roundabout
     tags.update(tag_traffic_sign(lanelet_network, lanelets_ego_passed_through, scenario.scenario_id.country_id))
+
+    if Tag.ONCOMING_TRAFFIC not in tags:
+        # there is no oncoming traffic in the whole scenario
+        tags.add(Tag.NO_ONCOMING_TRAFFIC)
+
     return tags
 
 
@@ -229,7 +229,7 @@ def is_traffic_jam(
 
 #
 def is_emergency_braking(
-    states: [TraceState], braking_detection_threshold: float = -3.0, min_braking_detection_ts: int = 4
+    states: Sequence[TraceState], braking_detection_threshold: float = -3.0, min_braking_detection_ts: int = 4
 ):
     accelerations = [state.acceleration for state in states]
     braking_ts_count = 0
@@ -249,7 +249,7 @@ def is_emergency_braking(
 
 def identify_oncoming_traffic(
     lanelet_network: LaneletNetwork,
-    states: [TraceState],
+    states: Sequence[TraceState],
     all_obstacles,
     distance_threshold=5.0,
     orientation_threshold=np.deg2rad(30),
@@ -289,27 +289,28 @@ def identify_oncoming_traffic(
     return False
 
 
-def tag_traffic_sign(lanelet_network: LaneletNetwork, lanelets: {Lanelet}, country: SupportedTrafficSignCountry):
+def tag_traffic_sign(
+    lanelet_network: LaneletNetwork, lanelets: Sequence[Lanelet], country: SupportedTrafficSignCountry
+):
     tags = set()
-    # traffic sign: roundabout, racetrack
     interpreter = TrafficSignInterpreter(country, lanelet_network)
     traffic_sign_ids = interpreter.traffic_sign_ids
     if interpreter.speed_limit(frozenset([lane.lanelet_id for lane in lanelets])) is not None:
-        tags.add(Tag("speed_limit"))
+        tags.add(Tag.SPEED_LIMIT)
     for lanelet in lanelets:
         for traffic_sign_id in lanelet.traffic_signs:
             traffic_sign = lanelet_network.find_traffic_sign_by_id(traffic_sign_id)
             for elem in traffic_sign.traffic_sign_elements:
                 if sign := getattr(traffic_sign_ids, "RACE_TRACK", None):
                     if elem.traffic_sign_element_id == sign:
-                        tags.add(Tag("RACE_TRACK"))
+                        tags.add(Tag.RACE_TRACK)
                 if sign := getattr(traffic_sign_ids, "ROUNDABOUT", None):
                     if elem.traffic_sign_element_id == sign:
                         tags.add(Tag.ROUNDABOUT)
     return tags
 
 
-def tag_lanelet(lanelets: {Lanelet}):
+def tag_lanelet(lanelets: Sequence[Lanelet]):
     tags = set()
     all_lanelet_types = set()
 

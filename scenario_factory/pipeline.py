@@ -2,16 +2,19 @@ import functools
 import io
 import itertools
 import logging
-import random
 import time
 import traceback
 from contextlib import redirect_stderr, redirect_stdout
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Generic, Iterable, Iterator, List, Optional, TypeAlias, TypeVar
 
-import numpy as np
+from commonroad.scenario.scenario import Scenario
+from crdesigner.map_conversion.sumo_map.config import SumoConfig
 from multiprocess import Pool
+
+from scenario_factory.scenario_config import ScenarioFactoryConfig
 
 _logger = logging.getLogger("scenario_factory")
 
@@ -43,12 +46,23 @@ class PipelineStepResult(Generic[_PipelineStepInputType, _PipelineStepOutputType
 class PipelineContext:
     """The context contains metadata that needs to be passed between the different stages of the scenario factory pipeline"""
 
-    def __init__(self, output_path: Path, seed: int = 1):
+    def __init__(
+        self,
+        output_path: Path,
+        scenario_config: Optional[ScenarioFactoryConfig] = None,
+        sumo_config: Optional[SumoConfig] = None,
+    ):
         self._output_path = output_path
 
-        random.seed(seed)
-        np.random.seed(seed)
-        self.seed = seed
+        if scenario_config is None:
+            self._scenario_config = ScenarioFactoryConfig()
+        else:
+            self._scenario_config = scenario_config
+
+        if sumo_config is None:
+            self._sumo_config = SumoConfig()
+        else:
+            self._sumo_config = sumo_config
 
     def get_output_folder(self, folder_name: str) -> Path:
         """
@@ -58,8 +72,16 @@ class PipelineContext:
         output_folder.mkdir(parents=True, exist_ok=True)
         return output_folder
 
-    def get_logger(self, name: str) -> logging.Logger:
-        return logging.getLogger(name)
+    def get_sumo_config_for_scenario(self, scenario: Scenario) -> SumoConfig:
+        new_sumo_config = deepcopy(self._sumo_config)
+
+        new_sumo_config.scenario_name = str(scenario.scenario_id)
+        new_sumo_config.dt = scenario.dt
+
+        return new_sumo_config
+
+    def get_scenario_config(self) -> ScenarioFactoryConfig:
+        return self._scenario_config
 
 
 # Type aliases to make the function definitions more readable

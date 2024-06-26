@@ -1,18 +1,34 @@
-import numpy as np
+from dataclasses import dataclass
+from typing import ClassVar, Sequence
+
+from scenario_factory.ego_vehicle_selection import (
+    AccelerationCriterion,
+    BrakingCriterion,
+    EgoVehicleManeuverFilter,
+    EgoVehicleSelectionCriterion,
+    EnoughSurroundingVehiclesFilter,
+    InterestingLaneletNetworkFilter,
+    LaneChangeCriterion,
+    LongEnoughManeuverFilter,
+    MinimumVelocityFilter,
+    TurningCriterion,
+)
 
 
-class ScenarioConfig:
+@dataclass
+class ScenarioFactoryConfig:
     # Number of planning problems generated from one scenario
-    planning_pro_per_scen = 8
+    planning_pro_per_scen: int = 8
 
     # Define the goal state of the planning problem with a lanelet (if False: define with a state)
-    planning_pro_with_lanelet = True
+    planning_pro_with_lanelet: bool = True
 
     # scenario length (time of CR scenario -> set simulation duration in sumo_config)
-    cr_scenario_time_steps = 150
+    # The length of the resulting scenarios cut from the simulated scenario. As this determines "how much" will be cut from the simulated scenario, the configured simulation steps must be larger then this option.
+    cr_scenario_time_steps: int = 150
 
     # vehicles are deleted from final scenario if not within sensor_range once
-    sensor_range = 90
+    sensor_range: int = 90
 
     # Tags in cr scenario file
     author = "Florian Finkeldei"
@@ -24,37 +40,18 @@ class ScenarioConfig:
     # obstacle_id of ego vehicles when ego vehicle is exported
     default_ego_id = 8888
 
+    criterions: ClassVar[Sequence[EgoVehicleSelectionCriterion]] = [
+        BrakingCriterion(),
+        AccelerationCriterion(),
+        TurningCriterion(),
+        LaneChangeCriterion(),
+        # MergingCriterion(),
+    ]
+
     # additional filters to discard uninteresting situations
-    min_ego_velocity = 22 / 3.6  # [m/s] velocity must exceed this value at least once
-    min_vehicles_in_range = 1  # min. number of vehicles in range_min_vehicles
-    range_min_vehicles = 30  # [m]
-
-    # TURNING DETECTION
-    turning_detection_threshold: float = np.deg2rad(
-        60
-    )  # [deg] when orientation differs above threshold, a turn is detected
-    turning_detection_threshold_time: float = np.deg2rad(
-        6.0
-    )  # threshold to find time step (difference to lagged signal)
-
-    # ACCELERATION DETECTION
-    acceleration_detection_threshold: float = 2.0  # [m/s**2]
-    acceleration_detection_threshold_hold: int = 3  # number of time steps for which threshold has to be hold at least
-    acceleration_detection_threshold_time: float = 0.5  # time for starting scenario before threshold
-
-    # BRAKING DETECTION
-    braking_detection_threshold: float = -3.0
-    braking_detection_threshold_hold: int = 4  # number of time steps for which threshold has to be hold at least
-    braking_detection_threshold_time: float = (
-        acceleration_detection_threshold_time  # time for starting scenario before threshold
-    )
-
-    # LANE-CHANGE DETECTION
-    lc_detection_threshold_time: float = 0.5  # [s]
-    lc_detection_min_velocity: float = 10.0  # [m/s] minimum velocity for detecting a lane change
-
-    # LANE MERGE
-    merge_detection_min_velocity = 10.0
-
-    # OUT files
-    save_ego_solution_file = True
+    filters: ClassVar[Sequence[EgoVehicleManeuverFilter]] = [
+        LongEnoughManeuverFilter(),
+        MinimumVelocityFilter(),
+        EnoughSurroundingVehiclesFilter(),
+        InterestingLaneletNetworkFilter(),
+    ]
