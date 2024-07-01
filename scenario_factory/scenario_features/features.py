@@ -3,6 +3,7 @@ from typing import List, Tuple, Union
 
 import numpy as np
 from commonroad.geometry.shape import Circle, Polygon, Rectangle, Shape, ShapeGroup
+from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
@@ -16,10 +17,12 @@ SENSOR_RANGE = 100.0
 def get_obstacle_state_at_timestep(obstacle: DynamicObstacle, timestep):
     if timestep == 0:
         return obstacle.initial_state
-    return obstacle.prediction.trajectory.state_at_time_step(timestep)
+    return obstacle.state_at_time(timestep)
 
 
-def get_obstacle_state_list(obstacle: DynamicObstacle):
+def get_obstacle_state_list(obstacle: DynamicObstacle) -> List[State]:
+    if not isinstance(obstacle.prediction, TrajectoryPrediction):
+        return []
     return [obstacle.initial_state] + obstacle.prediction.trajectory.state_list
 
 
@@ -386,7 +389,7 @@ def get_min_ttc(scenario: Scenario, ego_vehicle: DynamicObstacle, sensor_range=S
     return min_ttc, min_ttc_ts
 
 
-def changes_lane(lanelet_network: LaneletNetwork, obstacle):
+def changes_lane(lanelet_network: LaneletNetwork, obstacle: DynamicObstacle):
     obstacle_states = get_obstacle_state_list(obstacle)
     for x0, x1 in zip(obstacle_states[:-1], obstacle_states[1:]):
         x0_lanelet, _, _ = get_lanelets(lanelet_network, x0)

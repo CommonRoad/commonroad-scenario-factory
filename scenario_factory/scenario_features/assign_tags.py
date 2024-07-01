@@ -5,6 +5,7 @@ import numpy as np
 from commonroad.common.common_lanelet import LaneletType
 from commonroad.common.file_writer import Tag
 from commonroad.common.util import make_valid_orientation
+from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Lanelet, LaneletNetwork, Scenario
 from commonroad.scenario.state import TraceState
@@ -30,7 +31,6 @@ def find_applicable_tags_for_scenario(scenario: Scenario, ego_vehicle: DynamicOb
     tags = {Tag.SIMULATED}
 
     lanelet_network = scenario.lanelet_network
-    # dt = scenario.dt
     ego_states = get_obstacle_states(ego_vehicle)
     lanelets_ego_passed_through = get_lanelets_ego_passed_through(lanelet_network, ego_states)
     if Tag.TRAFFIC_JAM not in tags and merging_lanes(lanelets_ego_passed_through):
@@ -56,7 +56,7 @@ def find_applicable_tags_for_scenario(scenario: Scenario, ego_vehicle: DynamicOb
 
     # single, two, multi, parallel lane
     # rural, slip_road, highway, interstate, urban, intersection
-    tags.update(tag_lanelet(lanelets_ego_passed_through))
+    tags.update(find_applicable_tags_for_lanelets(lanelets_ego_passed_through))
 
     # speed_limit, race_track, roundabout
     tags.update(tag_traffic_sign(lanelet_network, lanelets_ego_passed_through, scenario.scenario_id.country_id))
@@ -69,6 +69,8 @@ def find_applicable_tags_for_scenario(scenario: Scenario, ego_vehicle: DynamicOb
 
 
 def get_obstacle_states(obstacle: DynamicObstacle):
+    if not isinstance(obstacle.prediction, TrajectoryPrediction):
+        return []
     return obstacle.prediction.trajectory.state_list
 
 
@@ -84,7 +86,9 @@ def get_lanelets_ego_passed_through(lanelet_network: LaneletNetwork, ego_states:
     return ego_lanelets
 
 
-def lane_following(ego: DynamicObstacle):
+def lane_following(ego: DynamicObstacle) -> bool:
+    if not isinstance(ego.prediction, TrajectoryPrediction):
+        return False
     # Alternative: num_lanelets == 1
     assignments = ego.prediction.center_lanelet_assignment
     if assignments is None:
@@ -227,7 +231,6 @@ def is_traffic_jam(
     return False
 
 
-#
 def is_emergency_braking(
     states: Sequence[TraceState], braking_detection_threshold: float = -3.0, min_braking_detection_ts: int = 4
 ):
@@ -310,7 +313,7 @@ def tag_traffic_sign(
     return tags
 
 
-def tag_lanelet(lanelets: Sequence[Lanelet]):
+def find_applicable_tags_for_lanelets(lanelets: Sequence[Lanelet]) -> Set[Tag]:
     tags = set()
     all_lanelet_types = set()
 
@@ -333,13 +336,12 @@ def tag_lanelet(lanelets: Sequence[Lanelet]):
         ):
             tags.add(Tag.PARALLEL_LANES)
 
-        if lanelet.lanelet_type:
-            all_lanelet_types.update(lanelet.lanelet_type)
+        all_lanelet_types.update(lanelet.lanelet_type)
 
     if LaneletType.COUNTRY in all_lanelet_types:
         tags.add(Tag.RURAL)
 
-    if LaneletType.EXIT_RAMP or LaneletType.ACCESS_RAMP in all_lanelet_types:
+    if LaneletType.EXIT_RAMP in all_lanelet_types or LaneletType.ACCESS_RAMP in all_lanelet_types:
         tags.add(Tag.SLIP_ROAD)
 
     if LaneletType.HIGHWAY in all_lanelet_types:

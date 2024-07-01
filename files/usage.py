@@ -12,7 +12,7 @@ from scenario_factory.pipeline_steps import (
     pipeline_extract_intersections,
     pipeline_extract_osm_map,
     pipeline_flatten,
-    pipeline_generate_cr_scenarios,
+    pipeline_generate_ego_scenarios,
     pipeline_load_plain_cities_from_csv,
     pipeline_simulate_scenario,
 )
@@ -35,8 +35,8 @@ pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario)
 pipeline.reduce(pipeline_flatten)
 pipeline.map(pipeline_simulate_scenario)
 pipeline.map(
-    pipeline_generate_cr_scenarios(
-        GenerateCommonRoadScenariosArguments(create_noninteractive=True, create_interactive=False)
+    pipeline_generate_ego_scenarios(
+        GenerateCommonRoadScenariosArguments(create_noninteractive=True, create_interactive=True)
     ),
     num_processes=4,
 )

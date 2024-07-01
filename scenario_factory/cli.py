@@ -1,11 +1,11 @@
 import logging
 import random
+import shutil
 import tempfile
 from pathlib import Path
 
 import click
 import numpy as np
-from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
 
 from scenario_factory.pipeline import Pipeline, PipelineContext
@@ -20,10 +20,12 @@ from scenario_factory.pipeline_steps import (
     pipeline_extract_intersections,
     pipeline_extract_osm_map,
     pipeline_flatten,
-    pipeline_generate_cr_scenarios,
+    pipeline_generate_ego_scenarios,
     pipeline_load_plain_cities_from_csv,
     pipeline_simulate_scenario,
+    pipeline_write_scenario_to_file,
 )
+from scenario_factory.pipeline_steps.utils import WriteScenarioToFileArguments
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 
 
@@ -86,28 +88,23 @@ def generate(cities: str, output: str, maps: str, radius: float, seed: int):
     pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario, num_processes=16)
     pipeline.reduce(pipeline_flatten)
     pipeline.map(pipeline_simulate_scenario, num_processes=16)
-    logger.info("Extracting final scenarios")
+    logger.info("Generating ego scenarios from simulated scenarios")
     pipeline.map(
-        pipeline_generate_cr_scenarios(
+        pipeline_generate_ego_scenarios(
             GenerateCommonRoadScenariosArguments(create_noninteractive=True, create_interactive=True)
         ),
         num_processes=16,
     )
     pipeline.reduce(pipeline_flatten)
+    logger.info(f"Successfully generated {len(pipeline.state)} scenarios")
+    pipeline.map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
     pipeline.report_results()
+
     if len(pipeline.errors) == 0:
-        temp_dir.rmdir()
+        shutil.rmtree(temp_dir)
     else:
         logger.info(
-            f"Scenario factory encountered {len(pipeline.errors)} errors. For debugging purposes the temprorary directory at {temp_dir.name} will not be removed."
-        )
-    logger.info(f"Successfully generated {len(pipeline.state)} scenarios")
-    for planning_problem_set, scenario in pipeline.state:
-        CommonRoadFileWriter(
-            scenario, planning_problem_set, author="test", affiliation="test", source="test", tags=set()
-        ).write_to_file(
-            str(output_path.joinpath(f"{scenario.scenario_id}.xml")),
-            overwrite_existing_file=OverwriteExistingFile.ALWAYS,
+            f"Scenario factory encountered {len(pipeline.errors)} errors. For debugging purposes the temprorary directory at {temp_dir.absolute()} will not be removed."
         )
 
 

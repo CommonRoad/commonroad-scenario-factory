@@ -2,7 +2,7 @@ import csv
 import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Iterator, Tuple
+from typing import Iterator, Tuple
 
 import numpy as np
 
@@ -69,27 +69,6 @@ def compute_bounding_box_for_city(city: PlainCity, radius: float) -> BoundedCity
     bounding_box_tuple = _compute_bounding_box_coordinates(city.lat, city.lon, radius)
     bounding_box = BoundingBox(*bounding_box_tuple)
     return BoundedCity(city.country, city.name, city.lat, city.lon, bounding_box=bounding_box)
-
-
-def write_bounded_cities_to_csv(cities: Iterable[BoundedCity], cities_path: Path) -> None:
-    with cities_path.open() as csvfile:
-        writer = csv.writer(csvfile)
-        # Write the header first
-        # TODO: Merge the reader and writer to create a matching schema
-        writer.writerow(["Country", "City", "Lat", "Lon", "West", "South", "East", "North"])
-        for city in cities:
-            writer.writerow(
-                [
-                    city.country,
-                    city.name,
-                    city.lat,
-                    city.lon,
-                    city.bounding_box.west,
-                    city.bounding_box.south,
-                    city.bounding_box.east,
-                    city.bounding_box.north,
-                ]
-            )
 
 
 __all__ = ["PlainCity", "BoundingBox", "BoundedCity", "load_plain_cities_from_csv", "compute_bounding_box_for_city"]

@@ -1,8 +1,8 @@
 __all__ = [
     # Utils
     "pipeline_flatten",
-    "pipeline_write_commonroad_scenario_to_file",
-    "WriteCommonRoadScenarioToFileArguments",
+    "pipeline_write_scenario_to_file",
+    "WriteScenarioToFileArguments",
     # City I/O and Bounding Box computations
     "LoadCitiesFromCsvArguments",
     "pipeline_load_plain_cities_from_csv",
@@ -18,7 +18,7 @@ __all__ = [
     "pipeline_create_sumo_configuration_for_commonroad_scenario",
     "pipeline_simulate_scenario",
     "GenerateCommonRoadScenariosArguments",
-    "pipeline_generate_cr_scenarios",
+    "pipeline_generate_ego_scenarios",
 ]
 
 from .globetrotter import (
@@ -31,10 +31,10 @@ from .globetrotter import (
     pipeline_extract_osm_map,
     pipeline_load_plain_cities_from_csv,
 )
-from .sumo import (
+from .scenario_generation import (
     GenerateCommonRoadScenariosArguments,
     pipeline_create_sumo_configuration_for_commonroad_scenario,
-    pipeline_generate_cr_scenarios,
+    pipeline_generate_ego_scenarios,
     pipeline_simulate_scenario,
 )
-from .utils import WriteCommonRoadScenarioToFileArguments, pipeline_flatten, pipeline_write_commonroad_scenario_to_file
+from .utils import WriteScenarioToFileArguments, pipeline_flatten, pipeline_write_scenario_to_file

@@ -1,3 +1,10 @@
+__all__ = [
+    "generate_ego_scenarios_with_planning_problem_set_from_simulated_scenario",
+    "simulate_commonroad_scenario",
+    "convert_commonroad_scenario_to_sumo_scenario",
+]
+
+
 import copy
 import logging
 import math
@@ -11,36 +18,85 @@ from commonroad.planning.goal import GoalRegion
 from commonroad.planning.planning_problem import PlanningProblem, PlanningProblemSet
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.scenario import DynamicObstacle, Scenario
-
-# Options
 from commonroad.scenario.state import InitialState, PMState, TraceState
 from commonroad.scenario.trajectory import Trajectory
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
 from crdesigner.map_conversion.sumo_map.cr2sumo.converter import CR2SumoMapConverter
+from sumocr.interface.sumo_simulation import SumoSimulation
 from sumocr.scenario.scenario_wrapper import ScenarioWrapper
 
-from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
+from scenario_factory.ego_vehicle_selection import (
+    EgoVehicleManeuver,
+    select_interesting_ego_vehicle_maneuvers_from_scenario,
+)
 from scenario_factory.scenario_checker import get_colliding_dynamic_obstacles_in_scenario
 from scenario_factory.scenario_config import ScenarioFactoryConfig
+from scenario_factory.scenario_types import (
+    EgoScenario,
+    EgoScenarioWithPlanningProblemSet,
+    InteractiveEgoScenario,
+    NonInteractiveEgoScenario,
+    SimulatedScenario,
+    SumoScenario,
+)
 from scenario_factory.scenario_util import find_most_likely_lanelet_by_state
 
 logger = logging.getLogger(__name__)
 
 
-def convert_commonroad_scenario_to_sumo(
+def create_non_interactive_scenario(ego_scenario: EgoScenarioWithPlanningProblemSet) -> NonInteractiveEgoScenario:
+    """
+    Transform an ego scenario to a non-interactive scenario. This function will not modify the original ego scenario.
+    """
+    new_scenario = copy.deepcopy(ego_scenario.scenario)
+    new_scenario.scenario_id.obstacle_behavior = "T"
+
+    return NonInteractiveEgoScenario.from_ego_scenario(ego_scenario, ego_scenario.planning_problem_set, new_scenario)
+
+
+def create_interactive_scenario(ego_scenario: EgoScenarioWithPlanningProblemSet) -> InteractiveEgoScenario:
+    """
+    Transform an ego scenario to an interactive scenario. This function will not modify the original ego scenario.
+    """
+    new_scenario = copy.deepcopy(ego_scenario.scenario)
+    new_scenario.scenario_id.obstacle_behavior = "I"
+
+    for obstacle in new_scenario.dynamic_obstacles:
+        obstacle.prediction = None
+
+    return InteractiveEgoScenario.from_ego_scenario(ego_scenario, ego_scenario.planning_problem_set, new_scenario)
+
+
+def convert_commonroad_scenario_to_sumo_scenario(
     commonroad_scenario: Scenario, output_folder: Path, sumo_config: SumoConfig
-) -> ScenarioWrapper:
+) -> SumoScenario:
     cr2sumo = CR2SumoMapConverter(commonroad_scenario, sumo_config)
     conversion_possible = cr2sumo.create_sumo_files(str(output_folder))
 
     if not conversion_possible:
         raise RuntimeError(f"Failed to convert CommonRoad scenario {commonroad_scenario.scenario_id} to SUMO")
 
-    scenario_wrapper = ScenarioWrapper()
-    scenario_wrapper.sumo_cfg_file = cr2sumo.sumo_cfg_file
-    scenario_wrapper.initial_scenario = copy.deepcopy(commonroad_scenario)
+    sumo_scenario = SumoScenario(commonroad_scenario, Path(cr2sumo.sumo_cfg_file))
+    return sumo_scenario
 
-    return scenario_wrapper
+
+def simulate_commonroad_scenario(sumo_scenario: SumoScenario, sumo_config: SumoConfig) -> SimulatedScenario:
+    scenario_wrapper = ScenarioWrapper()
+    scenario_wrapper.sumo_cfg_file = str(sumo_scenario.sumo_cfg_file)
+    scenario_wrapper.initial_scenario = copy.deepcopy(sumo_scenario.scenario)
+
+    sumo_sim = SumoSimulation()
+    sumo_sim.initialize(sumo_config, scenario_wrapper)
+
+    for _ in range(sumo_config.simulation_steps):
+        sumo_sim.simulate_step()
+    sumo_sim.simulate_step()
+
+    sumo_sim.stop()
+
+    scenario = sumo_sim.commonroad_scenarios_all_time_steps()
+
+    return SimulatedScenario(scenario, sumo_scenario.sumo_cfg_file, sumo_config)
 
 
 def _create_new_obstacle_in_time_frame(
@@ -153,23 +209,27 @@ def _create_planning_problem_goal_state_for_ego_vehicle(ego_vehicle: DynamicObst
     return goal_state
 
 
-def create_planning_problem_set_for_ego_vehicle_maneuver(
+def _create_planning_problem_for_ego_vehicle(
     scenario: Scenario,
-    scenario_config: ScenarioFactoryConfig,
-    ego_vehicle_maneuver: EgoVehicleManeuver,
-) -> PlanningProblemSet:
-    initial_state = _create_planning_problem_initial_state_for_ego_vehicle(ego_vehicle_maneuver.ego_vehicle)
-    goal_state = _create_planning_problem_goal_state_for_ego_vehicle(ego_vehicle_maneuver.ego_vehicle)
+    ego_vehicle: DynamicObstacle,
+    planning_problem_with_lanelet: bool = True,
+) -> PlanningProblem:
+    """
+    Create a new planning problem set for the ego vehicle in the scenario.
+
+    """
+    initial_state = _create_planning_problem_initial_state_for_ego_vehicle(ego_vehicle)
+    goal_state = _create_planning_problem_goal_state_for_ego_vehicle(ego_vehicle)
 
     goal_region_lanelet_mapping = None
-    if scenario_config.planning_pro_with_lanelet is True:
+    if planning_problem_with_lanelet is True:
         # We should create a planning problem goal region, that is associated with the lanelet on which the ego vehicle lands in its goal_state
         lanelet_id_at_goal_state = find_most_likely_lanelet_by_state(
             lanelet_network=scenario.lanelet_network, state=goal_state
         )
         if lanelet_id_at_goal_state is None:
             raise ValueError(
-                f"Tried to match maneuver {ego_vehicle_maneuver} to the lanelet in its goal state, but no lanelet could be found for state: {goal_state}"
+                f"Tried to match ego vehicle {ego_vehicle} to the lanelet in its goal state, but no lanelet could be found for state: {goal_state}"
             )
 
         # Create the mapping to be used by the GoalRegion construction
@@ -181,18 +241,41 @@ def create_planning_problem_set_for_ego_vehicle_maneuver(
         goal_state.position = lanelet_at_goal_state.polygon
 
     goal_region = GoalRegion([goal_state], goal_region_lanelet_mapping)
-    planning_problem_id = ego_vehicle_maneuver.ego_vehicle.obstacle_id
+    planning_problem_id = ego_vehicle.obstacle_id
     planning_problem = PlanningProblem(planning_problem_id, initial_state, goal_region)
+
+    return planning_problem
+
+
+def create_planning_problem_set_for_ego_scenario(
+    ego_scenario: EgoScenario, planning_problem_with_lanelet: bool = True
+) -> PlanningProblemSet:
+    planning_problem = _create_planning_problem_for_ego_vehicle(
+        ego_scenario.scenario, ego_scenario.ego_vehicle_maneuver.ego_vehicle, planning_problem_with_lanelet
+    )
     planning_problem_set = PlanningProblemSet([planning_problem])
 
     return planning_problem_set
 
 
-def create_scenario_for_ego_vehicle_maneuver(
-    scenario: Scenario,
+def create_ego_scenario_with_planning_problem_set(
+    ego_scenario: EgoScenario, planning_problem_with_lanelet: bool = True
+) -> EgoScenarioWithPlanningProblemSet:
+    planning_problem_set = create_planning_problem_set_for_ego_scenario(ego_scenario, planning_problem_with_lanelet)
+
+    return EgoScenarioWithPlanningProblemSet.from_ego_scenario(ego_scenario, planning_problem_set)
+
+
+def create_ego_scenario_for_ego_vehicle_maneuver(
+    simulated_scenario: SimulatedScenario,
     scenario_config: ScenarioFactoryConfig,
     ego_vehicle_maneuver: EgoVehicleManeuver,
-) -> Scenario:
+) -> EgoScenario:
+    """
+    Create a non-interactive scenario from an Ego Vehicle Maneuver
+    """
+    scenario = simulated_scenario.scenario
+
     relevant_obstacles = _select_obstacles_in_sensor_range_of_ego_vehicle(
         scenario.dynamic_obstacles, ego_vehicle_maneuver.ego_vehicle, scenario_config.sensor_range
     )
@@ -215,18 +298,20 @@ def create_scenario_for_ego_vehicle_maneuver(
     new_scenario.scenario_id = copy.deepcopy(scenario.scenario_id)
     new_scenario.add_objects(new_obstacles)
     new_scenario.add_objects(scenario.lanelet_network)
-    return new_scenario
 
-
-def reduce_scenario_to_interactive_scenario(scenario: Scenario) -> Scenario:
-    new_scenario = copy.deepcopy(scenario)
-    for obstacle in new_scenario.dynamic_obstacles:
-        obstacle.prediction = None
-
-    return new_scenario
+    ego_scenario = EgoScenario.from_simulated_scenario(simulated_scenario, ego_vehicle_maneuver, new_scenario)
+    return ego_scenario
 
 
 def delete_colliding_obstacles_from_scenario(scenario: Scenario, all: bool = True) -> Set[int]:
+    """
+    Delete dynamic obstacles from the scenario that are involved in a collision.
+
+    :param scenario: The scenario from which the
+    :param all: Whether all objects involved in a collision should be deleted or only one
+
+    :returns: The ID set of dynamic obstacles that were removed
+    """
     ids = get_colliding_dynamic_obstacles_in_scenario(scenario, get_all=all)
     for id_ in ids:
         obstacle = scenario.obstacle_by_id(id_)
@@ -235,3 +320,51 @@ def delete_colliding_obstacles_from_scenario(scenario: Scenario, all: bool = Tru
         ), f"Found a collision for dynamic obstacle {id_}, but this dynamic obstacle is not part of the scenario."
         scenario.remove_obstacle(obstacle)
     return ids
+
+
+def generate_ego_scenarios_with_planning_problem_set_from_simulated_scenario(
+    simulated_scenario: SimulatedScenario,
+    scenario_config: ScenarioFactoryConfig,
+    max_collisions: Optional[int] = None,
+    create_noninteractive: bool = True,
+    create_interactive: bool = True,
+) -> List[EgoScenarioWithPlanningProblemSet]:
+    """
+    Extract all interesting ego vehicle maneuvers from a simulated scenario and create new scenarios and planning problems centered around each ego vehicle maneuver.
+    """
+    commonroad_scenario = simulated_scenario.scenario
+
+    num_collisions = len(delete_colliding_obstacles_from_scenario(commonroad_scenario, all=True))
+    if max_collisions is not None:
+        if num_collisions > max_collisions:
+            raise RuntimeError(
+                f"Skipping scenario {commonroad_scenario.scenario_id} because it has {num_collisions}, but the maximum allowed number of collisions is {max_collisions}"
+            )
+
+    ego_vehicle_maneuvers = select_interesting_ego_vehicle_maneuvers_from_scenario(
+        commonroad_scenario,
+        criterions=scenario_config.criterions,
+        filters=scenario_config.filters,
+        scenario_time_steps=scenario_config.cr_scenario_time_steps,
+        sensor_range=scenario_config.sensor_range,
+    )
+
+    results: List[EgoScenarioWithPlanningProblemSet] = []
+
+    for i, maneuver in enumerate(ego_vehicle_maneuvers):
+        ego_scenario = create_ego_scenario_for_ego_vehicle_maneuver(simulated_scenario, scenario_config, maneuver)
+        # TODO: this is ugly, and should be fixed in the scenario ID refactor
+        ego_scenario.scenario.scenario_id.prediction_id = i + 1
+
+        ego_scenario_with_planning_problem = create_ego_scenario_with_planning_problem_set(
+            ego_scenario, scenario_config.planning_pro_with_lanelet
+        )
+        if create_noninteractive:
+            non_interactive_scenario = create_non_interactive_scenario(ego_scenario_with_planning_problem)
+            results.append(non_interactive_scenario)
+
+        if create_interactive:
+            interactive_scenario = create_interactive_scenario(ego_scenario_with_planning_problem)
+            results.append(interactive_scenario)
+
+    return results
