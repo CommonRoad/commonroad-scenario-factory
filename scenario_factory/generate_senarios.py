@@ -22,6 +22,7 @@ from commonroad.scenario.state import InitialState, PMState, TraceState
 from commonroad.scenario.trajectory import Trajectory
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
 from crdesigner.map_conversion.sumo_map.cr2sumo.converter import CR2SumoMapConverter
+from sumocr.interface.id_mapper import IdDomain
 from sumocr.interface.sumo_simulation import SumoSimulation
 from sumocr.scenario.scenario_wrapper import ScenarioWrapper
 
@@ -96,7 +97,17 @@ def simulate_commonroad_scenario(sumo_scenario: SumoScenario, sumo_config: SumoC
 
     scenario = sumo_sim.commonroad_scenarios_all_time_steps()
 
-    return SimulatedScenario(scenario, sumo_scenario.sumo_cfg_file, sumo_config)
+    # This is ugly as we have to directly access the internals of the SUMO simulation. But for interactive scenarios, we need the internal ID mapping, as we need to mark the ego vehicle in the SUMO files. So there is currently no way around this...
+    id_mapping = dict()
+    for dynamic_obstacle in scenario.dynamic_obstacles:
+        sumo_id = sumo_sim._id_mapper.cr2sumo(dynamic_obstacle.obstacle_id, IdDomain.VEHICLE)
+        if sumo_id is None:
+            raise RuntimeError(
+                f"Tried to retrive the SUMO ID of obstacle {dynamic_obstacle.obstacle_id}, but no ID could be found. This is a bug."
+            )
+        id_mapping[dynamic_obstacle.obstacle_id] = sumo_id
+
+    return SimulatedScenario(scenario, sumo_scenario.sumo_cfg_file, sumo_config, id_mapping)
 
 
 def _create_new_obstacle_in_time_frame(

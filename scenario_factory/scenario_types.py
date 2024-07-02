@@ -3,13 +3,15 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
+from xml.etree import cElementTree as ET
 
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 from crdesigner.map_conversion.sumo_map.cr2sumo.converter import SumoConfig
 from sumocr.helpers import shutil
+from sumocr.interface.id_mapper import IdDomain
 
 from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
 
@@ -34,6 +36,10 @@ class SumoScenario(BaseScenario):
 class SimulatedScenario(SumoScenario):
     sumo_config: SumoConfig
 
+    # The id_mapping is used to correlate CommonRoad obstacle IDs with SUMO vehicle IDs. This is used to patch the resulting SUMO files, when generating interactive scenarios.
+    # TODO: is there a cleaner approach, for retriving the IDs in interactive scenarios?
+    id_mapping: Dict[int, str]
+
 
 @dataclass
 class EgoScenario(SimulatedScenario):
@@ -55,6 +61,7 @@ class EgoScenario(SimulatedScenario):
             scenario=scenario if scenario is not None else simulated_scenario.scenario,
             sumo_cfg_file=simulated_scenario.sumo_cfg_file,
             sumo_config=simulated_scenario.sumo_config,
+            id_mapping=simulated_scenario.id_mapping,
             ego_vehicle_maneuver=ego_vehicle_maneuver,
         )
 
@@ -79,6 +86,7 @@ class EgoScenarioWithPlanningProblemSet(EgoScenario):
             sumo_cfg_file=ego_scenario.sumo_cfg_file,
             sumo_config=ego_scenario.sumo_config,
             ego_vehicle_maneuver=ego_scenario.ego_vehicle_maneuver,
+            id_mapping=ego_scenario.id_mapping,
             planning_problem_set=planning_problem_set,
         )
 
@@ -96,6 +104,22 @@ class NonInteractiveEgoScenario(EgoScenarioWithPlanningProblemSet):
     ...
 
 
+def _patch_vehicle_id_in_sumo_route_file(vehicle_id: str, sumo_file_path: Path):
+    """
+    To support interactive scenarios in the sumo-interface, we must mark the ego vehicle as such in the SUMO files. This way, the sumo-interface knows which vehicle is the ego vehicle.
+    """
+    with sumo_file_path.open() as f:
+        tree = ET.parse(f)
+
+    vehicle_nodes = tree.findall("vehicle")
+    for vehicle_node in vehicle_nodes:
+        if vehicle_node.get("id") == vehicle_id:
+            vehicle_node.set("id", IdDomain.EGO_VEHICLE.construct_sumo_id(vehicle_id))
+
+    with sumo_file_path.open(mode="wb") as f:
+        tree.write(f, xml_declaration=True, encoding="utf-8")
+
+
 @dataclass
 class InteractiveEgoScenario(EgoScenarioWithPlanningProblemSet):
     def write(self, output_path: Path) -> Path:
@@ -110,5 +134,9 @@ class InteractiveEgoScenario(EgoScenarioWithPlanningProblemSet):
                 continue
 
             shutil.copy(file, scenario_path)
+
+            if file.name.endswith(".rou.xml"):
+                sumo_ego_vehicle_id = self.id_mapping[self.ego_vehicle_maneuver.ego_vehicle.obstacle_id]
+                _patch_vehicle_id_in_sumo_route_file(sumo_ego_vehicle_id, scenario_path.joinpath(file.name))
 
         return scenario_path
