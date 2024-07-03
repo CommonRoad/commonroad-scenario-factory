@@ -91,7 +91,7 @@ class EgoScenarioWithPlanningProblemSet(EgoScenario):
         )
 
     def write(self, output_path: Path) -> Path:
-        file_path = output_path.joinpath(f"{self.scenario.scenario_id}.xml")
+        file_path = output_path.joinpath(f"{self.scenario.scenario_id}.cr.xml")
         logger.debug(f"Writing scenario {self.scenario.scenario_id} with its planning problem set to {file_path}")
         CommonRoadFileWriter(
             self.scenario, self.planning_problem_set, author="test", affiliation="test", source="test", tags=set()
@@ -128,15 +128,17 @@ class InteractiveEgoScenario(EgoScenarioWithPlanningProblemSet):
 
         super().write(scenario_path)
 
-        shutil.copy(self.sumo_cfg_file, scenario_path)
         for file in self.sumo_cfg_file.parent.iterdir():
-            if file.suffix != ".xml":
+            if file.suffix != ".xml" and file.suffix != ".cfg":
                 continue
 
-            shutil.copy(file, scenario_path)
+            target_file_name = f"{self.scenario.scenario_id}{''.join(file.suffixes)}"
+            target_path = scenario_path.joinpath(target_file_name)
 
-            if file.name.endswith(".rou.xml"):
+            shutil.copy(file, target_path)
+
+            if file.suffixes == [".rou" ".xml"]:
                 sumo_ego_vehicle_id = self.id_mapping[self.ego_vehicle_maneuver.ego_vehicle.obstacle_id]
-                _patch_vehicle_id_in_sumo_route_file(sumo_ego_vehicle_id, scenario_path.joinpath(file.name))
+                _patch_vehicle_id_in_sumo_route_file(sumo_ego_vehicle_id, target_path)
 
         return scenario_path
