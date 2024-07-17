@@ -17,10 +17,12 @@ class SectionID:
     def __init__(self, id: int):
         self.id = id
 
-    def __eq__(self, other: "SectionID"):
-        return True if self.id == other.id else None
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, SectionID):
+            return False
+        return True if self.id == other.id else False
 
-    def __ne__(self, other: "SectionID"):
+    def __ne__(self, other: object):
         return not self.__eq__(other)
 
     def __str__(self):
@@ -39,8 +41,8 @@ class LaneletSection:
         self,
         lanelet_list: List[Lanelet],
         section_id: SectionID,
-        succ_section: Set[int] = None,
-        pred_section: Set[int] = None,
+        succ_section: Set[int] = set(),
+        pred_section: Set[int] = set(),
     ):
         # stores lanelets starting with the rightmost one
         self.lanelet_list: List[Lanelet] = lanelet_list

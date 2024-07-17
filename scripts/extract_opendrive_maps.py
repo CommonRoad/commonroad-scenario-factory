@@ -1,6 +1,7 @@
 """
 Extract CommonRoad maps from large OpenDrive file
 """
+
 import glob
 import itertools
 import os
@@ -39,7 +40,7 @@ from lxml import etree
 from matplotlib import pyplot as plt
 from shapely.geometry import LineString
 from sumocr.interface.sumo_simulation import SumoSimulation
-from sumocr.maps.sumo_scenario import ScenarioWrapper
+from sumocr.scenario.scenario_wrapper import ScenarioWrapper
 
 matplotlib.use("TkAgg")
 
@@ -383,7 +384,6 @@ def extract_random_route(
         return choice
 
     def find_route(initial_lanelet: int, lanelet_network: LaneletNetwork, rp: RoutePlanner, min_length: float):
-
         t = nx.bfs_tree(rp.digraph, initial_lanelet, depth_limit=20)
         nodes = list(t.nodes())
         np.random.shuffle(nodes)  # randomize order

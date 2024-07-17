@@ -4,28 +4,41 @@
 
 This repo refactors code which was developed mainly by Moritz Klischat. It can generate interactive and non-interactive CommonRoad traffic scenario, as used, e.g., in the CommonRoad competition.
 
+# Usage
+
 ## Installation
-You might be able to skip some of the installation steps if the respective software is already installed.
-1. Install a Python IDE. We suggest using [PyCharm](https://www.jetbrains.com/pycharm/).
-2. Install [Python](https://www.python.org/downloads/). Verify successful installation by executing `python3 --version`.
-3. Install [Poetry](https://python-poetry.org/docs/). Verify successful installation by executing `poetry --version`.
-4. Install [SUMO](https://sumo.dlr.de/docs/Downloads.php). Don't forget to `export SUMO_HOME="/your/path/to/sumo"` in your `.bashrc`. Verify successful installation by executing `sumo --version`.
-5. Install [osmium](https://osmcode.org/osmium-tool/). Verify successful installation by executing `osmium --version`.
-6. Clone this repository.
-7. Install poetry environment `poetry install`.
-8. Run the [`generate_senarios.py`](scripts/generate_senarios.py) script to create interactive scenarios: `poetry run python scripts/generate_scenarios.py`. With the default settings, 13 solution files should be generated. You'll find these in the output folder.
-[README.md](README.md)
-The scenario generation proceeds in three steps:
-- First, OSM data is converted into CommonRoad LaneletNetworks.
-- Second, relevant intersections are chosen using the globetrotter tool.
-- Third, traffic is simulated on the extracted lanelet networks.
 
-# Hands on
-Theoretical instructions can be found below.
+```
+$ git clone git@gitlab.lrz.de:cps/commonroad/sumocr-scenario-generation.git
+$ cd sumocr-scenario-generation
+$ poetry install
+```
 
-Go to the [files](files) folder and execute the scripts 1 to 5 one after another. With the default settings, the generated scenarios should be stored in the [output](files/output) folder.
+### Additional Requirements
+
+* [python>=3.10,<3.12`](https://www.python.org/downloads/)
+* [poetry](https://python-poetry.org/docs/)
+* [SUMO](https://sumo.dlr.de/docs/Downloads.php): Make sure that the environment variable `SUMO_HOME` is set.
+* [osmium](https://osmcode.org/osmium-tool/)
+
+
+## Generate Scenarios
+
+To generate scenarios run:
+```
+$ poetry run scenario-factory
+```
+This will read a list of cities from `./files/cities_file.csv` and output the resulting scenarios to `./files/output`.
+
+You can also change the default settings by overriding the CLI options. To see all available options run:
+
+```
+$ poetry run scenario-factory --help
+```
+
 
 # Theoretical instructions
+
 ## Get CommonRoad LaneletNetwork files
 Using the osmium tool, maps of e.g., a certain city can be extracted from large-scale maps (see also [OSM-README](files/example/README.md)).
 Parameters are directly set as part of the osmium extract command.
@@ -40,3 +53,11 @@ Parameters can be set in the [scenario_config.py](scenario_factory/config_files/
 
 ## Optional steps
 After creating the scenarios, they can be renamed using the [rename_cr_scenarios.py](scripts/rename_cr_scenarios.py) script.
+
+# Internals
+
+## TL;DR
+
+1. OSM data is converted into CommonRoad LaneletNetworks
+2. Relevant intersections are chosen using the globetrotter tool.
+3. Traffic is simulated on the extracted lanelet networks.

@@ -1,0 +1,136 @@
+__all__ = ["select_interesting_ego_vehicle_maneuvers_from_scenario"]
+
+import functools
+import logging
+from collections import defaultdict
+from typing import List, Sequence
+
+import numpy as np
+from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
+from commonroad.scenario.scenario import Scenario
+
+from scenario_factory.ego_vehicle_selection.criterions import EgoVehicleSelectionCriterion
+from scenario_factory.ego_vehicle_selection.filters import EgoVehicleManeuverFilter
+from scenario_factory.ego_vehicle_selection.maneuver import EgoVehicleManeuver
+
+logger = logging.getLogger(__name__)
+
+
+def _find_ego_vehicle_maneuvers_in_scenario(
+    scenario: Scenario, criterions: Sequence[EgoVehicleSelectionCriterion]
+) -> List[EgoVehicleManeuver]:
+    possible_ego_vehicles = filter(
+        lambda obstacle: obstacle.obstacle_type == ObstacleType.CAR, scenario.dynamic_obstacles
+    )
+    selected_maneuvers = []
+    for obstacle in possible_ego_vehicles:
+        for criterion in criterions:
+            matches, absolute_init_time = criterion.matches(scenario, obstacle)
+            if not matches:
+                continue
+            # Each criterion has a specific start time offset which must be used to shift the adsolute init time, so that scenarios start before a specific maneuver
+            adjusted_absolute_init_time = criterion.compute_adjusted_start_time(absolute_init_time, scenario.dt)
+            logger.debug(
+                f"Adjusted maneuver start time {absolute_init_time} of obstacle {obstacle.obstacle_id} to {adjusted_absolute_init_time}"
+            )
+
+            selected_maneuvers.append(EgoVehicleManeuver(obstacle, adjusted_absolute_init_time))
+
+    return selected_maneuvers
+
+
+def _filter_ego_vehicle_maneuvers_in_scenario(
+    scenario: Scenario,
+    scenario_time_steps: int,
+    maneuver_filters: Sequence[EgoVehicleManeuverFilter],
+    maneuvers: List[EgoVehicleManeuver],
+) -> List[EgoVehicleManeuver]:
+    filtered_maneuvers = filter(lambda _: True, maneuvers)
+    for maneuver_filter in maneuver_filters:
+        prepared_maneuver_filter = functools.partial(maneuver_filter.matches, scenario, scenario_time_steps)
+        filtered_maneuvers = filter(prepared_maneuver_filter, filtered_maneuvers)
+
+    # The generator produced by filter must be converted to a list
+    return list(filtered_maneuvers)
+
+
+def _get_number_of_vehicles_in_range(
+    position: np.ndarray, time_step: int, obstacles: Sequence[DynamicObstacle], detection_range: int
+) -> int:
+    counter = 0
+    for obstacle in obstacles:
+        obstacle_state = obstacle.state_at_time(time_step)
+        if obstacle_state is None:
+            continue
+
+        if np.linalg.norm(obstacle_state.position - position, ord=np.inf) >= detection_range:
+            continue
+
+        counter += 1
+
+    return counter
+
+
+def _select_most_interesting_maneuver(
+    scenario: Scenario, maneuvers: Sequence[EgoVehicleManeuver], detection_range: int
+) -> EgoVehicleManeuver:
+    # TODO: This is a bit clunky as scenario and detection_range are also needed here. Maybe a better metric/approach can be found?
+
+    if len(maneuvers) == 0:
+        raise ValueError("Cannot select the most interesting maneuver from an empty list of maneuvers!")
+
+    if len(maneuvers) == 1:
+        return maneuvers[0]
+
+    max_num_vehicles = 0
+    current_best_maneuver = maneuvers[0]
+    for maneuver in maneuvers:
+        ego_vehicle_state = maneuver.ego_vehicle.state_at_time(maneuver.start_time)
+        if ego_vehicle_state is None:
+            continue
+
+        num_vehicles = _get_number_of_vehicles_in_range(
+            ego_vehicle_state.position, maneuver.start_time, scenario.dynamic_obstacles, detection_range
+        )
+        if num_vehicles < max_num_vehicles:
+            continue
+
+        max_num_vehicles = num_vehicles
+        current_best_maneuver = maneuver
+
+    return current_best_maneuver
+
+
+def _select_one_maneuver_per_ego_vehicle(
+    scenario: Scenario, maneuvers: Sequence[EgoVehicleManeuver], detection_range: int
+) -> List[EgoVehicleManeuver]:
+    maneuvers_per_ego_vehicle = defaultdict(list)
+    for maneuver in maneuvers:
+        maneuvers_per_ego_vehicle[maneuver.ego_vehicle.obstacle_id].append(maneuver)
+
+    return [
+        _select_most_interesting_maneuver(scenario, ego_vehicle_maneuver_list, detection_range)
+        for ego_vehicle_maneuver_list in maneuvers_per_ego_vehicle.values()
+    ]
+
+
+def select_interesting_ego_vehicle_maneuvers_from_scenario(
+    scenario: Scenario,
+    criterions: Sequence[EgoVehicleSelectionCriterion],
+    filters: Sequence[EgoVehicleManeuverFilter],
+    scenario_time_steps: int,
+    sensor_range: int,
+) -> List[EgoVehicleManeuver]:
+    ego_vehicle_maneuvers = _find_ego_vehicle_maneuvers_in_scenario(scenario, criterions)
+    filtered_ego_vehicle_maneuvers = _filter_ego_vehicle_maneuvers_in_scenario(
+        scenario,
+        scenario_time_steps,
+        filters,
+        ego_vehicle_maneuvers,
+    )
+
+    most_interesting_maneuvers = _select_one_maneuver_per_ego_vehicle(
+        scenario, filtered_ego_vehicle_maneuvers, sensor_range
+    )
+
+    return most_interesting_maneuvers
