@@ -7,19 +7,19 @@ readme = "README.md"
 packages = [{include = "scenario_factory"}]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.12"
-commonroad-io = "^2024.1"
+python = "~3.10" # Constraint is given by commonroad-labeling
+commonroad-io = ">=2024.1"
 commonroad-drivability-checker = "^2024.1"
-libsumo = "^1.19.0"
-pandas = "^2.0"
-commonroad-scenario-designer = "^0.8.1"
+commonroad-scenario-designer = "^0.8.2"
+commonroad-labeling = { git = "git@gitlab.lrz.de:cps/commonroad/automatic-scenario-labeling.git", rev="c4b1f19fdb9548655cf4703ab5c2c4a43314578f"}
 sumocr = "^2024.1"
-scikit-learn = "^1.3.2"
-osmium = ">=2.16.0"
-pyproj = "^3.6.1"
-eclipse-sumo = "^1.19.0"
-click = "^8.1.7"
-multiprocess = "^0.70.16"
+libsumo = "^1.19"
+pandas = "^2.0"
+scikit-learn = "^1.3"
+eclipse-sumo = "^1.19"
+click = "^8.1"
+multiprocess = "^0.70"
+
 
 [tool.poetry.group.tests]
 optional = true

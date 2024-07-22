@@ -17,8 +17,10 @@ __all__ = [
     # SUMO
     "pipeline_create_sumo_configuration_for_commonroad_scenario",
     "pipeline_simulate_scenario",
+    # Ego Scenario Generation
     "GenerateCommonRoadScenariosArguments",
     "pipeline_generate_ego_scenarios",
+    "pipeline_assign_tags_to_scenario",
 ]
 
 from .globetrotter import (
@@ -33,6 +35,7 @@ from .globetrotter import (
 )
 from .scenario_generation import (
     GenerateCommonRoadScenariosArguments,
+    pipeline_assign_tags_to_scenario,
     pipeline_create_sumo_configuration_for_commonroad_scenario,
     pipeline_generate_ego_scenarios,
     pipeline_simulate_scenario,

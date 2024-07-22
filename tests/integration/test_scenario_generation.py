@@ -22,6 +22,7 @@ from scenario_factory.pipeline_steps import (
     pipeline_load_plain_cities_from_csv,
     pipeline_simulate_scenario,
 )
+from scenario_factory.pipeline_steps.scenario_generation import pipeline_assign_tags_to_scenario
 from scenario_factory.scenario_types import NonInteractiveEgoScenario
 
 
@@ -63,6 +64,7 @@ class TestScenarioGeneration:
             pipeline.map(pipeline_simulate_scenario)
             pipeline.map(pipeline_generate_ego_scenarios(GenerateCommonRoadScenariosArguments()))
             pipeline.reduce(pipeline_flatten)
+            pipeline.map(pipeline_assign_tags_to_scenario)
 
             assert len(pipeline.errors) == 0
             assert len(pipeline.state) == 1
@@ -105,6 +107,7 @@ class TestScenarioGeneration:
             pipeline.map(pipeline_simulate_scenario)
             pipeline.map(pipeline_generate_ego_scenarios(GenerateCommonRoadScenariosArguments()))
             pipeline.reduce(pipeline_flatten)
+            pipeline.map(pipeline_assign_tags_to_scenario)
 
             assert len(pipeline.errors) == 0
             assert len(pipeline.state) == 0

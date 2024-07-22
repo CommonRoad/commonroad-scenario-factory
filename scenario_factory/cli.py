@@ -25,6 +25,7 @@ from scenario_factory.pipeline_steps import (
     pipeline_simulate_scenario,
     pipeline_write_scenario_to_file,
 )
+from scenario_factory.pipeline_steps.scenario_generation import pipeline_assign_tags_to_scenario
 from scenario_factory.pipeline_steps.utils import WriteScenarioToFileArguments
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 
@@ -59,11 +60,11 @@ def generate(cities: str, output: str, maps: str, radius: float, seed: int):
     output_path = Path(output)
     if not output_path.exists():
         output_path.mkdir(parents=True)
-    logger = logging.getLogger("scenario_factory")
-    logger.setLevel(logging.INFO)
+    root_logger = logging.getLogger("scenario_factory")
+    root_logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
-    logger.addHandler(handler)
+    root_logger.addHandler(handler)
 
     sumo_config = SumoConfig()
     sumo_config.simulation_steps = 600
@@ -78,17 +79,17 @@ def generate(cities: str, output: str, maps: str, radius: float, seed: int):
     ctx = PipelineContext(temp_dir, scenario_config=scenario_config, sumo_config=sumo_config)
     pipeline = Pipeline(ctx)
     pipeline.populate(pipeline_load_plain_cities_from_csv(LoadCitiesFromCsvArguments(Path(cities))))
-    logger.info(f"Processing {len(pipeline.state)} cities")
+    root_logger.info(f"Processing {len(pipeline.state)} cities")
     pipeline.map(pipeline_compute_bounding_box_for_city(ComputeBoundingBoxForCityArguments(radius)))
     pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(Path(maps), overwrite=True)))
     pipeline.map(pipeline_convert_osm_map_to_commonroad_scenario)
     pipeline.map(pipeline_extract_intersections)
     pipeline.reduce(pipeline_flatten)
-    logger.info(f"Found {len(pipeline.state)} interesting intersections")
+    root_logger.info(f"Found {len(pipeline.state)} interesting intersections")
     pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario, num_processes=16)
     pipeline.reduce(pipeline_flatten)
     pipeline.map(pipeline_simulate_scenario, num_processes=16)
-    logger.info("Generating ego scenarios from simulated scenarios")
+    root_logger.info("Generating ego scenarios from simulated scenarios")
     pipeline.map(
         pipeline_generate_ego_scenarios(
             GenerateCommonRoadScenariosArguments(create_noninteractive=True, create_interactive=True)
@@ -96,14 +97,15 @@ def generate(cities: str, output: str, maps: str, radius: float, seed: int):
         num_processes=16,
     )
     pipeline.reduce(pipeline_flatten)
-    logger.info(f"Successfully generated {len(pipeline.state)} scenarios")
+    pipeline.map(pipeline_assign_tags_to_scenario)
     pipeline.map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
+    root_logger.info(f"Successfully generated {len(pipeline.state)} scenarios")
     pipeline.report_results()
 
     if len(pipeline.errors) == 0:
         shutil.rmtree(temp_dir)
     else:
-        logger.info(
+        root_logger.info(
             f"Scenario factory encountered {len(pipeline.errors)} errors. For debugging purposes the temprorary directory at {temp_dir.absolute()} will not be removed."
         )
 
