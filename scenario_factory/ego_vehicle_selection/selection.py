@@ -45,6 +45,7 @@ def _filter_ego_vehicle_maneuvers_in_scenario(
     maneuver_filters: Sequence[EgoVehicleManeuverFilter],
     maneuvers: List[EgoVehicleManeuver],
 ) -> List[EgoVehicleManeuver]:
+    # Transform the maneuvers into a filter, because otherwise mypy will complain about a mismatched type
     filtered_maneuvers = filter(lambda _: True, maneuvers)
     for maneuver_filter in maneuver_filters:
         prepared_maneuver_filter = functools.partial(maneuver_filter.matches, scenario, scenario_time_steps)

@@ -16,7 +16,7 @@ from scenario_factory.scenario_types import EgoScenarioWithPlanningProblemSet, S
 def pipeline_create_sumo_configuration_for_commonroad_scenario(
     ctx: PipelineContext, commonroad_scenario: Scenario
 ) -> SumoScenario:
-    output_folder = ctx.get_output_folder("output")
+    output_folder = ctx.get_temporary_folder("output")
     intermediate_sumo_files_path = output_folder.joinpath("intermediate", str(commonroad_scenario.scenario_id))
     intermediate_sumo_files_path.mkdir(parents=True, exist_ok=True)
 

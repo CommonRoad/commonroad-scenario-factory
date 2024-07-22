@@ -49,7 +49,8 @@ def create_non_interactive_scenario(ego_scenario: EgoScenarioWithPlanningProblem
     """
     Transform an ego scenario to a non-interactive scenario. This function will not modify the original ego scenario.
     """
-    new_scenario = copy.deepcopy(ego_scenario.scenario)
+    new_scenario = copy.copy(ego_scenario.scenario)
+    new_scenario.scenario_id = copy.deepcopy(new_scenario.scenario_id)
     new_scenario.scenario_id.obstacle_behavior = "T"
 
     return NonInteractiveEgoScenario.from_ego_scenario(ego_scenario, ego_scenario.planning_problem_set, new_scenario)
@@ -59,11 +60,22 @@ def create_interactive_scenario(ego_scenario: EgoScenarioWithPlanningProblemSet)
     """
     Transform an ego scenario to an interactive scenario. This function will not modify the original ego scenario.
     """
-    new_scenario = copy.deepcopy(ego_scenario.scenario)
+    new_scenario = Scenario(dt=ego_scenario.scenario.dt)
+    # Deep copy the Id, as it will be modified
+    new_scenario.scenario_id = copy.deepcopy(ego_scenario.scenario.scenario_id)
     new_scenario.scenario_id.obstacle_behavior = "I"
 
-    for obstacle in new_scenario.dynamic_obstacles:
-        obstacle.prediction = None
+    # Only add a reference of the lanelet network to the scenario
+    new_scenario.add_objects(ego_scenario.scenario.lanelet_network)
+
+    for original_obstacle in ego_scenario.scenario.dynamic_obstacles:
+        new_obstacle = DynamicObstacle(
+            original_obstacle.obstacle_id,
+            original_obstacle.obstacle_type,
+            obstacle_shape=original_obstacle.obstacle_shape,
+            initial_state=copy.deepcopy(original_obstacle.initial_state),
+        )
+        new_scenario.add_objects(new_obstacle)
 
     return InteractiveEgoScenario.from_ego_scenario(ego_scenario, ego_scenario.planning_problem_set, new_scenario)
 
@@ -172,7 +184,8 @@ def _select_obstacles_in_sensor_range_of_ego_vehicle(
 
     :returns: The selected dynamic obstacles
     """
-    relevant = [ego_vehicle]
+    # Use a dictionary to improve looks up speed
+    relevant_obstacle_map = {ego_vehicle.obstacle_id: ego_vehicle}
 
     assert isinstance(ego_vehicle.prediction, TrajectoryPrediction)
 
@@ -182,7 +195,7 @@ def _select_obstacles_in_sensor_range_of_ego_vehicle(
         proj_pos[0] += math.cos(ego_vehicle_state.orientation) + 2.0 * ego_vehicle_state.velocity
         proj_pos[1] += math.sin(ego_vehicle_state.orientation) + 2.0 * ego_vehicle_state.velocity
         for obstacle in obstacles:
-            if obstacle in relevant:
+            if obstacle.obstacle_id in relevant_obstacle_map:
                 continue
 
             obstacle_state = obstacle.state_at_time(ego_vehicle_state.time_step)
@@ -192,9 +205,9 @@ def _select_obstacles_in_sensor_range_of_ego_vehicle(
             if np.less_equal(np.abs(obstacle_state.position[0] - proj_pos[0]), sensor_range) and np.less_equal(
                 np.abs(obstacle_state.position[1] - proj_pos[1]), sensor_range
             ):
-                relevant.append(obstacle)
+                relevant_obstacle_map[obstacle.obstacle_id] = obstacle
 
-    return relevant
+    return list(relevant_obstacle_map.values())
 
 
 def _create_planning_problem_initial_state_for_ego_vehicle(
