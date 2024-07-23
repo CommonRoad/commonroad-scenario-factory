@@ -1,6 +1,15 @@
+__all__ = [
+    "pipeline_flatten",
+    "WriteScenarioToFileArguments",
+    "pipeline_write_scenario_to_file",
+]
+
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, TypeVar
+from typing import Iterable, Optional, TypeVar
+
+from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
+from commonroad.scenario.scenario import Scenario
 
 from scenario_factory.pipeline import PipelineContext, PipelineStepArguments, pipeline_map_with_args
 from scenario_factory.scenario_types import EgoScenarioWithPlanningProblemSet
@@ -27,12 +36,12 @@ class WriteScenarioToFileArguments(PipelineStepArguments):
 @pipeline_map_with_args
 def pipeline_write_scenario_to_file(
     args: WriteScenarioToFileArguments, ctx: PipelineContext, scenario: EgoScenarioWithPlanningProblemSet
-) -> Path:
-    return scenario.write(args.output_folder)
-
-
-__all__ = [
-    "pipeline_flatten",
-    "WriteScenarioToFileArguments",
-    "pipeline_write_scenario_to_file",
-]
+) -> Optional[Path]:
+    if isinstance(scenario, EgoScenarioWithPlanningProblemSet):
+        return scenario.write(args.output_folder)
+    elif isinstance(scenario, Scenario):
+        file_path = args.output_folder.joinpath(f"{scenario.scenario_id}.cr.xml")
+        CommonRoadFileWriter(
+            scenario, None, author="test", affiliation="test", source="test", tags=set()
+        ).write_scenario_to_file(str(file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS)
+        return file_path

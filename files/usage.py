@@ -5,20 +5,19 @@ from tempfile import TemporaryDirectory
 import numpy as np
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
 
+from scenario_factory.globetrotter.osm import LocalFileMapProvider
 from scenario_factory.pipeline import Pipeline, PipelineContext
 from scenario_factory.pipeline_steps import (
-    ComputeBoundingBoxForCityArguments,
     ExtractOsmMapArguments,
     GenerateCommonRoadScenariosArguments,
-    LoadCitiesFromCsvArguments,
-    pipeline_compute_bounding_box_for_city,
+    LoadRegionsFromCsvArguments,
     pipeline_convert_osm_map_to_commonroad_scenario,
     pipeline_create_sumo_configuration_for_commonroad_scenario,
     pipeline_extract_intersections,
     pipeline_extract_osm_map,
     pipeline_flatten,
     pipeline_generate_ego_scenarios,
-    pipeline_load_plain_cities_from_csv,
+    pipeline_load_regions_from_csv,
     pipeline_simulate_scenario,
 )
 from scenario_factory.pipeline_steps.utils import WriteScenarioToFileArguments, pipeline_write_scenario_to_file
@@ -40,9 +39,10 @@ with TemporaryDirectory() as temp_dir:
     ctx = PipelineContext(Path(temp_dir), sumo_config=sumo_config)
     pipeline = Pipeline(ctx)
 
-    pipeline.populate(pipeline_load_plain_cities_from_csv(LoadCitiesFromCsvArguments(Path(cities_file))))
-    pipeline.map(pipeline_compute_bounding_box_for_city(ComputeBoundingBoxForCityArguments(radius)))
-    pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(Path(input_maps_folder), overwrite=True)))
+    local_map_provider = LocalFileMapProvider(Path(input_maps_folder))
+
+    pipeline.populate(pipeline_load_regions_from_csv(LoadRegionsFromCsvArguments(Path(cities_file))))
+    pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(local_map_provider, radius=radius)))
     pipeline.map(pipeline_convert_osm_map_to_commonroad_scenario)
     pipeline.map(pipeline_extract_intersections)
     pipeline.reduce(pipeline_flatten)

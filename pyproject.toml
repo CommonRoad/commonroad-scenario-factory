@@ -20,6 +20,7 @@ pyproj = "^3.6.1"
 eclipse-sumo = "^1.19.0"
 click = "^8.1.7"
 multiprocess = "^0.70.16"
+iso3166 = "^2.0"
 
 [tool.poetry.group.tests]
 optional = true
@@ -44,6 +45,7 @@ source = ["scenario_factory"]
 
 [tool.poetry.scripts]
 scenario-factory = "scenario_factory.cli:generate"
+globetrotter = "scenario_factory.cli:globetrotter"
 
 [[tool.mypy.overrides]]
 module = "scenario_factory.scenario_features.*"
