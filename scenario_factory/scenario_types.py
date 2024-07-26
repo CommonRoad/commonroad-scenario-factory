@@ -92,10 +92,17 @@ class EgoScenarioWithPlanningProblemSet(EgoScenario):
 
     def write(self, output_path: Path) -> Path:
         file_path = output_path.joinpath(f"{self.scenario.scenario_id}.cr.xml")
+
+        # Initialize the metadata. Defaults are not assigned to the scenario, because it should not be overwritten...
+        author = "scenario-factory" if self.scenario.author is None else self.scenario.author
+        affiliation = "TUM" if self.scenario.affiliation is None else self.scenario.affiliation
+        source = "scenario-factory" if self.scenario.source is None else self.scenario.source
+        tags = set() if self.scenario.tags is None else self.scenario.tags
+
         logger.debug(f"Writing scenario {self.scenario.scenario_id} with its planning problem set to {file_path}")
         CommonRoadFileWriter(
-            self.scenario, self.planning_problem_set, author="test", affiliation="test", source="test", tags=set()
-        ).write_to_file(str(file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS)
+            self.scenario, self.planning_problem_set, author=author, affiliation=affiliation, source=source, tags=tags
+        ).write_to_file(str(file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS, check_validity=True)
         return file_path
 
 
@@ -104,40 +111,90 @@ class NonInteractiveEgoScenario(EgoScenarioWithPlanningProblemSet):
     ...
 
 
-def _patch_vehicle_id_in_sumo_route_file(vehicle_id: str, sumo_file_path: Path):
+def _patch_vehicle_id_in_sumo_route_file(vehicle_id: str, sumo_route_file: Path) -> bool:
     """
     To support interactive scenarios in the sumo-interface, we must mark the ego vehicle as such in the SUMO files. This way, the sumo-interface knows which vehicle is the ego vehicle.
-    """
-    with sumo_file_path.open() as f:
-        tree = ET.parse(f)
 
-    vehicle_nodes = tree.findall("vehicle")
+    :param vehicle_id: The SUMO ID of the vehicle which should be marked as ego vehicle
+    :param sumo_route_file: Path to the SUMO route file that contains vehicles
+
+    :returns: Whether :param:`vehicle_id` was found and could be marked as an ego vehicle
+    """
+    root_element = ET.fromstring(sumo_route_file.read_text())
+
+    found_vehicle = False
+    vehicle_nodes = root_element.findall("vehicle")
     for vehicle_node in vehicle_nodes:
         if vehicle_node.get("id") == vehicle_id:
             vehicle_node.set("id", IdDomain.EGO_VEHICLE.construct_sumo_id(vehicle_id))
+            found_vehicle = True
+            break
 
-    with sumo_file_path.open(mode="wb") as f:
-        tree.write(f, xml_declaration=True, encoding="utf-8")
+    sumo_route_file.write_bytes(ET.tostring(root_element))
+    return found_vehicle
+
+
+def _patch_input_file_names_in_sumo_cfg_file(file_name_prefix: str, sumo_cfg_path: Path) -> None:
+    """
+    Patch all input file names found in the :param:`sumo_cfg_path` SUMO configuration file by replacing their file name with :param:`file_name_prefix` and preserving their suffixes
+
+    :param file_name_prefix: The string that will be used to replace all file names
+    :param sumo_cfg_path: Path to the SUMO configuration file
+
+    :raises ValueError: If :param:`sumo_cfg_path` is not a valid SUMO configuration file
+    """
+    root_element = ET.fromstring(sumo_cfg_path.read_text())
+
+    input_tag = root_element.find("input")
+    if input_tag is None:
+        raise ValueError(f"The SUMO configuration file at {sumo_cfg_path} is invalid: missing 'input' tag")
+
+    input_iterator = input_tag.iter()
+    # input_tag.iter() iterates over the tag itself and all child elements. As we only care about the child elements, we skip the first element of the iterator.
+    next(input_iterator)
+    for input_file_tag in input_iterator:
+        # The 'value' attribute contains the file name e.g. DEU_Bremen-19.net.xml. This filename must be replaced with the file_name_prefix, e.g. DEU_Bremen-19_I-1.net.xml
+        raw_input_file_name = input_file_tag.get("value")
+        if raw_input_file_name is None:
+            raise ValueError(
+                f"The SUMO configuration file at {sumo_cfg_path} is invalid: tag {input_file_tag} does not have the required attribute 'value'"
+            )
+        # Use pathlib.Path, so the rename operation is easier to perform
+        input_file_name = Path(raw_input_file_name)
+        # Replace the the file name, but keep all suffixes
+        new_input_file_name = file_name_prefix + "".join(input_file_name.suffixes)
+        input_file_tag.set("value", str(new_input_file_name))
+
+    sumo_cfg_path.write_bytes(ET.tostring(root_element))
 
 
 @dataclass
 class InteractiveEgoScenario(EgoScenarioWithPlanningProblemSet):
     def write(self, output_path: Path) -> Path:
-        scenario_path = output_path.joinpath(str(self.scenario.scenario_id))
+        scenario_name = str(self.scenario.scenario_id)
+        scenario_path = output_path.joinpath(scenario_name)
         scenario_path.mkdir()
 
         super().write(scenario_path)
 
+        # We include all relevant SUMO configuration files in an interactice scenario. For this all SUMO files are copied into the new folder,
+        # and renamed according to the scenario name (see loop below). As the '.sumo.cfg' file references all those SUMO files, it is possible that the file names differ.
+        # This is possible, because one SUMO simulation might produce multiple scenarios.
+        # Therefore, we ensure here that the sumo cfg file references the correct files, i.e. all files must start with the scenario name.
+        _patch_input_file_names_in_sumo_cfg_file(scenario_name, self.sumo_cfg_file)
+
         for file in self.sumo_cfg_file.parent.iterdir():
             if file.suffix != ".xml" and file.suffix != ".cfg":
+                # Only copy files from SUMO
                 continue
 
-            target_file_name = f"{self.scenario.scenario_id}{''.join(file.suffixes)}"
+            target_file_name = f"{scenario_name}{''.join(file.suffixes)}"
             target_path = scenario_path.joinpath(target_file_name)
 
             shutil.copy(file, target_path)
 
             if file.suffixes == [".rou" ".xml"]:
+                # Because the sumo-interface relys on a specific id for the ego_vehicles we have to patch the resulting sumo file here
                 sumo_ego_vehicle_id = self.id_mapping[self.ego_vehicle_maneuver.ego_vehicle.obstacle_id]
                 _patch_vehicle_id_in_sumo_route_file(sumo_ego_vehicle_id, target_path)
 

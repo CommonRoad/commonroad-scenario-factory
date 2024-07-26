@@ -25,7 +25,7 @@ from scenario_factory.pipeline_steps import (
     pipeline_simulate_scenario,
     pipeline_write_scenario_to_file,
 )
-from scenario_factory.pipeline_steps.utils import WriteScenarioToFileArguments
+from scenario_factory.pipeline_steps.utils import WriteScenarioToFileArguments, pipeline_add_metadata_to_scenario
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 
 
@@ -85,6 +85,7 @@ def generate(cities: str, output: str, maps: str, radius: float, seed: int):
     pipeline.map(pipeline_extract_intersections)
     pipeline.reduce(pipeline_flatten)
     logger.info(f"Found {len(pipeline.state)} interesting intersections")
+    pipeline.map(pipeline_add_metadata_to_scenario)
     pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario, num_processes=16)
     pipeline.reduce(pipeline_flatten)
     pipeline.map(pipeline_simulate_scenario, num_processes=16)
