@@ -4,10 +4,8 @@ __all__ = [
     "pipeline_write_scenario_to_file",
     "WriteScenarioToFileArguments",
     # City I/O and Bounding Box computations
-    "LoadCitiesFromCsvArguments",
-    "pipeline_load_plain_cities_from_csv",
-    "ComputeBoundingBoxForCityArguments",
-    "pipeline_compute_bounding_box_for_city",
+    "LoadRegionsFromCsvArguments",
+    "pipeline_load_regions_from_csv",
     # Open Street Map
     "ExtractOsmMapArguments",
     "pipeline_extract_osm_map",
@@ -24,14 +22,12 @@ __all__ = [
 ]
 
 from .globetrotter import (
-    ComputeBoundingBoxForCityArguments,
     ExtractOsmMapArguments,
-    LoadCitiesFromCsvArguments,
-    pipeline_compute_bounding_box_for_city,
+    LoadRegionsFromCsvArguments,
     pipeline_convert_osm_map_to_commonroad_scenario,
     pipeline_extract_intersections,
     pipeline_extract_osm_map,
-    pipeline_load_plain_cities_from_csv,
+    pipeline_load_regions_from_csv,
 )
 from .scenario_generation import (
     GenerateCommonRoadScenariosArguments,

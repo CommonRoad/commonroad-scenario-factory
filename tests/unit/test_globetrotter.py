@@ -221,3 +221,30 @@ class TestRelevantIntersections:
         ]
 
         assert len(relevant_intersections(intersections, lanelets)) == 1
+
+    def test_referenced_lanelet_in_second_incoming(self):
+        intersections = [
+            Intersection(
+                intersection_id=0,
+                incomings=[
+                    IntersectionIncomingElement(incoming_id=2, incoming_lanelets={1}),
+                ],
+            ),
+            Intersection(
+                intersection_id=1,
+                incomings=[
+                    IntersectionIncomingElement(incoming_id=1, incoming_lanelets={0}),
+                    IntersectionIncomingElement(incoming_id=2, incoming_lanelets={1}),
+                ],
+            ),
+        ]
+        lanelets = [
+            Lanelet(
+                left_vertices=np.array([[0.0, 5.0], [0.0, 10.0]]),
+                center_vertices=np.array([[2.5, 5.0], [2.5, 10.0]]),
+                right_vertices=np.array([[5.0, 0.0], [5.0, 10.0]]),
+                lanelet_id=1,
+            ),
+        ]
+        rel_intersections = relevant_intersections(intersections, lanelets)
+        assert len(rel_intersections) == 2

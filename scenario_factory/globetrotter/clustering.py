@@ -175,9 +175,12 @@ def cut_intersection_from_scenario(scenario: Scenario, center: np.ndarray, max_d
     traffic_lights = relevant_traffic_lights(scenario.lanelet_network.traffic_lights, lanelets_not_none)
     traffic_signs = relevant_traffic_signs(scenario.lanelet_network.traffic_signs, lanelets_not_none)
     intersections = relevant_intersections(scenario.lanelet_network.intersections, lanelets_not_none)
+    logger.debug(
+        f"For new scenario from {scenario.scenario_id} identified the interesting intersections '{intersections}' out of all intersections '{[intersection.intersection_id for intersection in scenario.lanelet_network.intersections]}'"
+    )
 
     # create new scenario
-    cut_lanelet_scenario = Scenario(0.1)
+    cut_lanelet_scenario = Scenario(dt=0.1)
     cut_lanelet_scenario.scenario_id = deepcopy(scenario.scenario_id)
     cut_lanelet_network = scenario.lanelet_network.create_from_lanelet_list(lanelets_not_none, cleanup_ids=False)
     cut_lanelet_scenario.location = scenario.location
@@ -235,11 +238,11 @@ def extract_forking_points(lanelets: Sequence[Lanelet]) -> np.ndarray:
 
 
 def generate_intersections(scenario: Scenario, forking_points: np.ndarray) -> List[Scenario]:
+    """ """
     if len(forking_points) < 2:
-        logger.error(
-            f"Scenario {scenario.scenario_id} only has {len(forking_points)}, but at least 2 are required to extract intersections"
+        raise RuntimeError(
+            f"Scenario {scenario.scenario_id} only has {len(forking_points)} forking points, but at least 2 forking points are required to extract intersections"
         )
-        return []
 
     clustering_result = find_clusters_agglomerative(forking_points)
     labels = clustering_result.labels_

@@ -1,101 +1,82 @@
 import logging
 import subprocess
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional
 
-from commonroad.scenario.scenario import Location, Scenario, ScenarioID
+import iso3166
+from commonroad.scenario.scenario import Scenario
+from crdesigner.common.config.osm_config import osm_config
 from crdesigner.map_conversion.osm2cr.converter_modules.converter import GraphScenario
 from crdesigner.map_conversion.osm2cr.converter_modules.cr_operations.export import (
     create_scenario_intermediate,
     sanitize,
 )
-from crdesigner.map_conversion.osm2cr.converter_modules.utility.geonamesID import get_geonamesID
-from crdesigner.map_conversion.osm2cr.converter_modules.utility.labeling_create_tree import create_tree_from_file
-from crdesigner.verification_repairing.config import MapVerParams
+from crdesigner.map_conversion.osm2cr.converter_modules.osm_operations.downloader import download_map
+from crdesigner.verification_repairing.config import EvaluationParams, MapVerParams
 from crdesigner.verification_repairing.repairing.map_repairer import MapRepairer
 from crdesigner.verification_repairing.verification.map_verifier import MapVerifier
 
-from scenario_factory.globetrotter.city import BoundedCity
+from scenario_factory.globetrotter.region import BoundingBox, Coordinates, RegionMetadata
 
 logger = logging.getLogger(__name__)
 
-# TODO: This mapping is far from ideal. A better alternative would be to either use a transparent proxy to GeoFabrik and download the maps on demand or use a static index using types (maybe those from commonroad-io?)
-_CITY_TO_MAP_MAPPING = {
-    "DEU": {"Bremen": "bremen-latest.osm.pbf", "default": "germany-latest.osm.pbf"},
-    "ESP": "spain-latest.osm.pbf",
-    "BEL": "belgium-latest.osm.pbf",
-    "CHN": "china-latest.osm.pbf",
-    "USA": {
-        "NewYork": "new-york-latest.osm.pbf",
-        "Washington": "district-of-columbia-latest.osm.pbf",
-        "Austin": "texas-latest.osm.pbf",
-        "Phoenix": "arizona-latest.osm.pbg",
-        # TODO: Why does germany have a default fallback, while USA does not?
-    },
-    "FRA": "france-latest.osm.pbf",
+# Override the default traffic light cycles generated during the conversion from OSM to CommonRoad
+osm_config.TRAFFIC_LIGHT_CYCLE = {
+    "red_phase": 57 * 10,
+    "red_yellow_phase": 3 * 10,
+    "green_phase": 37 * 10,
+    "yellow_phase": 3 * 10,
 }
 
 
-def _get_map_file_for_city(city: BoundedCity) -> Optional[str]:
-    if city.country not in _CITY_TO_MAP_MAPPING:
-        return None
+def _get_canonical_region_name(region_name: str) -> str:
+    canonical_region_name = region_name.lower()
 
-    country_entry = _CITY_TO_MAP_MAPPING[city.country]
-    if isinstance(country_entry, str):
-        return country_entry
-    elif isinstance(country_entry, dict):
-        # There are multiple maps for a country present. Now the correct one for the city is selected.
+    # Special handling of regions consisting of multiple parts (e.g. New York)
+    region_name_parts = region_name.split(" ")
+    if len(region_name_parts) > 1:
+        canonical_region_name = "-".join(region_name_parts)
 
-        if city.name in country_entry:
-            return country_entry[city.name]
+    return canonical_region_name
 
-        if "default" in country_entry:
-            return country_entry["default"]
+
+def _find_osm_file_for_region(osm_map_path: Path, map_metadata: RegionMetadata) -> Optional[Path]:
+    # Prefer country files, because they are unique
+    country_name = iso3166.countries.get(map_metadata.country_code).name
+    canonical_country_name = _get_canonical_region_name(country_name)
+    for osm_file in osm_map_path.glob("*.osm.pbf"):
+        if osm_file.name.startswith(canonical_country_name):
+            return osm_file
+
+    # Fallback to the region name. This step is not reliable as, region names can be duplicated...
+    canonical_region_name = _get_canonical_region_name(map_metadata.region_name)
+    for osm_file in osm_map_path.glob("*.osm.pbf"):
+        if osm_file.name.startswith(canonical_region_name):
+            return osm_file
 
     return None
 
 
-class OsmFileExtractionIsNotAutomatedException(Exception):
-    def __init__(self, city: BoundedCity, output_file: Path):
-        self.city = city
-        super().__init__(
-            f"OSM file extraction for {city.country}_{city.name} not automated. Do by hand! \n"
-            f"This is the terminal command: \n"
-            f"osmium extract --bbox {city.bounding_box} -o {output_file} input_file"
-        )
-
-
-class NoOsmMapInputFileException(Exception):
-    def __init__(self, city: BoundedCity, input_file):
-        self.city = city
-        super().__init__(f"Could not find input file {input_file} for {city.country}_{city.name}.")
-
-
 def extract_bounding_box_from_osm_map(
-    city: BoundedCity, output_file: Path, input_maps_folder: Path, overwrite: bool
-) -> Path:
+    bounding_box: BoundingBox, map_file: Path, output_file: Path, overwrite: bool = True
+) -> None:
     """
     Extract the OSM map according to bounding box specified for the city by calling osmium.
 
-    :param city: The city for which the map should be extracted.
-    :param output_file:Path to the file, where the OSM map should be placed.
-    :param input_maps_folder: Folder containing the input OSM maps, from which the extract will be created.
+    :param bounding_box: The bounding box that should be extracted
+    :param map_file: The input map file, from which the bounding box should be extracted
+    :param output_file: Path to the file, where the extracted OSM map should be placed
     :param overwrite: Whether existing extracts should be overwritten
 
-    :returns: Path to the extracted OSM maps.
+    :returns: Nothing
+
+    :raises RuntimeError: When the extraction failed
     """
 
-    map_file = _get_map_file_for_city(city)
-    if map_file is None:
-        raise OsmFileExtractionIsNotAutomatedException(city, output_file)
+    logger.debug(f"Extracting {bounding_box} from {map_file}")
 
-    input_file = input_maps_folder.joinpath(map_file)
-    if not input_file.exists():
-        raise NoOsmMapInputFileException(city, input_file)
-
-    logger.debug(f"Extracting {city.country}_{city.name}")
-
-    cmd = ["osmium", "extract", "--bbox", str(city.bounding_box), "-o", str(output_file), str(input_file)]
+    cmd = ["osmium", "extract", "--bbox", str(bounding_box), "-o", str(output_file), str(map_file)]
     if overwrite:
         cmd.append("--overwrite")
 
@@ -103,15 +84,60 @@ def extract_bounding_box_from_osm_map(
     proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if proc.returncode > 1 or output_file.stat().st_size <= 200:
         logger.debug(proc.stdout)
-        raise RuntimeError(
-            f"Failed to extract bounding box for {city.country}_{city.name} from {input_file} using osmium"
+        raise RuntimeError(f"Failed to extract bounding box {bounding_box} from {map_file} using osmium")
+
+
+class MapProvider(ABC):
+    """A MapProvider is used to obtain OpenStreetMaps for a specific location as an OSM XML file"""
+
+    def __init__(self) -> None:
+        ...
+
+    def _filename_for_region(self, region: RegionMetadata) -> str:
+        return f"{region.country_code}_{region.region_name}.osm"
+
+    @abstractmethod
+    def get_map(self, region: RegionMetadata, bounding_box: BoundingBox, output_folder: Path) -> Path:
+        return output_folder.joinpath(self._filename_for_region(region))
+
+
+class LocalFileMapProvider(MapProvider):
+    def __init__(self, map_folder: Path) -> None:
+        super().__init__()
+        self._maps_folder = map_folder
+
+    def get_map(self, region: RegionMetadata, bounding_box: BoundingBox, output_folder: Path) -> Path:
+        target_file = super().get_map(region, bounding_box, output_folder)
+        map_file = _find_osm_file_for_region(self._maps_folder, region)
+        if map_file is None:
+            raise ValueError(f"Could not find an OSM file for the region {region}")
+        extract_bounding_box_from_osm_map(bounding_box, map_file, target_file)
+        return target_file
+
+
+class OsmApiMapProvider(MapProvider):
+    """The OsmApiMapProvider provides"""
+
+    def get_map(self, region: RegionMetadata, bounding_box: BoundingBox, output_folder: Path) -> Path:
+        target_file = super().get_map(region, bounding_box, output_folder)
+        download_map(
+            str(target_file),
+            bounding_box.west,
+            bounding_box.south,
+            bounding_box.east,
+            bounding_box.north,
         )
+        if not target_file.exists():
+            # TODO: The CommonRoad Scenario Designer does not expose any result information. Maybe we could implement the function ourselves and provide more error information?
+            raise RuntimeError("Failed to download map from OpenStreetMap API")
+        return target_file
 
-    return output_file
 
-
-def _verify_and_repair_scenario(scenario: Scenario) -> int:
-    map_verifier = MapVerifier(scenario.lanelet_network, MapVerParams())
+def verify_and_repair_commonroad_scenario(scenario: Scenario) -> int:
+    """
+    Use the Map verification and repairing from the CommonRoad Scenario Designer to repair a CommonRoad scenario.
+    """
+    map_verifier = MapVerifier(scenario.lanelet_network, MapVerParams(evaluation=EvaluationParams(partitioned=True)))
     invalid_states = map_verifier.verify()
 
     if len(invalid_states) > 0:
@@ -128,8 +154,6 @@ def convert_osm_file_to_commonroad_scenario(osm_file: Path) -> Scenario:
     :param osm_file: Path to the OSM file.
     :returns: The resulting scenario
     """
-    # Ree the geonames tree from file, because otherwise create_scenario_intermediate will try to fetch it from the internet, which fails because of missing credentials for the geonames API.
-    geonames_tree = create_tree_from_file()
 
     logger.debug(f"Converting OSM {osm_file} to CommonRoad Scenario")
 
@@ -137,22 +161,10 @@ def convert_osm_file_to_commonroad_scenario(osm_file: Path) -> Scenario:
     scenario, _ = create_scenario_intermediate(graph)
     sanitize(scenario)
 
-    geo_name_id = get_geonamesID(graph.center_point[0], graph.center_point[1], geonames_tree)
-    location = Location(
-        gps_latitude=graph.center_point[0],
-        gps_longitude=graph.center_point[1],
-        geo_name_id=geo_name_id,
-    )
-    scenario.location = location
+    coordinates = Coordinates.from_tuple(graph.center_point)
+    map_metadata = RegionMetadata.from_coordinates(coordinates)
+    scenario.location = map_metadata.as_commonroad_scenario_location()
+    scenario.scenario_id = map_metadata.as_commonroad_scenario_id()
 
-    logger.debug(f"Convertered OSM {osm_file} to CommonRoad Scenario with GeoName ID {geo_name_id}")
-
-    num_invalid_states = _verify_and_repair_scenario(scenario)
-    if num_invalid_states > 0:
-        logger.debug(f"Found {num_invalid_states} errors in lanelet network created from OSM {osm_file}.")
-
-    # TODO: Find another method to derive the scenario ID, instead of the osm file
-    country_id = osm_file.stem.split("_")[0]
-    map_name = osm_file.stem.split("_")[-1]
-    scenario.scenario_id = ScenarioID(country_id=country_id, map_name=map_name)
+    logger.debug(f"Convertered OSM {osm_file} at {map_metadata} to CommonRoad Scenario")
     return scenario
