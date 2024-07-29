@@ -90,17 +90,26 @@ def _does_ego_vehicle_maneuver_happen_on_interesting_lanelet_network(
     if not isinstance(maneuver.ego_vehicle.prediction, TrajectoryPrediction):
         return False
 
-    if maneuver.ego_vehicle.prediction.center_lanelet_assignment is None:
-        return False
+    initial_ego_vehicle_state = maneuver.ego_vehicle.state_at_time(maneuver.start_time)
+    if initial_ego_vehicle_state is None:
+        raise RuntimeError(
+            f"EgoVehicle {maneuver.ego_vehicle} does not have a state at maneuver start {maneuver.start_time}: This is a bug!"
+        )
 
-    if maneuver.start_time == maneuver.ego_vehicle.initial_state.time_step:
-        init_lanelet_ids = list(maneuver.ego_vehicle.initial_center_lanelet_ids)
-    else:
-        init_lanelet_ids = list(maneuver.ego_vehicle.prediction.center_lanelet_assignment[maneuver.start_time])
+    init_lanelet_ids = lanelet_network.find_lanelet_by_position([initial_ego_vehicle_state.position])[
+        0
+    ]  # The API is a bit...interesting: It takes a list of input positions and also outputs a list. But as we only want to check one state, we can simply use the 0 index to get the resulting ID assignment
 
-    final_lanelet_ids = list(
-        maneuver.ego_vehicle.prediction.center_lanelet_assignment[maneuver.start_time + scenario_time_steps - 1]
-    )
+    maneuver_end_time = maneuver.start_time + scenario_time_steps - 1
+    final_ego_vehicle_state = maneuver.ego_vehicle.state_at_time(maneuver_end_time)
+    if final_ego_vehicle_state is None:
+        raise RuntimeError(
+            f"EgoVehicle {maneuver.ego_vehicle} does not have a state at maneuver end {maneuver_end_time}: This is a bug!"
+        )
+
+    final_lanelet_ids = lanelet_network.find_lanelet_by_position([final_ego_vehicle_state.position])[
+        0
+    ]  # see comment above
 
     if len(final_lanelet_ids) == 0 or len(init_lanelet_ids) == 0:
         logger.debug(f"Maneuver {maneuver} not interesting as ego vehicle: Maneuver does not happen on the map")
@@ -135,6 +144,7 @@ def _does_ego_vehicle_maneuver_happen_on_interesting_lanelet_network(
 
     # Diregard with a high probability
     if random.uniform(0, 1) > 0.4:
+        # TODO: This random rejection was taken from the original code to preserve compabtility. Should this be kept? Could this be moved away from the 'interesting' lanelet functionality?
         logger.debug(
             f"Randomly rejected maneuver {maneuver}, because it does not have any interesting lanelet features"
         )
@@ -142,13 +152,13 @@ def _does_ego_vehicle_maneuver_happen_on_interesting_lanelet_network(
     return True
 
 
-def _does_ego_vehicle_maneuver_have_enough_surrounding_vehicles(
+def _does_ego_vehicle_maneuver_have_enough_surrounding_vehicles_on_adjacent_lanes_at_start_of_scenario(
     maneuver: EgoVehicleManeuver, scenario_model: ScenarioModel, detection_range: int, min_vehicles_in_range: int
 ) -> bool:
     # TODO: This was taken as is from the original code, so some refactoring would still be necessary.
     rear_vehicles, front_vehicles = scenario_model.get_array_closest_obstacles(
         maneuver.ego_vehicle,
-        longitudinal_range=Interval(-15, detection_range),
+        longitudinal_range=Interval(-15, detection_range),  # TODO: magic value of -15?
         relative_lateral_indices=True,
         time_step=maneuver.start_time,
     )
@@ -183,11 +193,19 @@ class EgoVehicleManeuverFilter(ABC):
 
 
 class LongEnoughManeuverFilter(EgoVehicleManeuverFilter):
+    """
+    Only select `EgoVehicleManeuver`s if the ego vehicle has a trajectory for the whole resulting scenario.
+    """
+
     def matches(self, scenario: Scenario, scenario_time_steps: int, ego_vehicle_maneuver: EgoVehicleManeuver) -> bool:
         return _does_ego_vehicle_maneuver_last_long_enough(ego_vehicle_maneuver, scenario_time_steps)
 
 
 class MinimumVelocityFilter(EgoVehicleManeuverFilter):
+    """
+    Only select `EgoVehicleManeuver`s if the ego vehicle exceeds the :param:`min_ego_velocity` at least once.
+    """
+
     def __init__(self, min_ego_velocity: float = 22 / 3.6) -> None:
         self._min_ego_velocity = min_ego_velocity
 
@@ -198,6 +216,10 @@ class MinimumVelocityFilter(EgoVehicleManeuverFilter):
 
 
 class InterestingLaneletNetworkFilter(EgoVehicleManeuverFilter):
+    """
+    Only select `EgoVehicleManauever`s that happen on 'interesting' lanelets
+    """
+
     def matches(self, scenario: Scenario, scenario_time_steps: int, ego_vehicle_maneuver: EgoVehicleManeuver) -> bool:
         return _does_ego_vehicle_maneuver_happen_on_interesting_lanelet_network(
             ego_vehicle_maneuver, scenario.lanelet_network, scenario_time_steps
@@ -205,13 +227,17 @@ class InterestingLaneletNetworkFilter(EgoVehicleManeuverFilter):
 
 
 class EnoughSurroundingVehiclesFilter(EgoVehicleManeuverFilter):
+    """
+    Only select `EgoVehicleManeuver`s if the ego vehicle has at least :param:`min_vehicles_in_range` vehicles in a range of :param:`detection_range` at least once during the maneuver.
+    """
+
     def __init__(self, detection_range: int = 30, min_vehicles_in_range: int = 1) -> None:
         self._detection_range = detection_range
         self._min_vehicles_in_range = min_vehicles_in_range
 
     def matches(self, scenario: Scenario, scenario_time_steps: int, ego_vehicle_maneuver: EgoVehicleManeuver) -> bool:
-        scenario_model = ScenarioModel(scenario, assign_vehicles_on_the_fly=False)
-        return _does_ego_vehicle_maneuver_have_enough_surrounding_vehicles(
+        scenario_model = ScenarioModel(scenario, assign_vehicles_on_the_fly=True)
+        return _does_ego_vehicle_maneuver_have_enough_surrounding_vehicles_on_adjacent_lanes_at_start_of_scenario(
             ego_vehicle_maneuver,
             scenario_model,
             detection_range=self._detection_range,

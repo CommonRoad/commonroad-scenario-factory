@@ -76,7 +76,7 @@ def pipeline_extract_osm_map(
     Returns:
         Path: Path to the extracted OSM maps.
     """
-    output_folder = ctx.get_output_folder("extracted_maps")
+    output_folder = ctx.get_temporary_folder("extracted_maps")
     # TODO: Include the bounding box in the map name, to enable efficient caching
     output_file = output_folder.joinpath(f"{city.country}_{city.name}.osm")
 

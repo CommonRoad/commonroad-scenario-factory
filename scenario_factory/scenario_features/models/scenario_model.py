@@ -44,7 +44,17 @@ class ScenarioModel:
         if self.assign_vehicles_on_the_fly is False or time_step in self.__assigned_time_steps:
             return
         else:
-            self.scenario.assign_obstacles_to_lanelets(time_steps=[time_step], use_center_only=True)
+            # Scenario.assign_obstacles_to_lanelets expectes that each obstacle has a definied state at time_step. But this is not given, therefore we must pre-filter the obstacles, so that only obstacles which have a state at time_step are also assigned to the respective lanelets.
+            obstacle_ids_to_assign = set(
+                [
+                    dynamic_obstacle.obstacle_id
+                    for dynamic_obstacle in self.scenario.dynamic_obstacles
+                    if dynamic_obstacle.state_at_time(time_step) is not None
+                ]
+            )
+            self.scenario.assign_obstacles_to_lanelets(
+                time_steps=[time_step], obstacle_ids=obstacle_ids_to_assign, use_center_only=True
+            )
 
     def get_reachable_sections_front(self, position: np.ndarray, max_distance) -> List[SectionRoute]:
         """

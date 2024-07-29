@@ -6,6 +6,7 @@ import time
 import traceback
 from contextlib import redirect_stderr, redirect_stdout
 from copy import deepcopy
+from cProfile import Profile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Generic, Iterable, Iterator, List, Optional, TypeAlias, TypeVar
@@ -19,6 +20,17 @@ from scenario_factory.scenario_config import ScenarioFactoryConfig
 _logger = logging.getLogger("scenario_factory")
 
 
+def _get_function_name(func) -> str:
+    """
+    Get a human readable name of a python function even if it is wrapped in a partial.
+    """
+    if isinstance(func, functools.partial) or isinstance(func, functools.partialmethod):
+        return func.func.__name__
+    else:
+        return func.__name__
+
+
+# Upper Type bound for arguments to pipeline steps
 class PipelineStepArguments:
     ...
 
@@ -48,11 +60,11 @@ class PipelineContext:
 
     def __init__(
         self,
-        output_path: Path,
+        base_temp_path: Path,
         scenario_config: Optional[ScenarioFactoryConfig] = None,
         sumo_config: Optional[SumoConfig] = None,
     ):
-        self._output_path = output_path
+        self._base_temp_path = base_temp_path
 
         if scenario_config is None:
             self._scenario_config = ScenarioFactoryConfig()
@@ -64,15 +76,18 @@ class PipelineContext:
         else:
             self._sumo_config = sumo_config
 
-    def get_output_folder(self, folder_name: str) -> Path:
+    def get_temporary_folder(self, folder_name: str) -> Path:
         """
-        Get the path to a folder that is guaranteed to exist.
+        Get a path to a new temporary directory, that is guaranteed to exist.
         """
-        output_folder = self._output_path.joinpath(folder_name)
-        output_folder.mkdir(parents=True, exist_ok=True)
-        return output_folder
+        temp_folder = self._base_temp_path.joinpath(folder_name)
+        temp_folder.mkdir(parents=True, exist_ok=True)
+        return temp_folder
 
     def get_sumo_config_for_scenario(self, scenario: Scenario) -> SumoConfig:
+        """
+        Derive a new SumoConfig from the internal base SumoConfig for the given scenario.
+        """
         new_sumo_config = deepcopy(self._sumo_config)
 
         new_sumo_config.scenario_name = str(scenario.scenario_id)
@@ -90,7 +105,7 @@ _PipelineMapWithArgsType: TypeAlias = Callable[
     [_PipelineStepArgumentsType, PipelineContext, _PipelineStepInputType], _PipelineStepOutputType
 ]
 
-_PipelinePopulateType: TypeAlias = Callable[[PipelineContext], Iterator[_PipelineStepOutputType]]
+_PipelinePopulateType: TypeAlias = Callable[[PipelineContext], Iterable[_PipelineStepOutputType]]
 _PipelinePopulateWithArgsType: TypeAlias = Callable[
     [_PipelineStepArgumentsType, PipelineContext], Iterator[_PipelineStepOutputType]
 ]
@@ -109,6 +124,7 @@ def pipeline_populate_with_args(func: _PipelinePopulateWithArgsType):
     def inner_wrapper(
         args: PipelineStepArguments,
     ) -> _PipelinePopulateType:
+        # This allows us to write: pipeline.pupulate(example_populate(ExamplePopulateArguments(foo=1))) i.e. partially apply the populate function with the args, while preserving type safety
         return functools.partial(func, args)
 
     return inner_wrapper
@@ -136,23 +152,17 @@ def pipeline_map(func: _PipelineMapType) -> _PipelineMapType:
     return func
 
 
-def _get_function_name(func) -> str:
-    if isinstance(func, functools.partial) or isinstance(func, functools.partialmethod):
-        return func.func.__name__
-    else:
-        return func.__name__
-
-
 def _execute_pipeline_function(
-    ctx: PipelineContext,
-    func: _PipelineMapType,
-    input: _PipelineStepInputType,
+    ctx: PipelineContext, func: _PipelineMapType, input: _PipelineStepInputType, profile: bool = False
 ) -> PipelineStepResult[_PipelineStepInputType, _PipelineStepOutputType]:
     """
     Helper function to execute a pipeline function on an arbirtary input. Will capture all output and errors.
     """
     stream = io.StringIO()
     value, error = None, None
+    if profile:
+        profiler = Profile()
+        profiler.enable()
     with redirect_stdout(stream):
         with redirect_stderr(stream):
             start_time = time.time_ns()
@@ -162,6 +172,9 @@ def _execute_pipeline_function(
                 error = traceback.format_exc()
             end_time = time.time_ns()
 
+    if profile:
+        profiler.disable()
+        profiler.print_stats(sort="cumtime")
     result: PipelineStepResult[_PipelineStepInputType, _PipelineStepOutputType] = PipelineStepResult(
         _get_function_name(func), input, value, error, stream, end_time - start_time
     )
@@ -231,20 +244,24 @@ class Pipeline:
         self._populated = True
 
     @_guard_against_unpopulated
-    def map(self, map_func: _PipelineMapType, num_processes: Optional[int] = None):
+    def map(self, map_func: _PipelineMapType, num_processes: Optional[int] = None, profile: bool = False) -> None:
         """
-        Apply map_func individually on every element of the internal state. The results of each map_func invocation are gathered and set as the new internal state of the pipeline.
+        Apply :param:`map_func` individually on every element of the internal state. The results of each map_func invocation are gathered and set as the new internal state of the pipeline.
+
+        :param map_func: The function that will be mapped on the internal pipeline state.
+        :param num_processes: If given, enables multi processing with :param:`num_processes` processes
+        :param profile: Whether the :param:`map_func` should be profiled using the python profiler
         """
         _logger.debug(f"Mapping '{_get_function_name(map_func)}' on '{self._state}'")
         # TODO: correct type annotations for results
         results: Any = []
         if num_processes is None:
-            results = map(lambda elem: _execute_pipeline_function(self._ctx, map_func, elem), self._state)
+            results = map(lambda elem: _execute_pipeline_function(self._ctx, map_func, elem, profile), self._state)
         else:
             pool = Pool(
                 processes=num_processes,
             )
-            input = [(self._ctx, map_func, stack_elem) for stack_elem in self._state]
+            input = [(self._ctx, map_func, stack_elem, profile) for stack_elem in self._state]
             results = pool.starmap(_execute_pipeline_function, input)
 
         results_iter, state_iter = itertools.tee(results)
@@ -283,6 +300,10 @@ class Pipeline:
         if not isinstance(self._state, list):
             self._state = list(self._state)
         return self._state
+
+    @_guard_against_unpopulated
+    def evaluate(self):
+        self._state = list(self._state)
 
 
 __all__ = [
