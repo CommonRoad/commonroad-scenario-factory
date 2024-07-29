@@ -15,8 +15,6 @@ commonroad-labeling = { git = "git@gitlab.lrz.de:cps/commonroad/automatic-scenar
 sumocr = "^2024.1"
 osmium = ">=2.16.0"
 pyproj = "^3.6.1"
-click = "^8.1.7"
-multiprocess = "^0.70.16"
 iso3166 = "^2.0"
 libsumo = "^1.19"
 pandas = "^2.0"
