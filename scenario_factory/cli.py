@@ -100,8 +100,8 @@ def generate(cities: str, coords: str, output: str, maps: str, radius: float, se
     pipeline.map(pipeline_verify_and_repair_commonroad_scenario)
     pipeline.map(pipeline_extract_intersections)
     pipeline.reduce(pipeline_flatten)
-    pipeline.map(pipeline_add_metadata_to_scenario)
     root_logger.info(f"Found {len(pipeline.state)} interesting intersections")
+    pipeline.map(pipeline_add_metadata_to_scenario)
     pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario, num_processes=16)
     pipeline.reduce(pipeline_flatten)
     pipeline.map(pipeline_simulate_scenario, num_processes=16)
@@ -113,8 +113,8 @@ def generate(cities: str, coords: str, output: str, maps: str, radius: float, se
         num_processes=16,
     )
     pipeline.reduce(pipeline_flatten)
-    root_logger.info(f"Successfully generated {len(pipeline.state)} scenarios")
     pipeline.map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
+    root_logger.info(f"Successfully generated {len(pipeline.state)} scenarios")
     pipeline.report_results()
 
     if len(pipeline.errors) == 0:

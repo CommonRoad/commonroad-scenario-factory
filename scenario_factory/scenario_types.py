@@ -93,16 +93,25 @@ class EgoScenarioWithPlanningProblemSet(EgoScenario):
     def write(self, output_path: Path) -> Path:
         file_path = output_path.joinpath(f"{self.scenario.scenario_id}.cr.xml")
 
-        # Initialize the metadata. Defaults are not assigned to the scenario, because it should not be overwritten...
-        author = "scenario-factory" if self.scenario.author is None else self.scenario.author
-        affiliation = "TUM" if self.scenario.affiliation is None else self.scenario.affiliation
-        source = "scenario-factory" if self.scenario.source is None else self.scenario.source
+        # Metadata must be set on the scenario, otherwise we refuse to write
+        if self.scenario.author is None:
+            raise ValueError(
+                f"Cannot write scenario '{self.scenario.scenario_id}' to file, because metadata is missing: Author of scenario is not set"
+            )
+        if self.scenario.affiliation is None:
+            raise ValueError(
+                f"Cannot write scenario '{self.scenario.scenario_id}' to file, because metadata is missing: Affiliation for author of scenario is not set"
+            )
+        if self.scenario.source is None:
+            raise ValueError(
+                f"Cannot write scenario '{self.scenario.scenario_id}' to file, because metadata is missing: source of scenario is not set"
+            )
         tags = set() if self.scenario.tags is None else self.scenario.tags
 
         logger.debug(f"Writing scenario {self.scenario.scenario_id} with its planning problem set to {file_path}")
-        CommonRoadFileWriter(
-            self.scenario, self.planning_problem_set, author=author, affiliation=affiliation, source=source, tags=tags
-        ).write_to_file(str(file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS, check_validity=True)
+        CommonRoadFileWriter(self.scenario, self.planning_problem_set, tags=tags).write_to_file(
+            str(file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS, check_validity=True
+        )
         return file_path
 
 

@@ -62,4 +62,9 @@ def pipeline_add_metadata_to_scenario(ctx: PipelineContext, scenario: Scenario) 
     scenario.affiliation = scenario_factory_config.affiliation
     scenario.source = scenario_factory_config.source
 
+    if not isinstance(scenario.tags, set):
+        scenario.tags = set()
+
+    scenario.tags.update(scenario_factory_config.tags)
+
     return scenario
