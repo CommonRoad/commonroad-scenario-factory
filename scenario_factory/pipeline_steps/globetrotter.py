@@ -3,10 +3,8 @@ __all__ = [
     "pipeline_extract_osm_map",
     "pipeline_convert_osm_map_to_commonroad_scenario",
     "pipeline_extract_intersections",
-    "LoadCitiesFromCsvArguments",
-    "pipeline_load_plain_cities_from_csv",
-    "ComputeBoundingBoxForCityArguments",
-    "pipeline_compute_bounding_box_for_city",
+    "LoadRegionsFromCsvArguments",
+    "pipeline_load_regions_from_csv",
 ]
 
 from dataclasses import dataclass
@@ -16,14 +14,13 @@ from typing import Iterator, List
 from commonroad.scenario.scenario import Scenario
 
 from scenario_factory.globetrotter import (
-    BoundedCity,
-    PlainCity,
-    compute_bounding_box_for_city,
+    RegionMetadata,
     convert_osm_file_to_commonroad_scenario,
-    extract_bounding_box_from_osm_map,
     extract_intersections_from_scenario,
-    load_plain_cities_from_csv,
+    load_regions_from_csv,
 )
+from scenario_factory.globetrotter.osm import MapProvider, verify_and_repair_commonroad_scenario
+from scenario_factory.globetrotter.region import BoundingBox
 from scenario_factory.pipeline import (
     PipelineContext,
     PipelineStepArguments,
@@ -34,58 +31,46 @@ from scenario_factory.pipeline import (
 
 
 @dataclass
-class LoadCitiesFromCsvArguments(PipelineStepArguments):
-    cities_path: Path
+class LoadRegionsFromCsvArguments(PipelineStepArguments):
+    regions_path: Path
 
 
 @pipeline_populate_with_args
-def pipeline_load_plain_cities_from_csv(args: LoadCitiesFromCsvArguments, ctx: PipelineContext) -> Iterator[PlainCity]:
-    yield from load_plain_cities_from_csv(args.cities_path)
-
-
-@dataclass
-class ComputeBoundingBoxForCityArguments(PipelineStepArguments):
-    radius: float
-
-
-@pipeline_map_with_args
-def pipeline_compute_bounding_box_for_city(
-    args: ComputeBoundingBoxForCityArguments,
-    ctx: PipelineContext,
-    city: PlainCity,
-) -> BoundedCity:
-    return compute_bounding_box_for_city(city, args.radius)
+def pipeline_load_regions_from_csv(args: LoadRegionsFromCsvArguments, ctx: PipelineContext) -> Iterator[RegionMetadata]:
+    yield from load_regions_from_csv(args.regions_path)
 
 
 @dataclass
 class ExtractOsmMapArguments(PipelineStepArguments):
-    input_maps_folder: Path
-    overwrite: bool
+    map_provider: MapProvider
+    radius: float
 
 
 @pipeline_map_with_args
 def pipeline_extract_osm_map(
     args: ExtractOsmMapArguments,
     ctx: PipelineContext,
-    city: BoundedCity,
+    region: RegionMetadata,
 ) -> Path:
     """
-    Args:
-        city (BoundedCity): The city for which the map should be extracted.
-
-    Returns:
-        Path: Path to the extracted OSM maps.
+    :param region: The region for which the map should be extracted.
+    :returns: Path to the extracted OSM maps.
     """
     output_folder = ctx.get_temporary_folder("extracted_maps")
-    # TODO: Include the bounding box in the map name, to enable efficient caching
-    output_file = output_folder.joinpath(f"{city.country}_{city.name}.osm")
-
-    return extract_bounding_box_from_osm_map(city, output_file, args.input_maps_folder, args.overwrite)
+    bounding_box = BoundingBox.from_coordinates(region.coordinates, args.radius)
+    return args.map_provider.get_map(region, bounding_box, output_folder)
 
 
 @pipeline_map
 def pipeline_convert_osm_map_to_commonroad_scenario(ctx: PipelineContext, osm_file: Path) -> Scenario:
     scenario = convert_osm_file_to_commonroad_scenario(osm_file)
+    return scenario
+
+
+@pipeline_map
+def pipeline_verify_and_repair_commonroad_scenario(ctx: PipelineContext, scenario: Scenario) -> Scenario:
+    verify_and_repair_commonroad_scenario(scenario)
+    # Repair happens in place, so we simply pass the input scenario down the pipeline
     return scenario
 
 

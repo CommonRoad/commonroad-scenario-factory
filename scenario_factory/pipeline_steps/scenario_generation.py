@@ -1,3 +1,10 @@
+__all__ = [
+    "pipeline_create_sumo_configuration_for_commonroad_scenario",
+    "pipeline_simulate_scenario",
+    "GenerateCommonRoadScenariosArguments",
+    "pipeline_generate_ego_scenarios",
+]
+
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -55,11 +62,3 @@ def pipeline_generate_ego_scenarios(
         create_noninteractive=args.create_noninteractive,
         create_interactive=args.create_interactive,
     )
-
-
-__all__ = [
-    "pipeline_create_sumo_configuration_for_commonroad_scenario",
-    "pipeline_simulate_scenario",
-    "GenerateCommonRoadScenariosArguments",
-    "pipeline_generate_ego_scenarios",
-]
