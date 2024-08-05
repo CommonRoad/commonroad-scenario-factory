@@ -3,6 +3,7 @@ __all__ = [
     "pipeline_simulate_scenario",
     "GenerateCommonRoadScenariosArguments",
     "pipeline_generate_ego_scenarios",
+    "pipeline_assign_tags_to_scenario",
 ]
 
 from dataclasses import dataclass
@@ -17,6 +18,7 @@ from scenario_factory.generate_senarios import (
 )
 from scenario_factory.pipeline import PipelineContext, PipelineStepArguments, pipeline_map, pipeline_map_with_args
 from scenario_factory.scenario_types import EgoScenarioWithPlanningProblemSet, SimulatedScenario, SumoScenario
+from scenario_factory.tags import find_applicable_tags_for_scenario
 
 
 @pipeline_map
@@ -62,3 +64,16 @@ def pipeline_generate_ego_scenarios(
         create_noninteractive=args.create_noninteractive,
         create_interactive=args.create_interactive,
     )
+
+
+@pipeline_map
+def pipeline_assign_tags_to_scenario(
+    ctx: PipelineContext, ego_scenario: EgoScenarioWithPlanningProblemSet
+) -> EgoScenarioWithPlanningProblemSet:
+    tags = find_applicable_tags_for_scenario(ego_scenario.scenario)
+    if ego_scenario.scenario.tags is None:
+        ego_scenario.scenario.tags = tags
+    else:
+        ego_scenario.scenario.tags.update(tags)
+
+    return ego_scenario

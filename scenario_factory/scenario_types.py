@@ -93,12 +93,10 @@ class EgoScenarioWithPlanningProblemSet(EgoScenario):
     def write(self, output_path: Path) -> Path:
         file_path = output_path.joinpath(f"{self.scenario.scenario_id}.cr.xml")
         logger.debug(f"Writing scenario {self.scenario.scenario_id} with its planning problem set to {file_path}")
+        tags = self.scenario.tags if self.scenario.tags is not None else set()
+        # TODO: Properly populate the metadata of the resulting scenarios
         CommonRoadFileWriter(
-            self.scenario,
-            self.planning_problem_set,
-            author="test",
-            affiliation="test",
-            source="test",
+            self.scenario, self.planning_problem_set, author="test", affiliation="test", source="test", tags=tags
         ).write_to_file(str(file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS)
         return file_path
 

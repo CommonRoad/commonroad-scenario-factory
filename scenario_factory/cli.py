@@ -26,6 +26,7 @@ from scenario_factory.pipeline_steps import (
     pipeline_write_scenario_to_file,
 )
 from scenario_factory.pipeline_steps.globetrotter import pipeline_verify_and_repair_commonroad_scenario
+from scenario_factory.pipeline_steps.scenario_generation import pipeline_assign_tags_to_scenario
 from scenario_factory.pipeline_steps.utils import WriteScenarioToFileArguments
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 
@@ -113,7 +114,9 @@ def generate(cities: str, coords: str, output: str, maps: str, radius: float, se
     )
     pipeline.reduce(pipeline_flatten)
     root_logger.info(f"Successfully generated {len(pipeline.state)} scenarios")
+    pipeline.map(pipeline_assign_tags_to_scenario)
     pipeline.map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
+    root_logger.info(f"Successfully generated {len(pipeline.state)} scenarios")
     pipeline.report_results()
 
     if len(pipeline.errors) == 0:
