@@ -17,7 +17,7 @@ from commonroad.geometry.shape import Rectangle
 from commonroad.planning.goal import GoalRegion
 from commonroad.planning.planning_problem import PlanningProblem, PlanningProblemSet
 from commonroad.prediction.prediction import TrajectoryPrediction
-from commonroad.scenario.scenario import DynamicObstacle, Scenario
+from commonroad.scenario.scenario import DynamicObstacle, Scenario, Tag
 from commonroad.scenario.state import InitialState, PMState, TraceState
 from commonroad.scenario.trajectory import Trajectory
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
@@ -130,6 +130,10 @@ def simulate_commonroad_scenario(sumo_scenario: SumoScenario, sumo_config: SumoC
     sumo_sim.stop()
 
     scenario = sumo_sim.commonroad_scenarios_all_time_steps()
+    if scenario.tags is None:
+        scenario.tags = {Tag.SIMULATED}
+    else:
+        scenario.tags.add(Tag.SIMULATED)
 
     # This is ugly as we have to directly access the internals of the SUMO simulation. But for interactive scenarios, we need the internal ID mapping, as we need to mark the ego vehicle in the SUMO files. So there is currently no way around this...
     id_mapping = dict()

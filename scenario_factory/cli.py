@@ -15,6 +15,9 @@ from scenario_factory.pipeline_steps import (
     ExtractOsmMapArguments,
     GenerateCommonRoadScenariosArguments,
     LoadRegionsFromCsvArguments,
+    WriteScenarioToFileArguments,
+    pipeline_add_metadata_to_scenario,
+    pipeline_assign_tags_to_scenario,
     pipeline_convert_osm_map_to_commonroad_scenario,
     pipeline_create_sumo_configuration_for_commonroad_scenario,
     pipeline_extract_intersections,
@@ -26,7 +29,6 @@ from scenario_factory.pipeline_steps import (
     pipeline_verify_and_repair_commonroad_scenario,
     pipeline_write_scenario_to_file,
 )
-from scenario_factory.pipeline_steps.utils import WriteScenarioToFileArguments, pipeline_add_metadata_to_scenario
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 
 
@@ -113,6 +115,8 @@ def generate(cities: str, coords: str, output: str, maps: str, radius: float, se
         num_processes=16,
     )
     pipeline.reduce(pipeline_flatten)
+    root_logger.info(f"Successfully generated {len(pipeline.state)} scenarios")
+    pipeline.map(pipeline_assign_tags_to_scenario)
     pipeline.map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
     root_logger.info(f"Successfully generated {len(pipeline.state)} scenarios")
     pipeline.report_results()

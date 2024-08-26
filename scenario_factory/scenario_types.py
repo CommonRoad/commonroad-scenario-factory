@@ -91,6 +91,9 @@ class EgoScenarioWithPlanningProblemSet(EgoScenario):
         )
 
     def write(self, output_path: Path) -> Path:
+        """
+        Write the CommonRoad scenario and its planning problem
+        """
         file_path = output_path.joinpath(f"{self.scenario.scenario_id}.cr.xml")
 
         # Metadata must be set on the scenario, otherwise we refuse to write
@@ -109,6 +112,7 @@ class EgoScenarioWithPlanningProblemSet(EgoScenario):
         tags = set() if self.scenario.tags is None else self.scenario.tags
 
         logger.debug(f"Writing scenario {self.scenario.scenario_id} with its planning problem set to {file_path}")
+
         CommonRoadFileWriter(self.scenario, self.planning_problem_set, tags=tags).write_to_file(
             str(file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS, check_validity=True
         )

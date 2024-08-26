@@ -44,9 +44,9 @@ def pipeline_write_scenario_to_file(
         return scenario.write(args.output_folder)
     elif isinstance(scenario, Scenario):
         file_path = args.output_folder.joinpath(f"{scenario.scenario_id}.cr.xml")
-        CommonRoadFileWriter(
-            scenario, None, author="test", affiliation="test", source="test", tags=set()
-        ).write_scenario_to_file(str(file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS)
+        CommonRoadFileWriter(scenario, None).write_scenario_to_file(
+            str(file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS
+        )
         return file_path
     return None
 
