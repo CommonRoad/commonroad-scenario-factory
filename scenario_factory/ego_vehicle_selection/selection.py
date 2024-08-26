@@ -16,7 +16,7 @@ from scenario_factory.ego_vehicle_selection.maneuver import EgoVehicleManeuver
 logger = logging.getLogger(__name__)
 
 
-def _find_ego_vehicle_maneuvers_in_scenario(
+def find_ego_vehicle_maneuvers_in_scenario(
     scenario: Scenario, criterions: Sequence[EgoVehicleSelectionCriterion]
 ) -> List[EgoVehicleManeuver]:
     possible_ego_vehicles = filter(
@@ -102,7 +102,7 @@ def _select_most_interesting_maneuver(
     return current_best_maneuver
 
 
-def _select_one_maneuver_per_ego_vehicle(
+def select_one_maneuver_per_ego_vehicle(
     scenario: Scenario, maneuvers: Sequence[EgoVehicleManeuver], detection_range: int
 ) -> List[EgoVehicleManeuver]:
     maneuvers_per_ego_vehicle = defaultdict(list)
@@ -122,7 +122,7 @@ def select_interesting_ego_vehicle_maneuvers_from_scenario(
     scenario_time_steps: int,
     sensor_range: int,
 ) -> List[EgoVehicleManeuver]:
-    ego_vehicle_maneuvers = _find_ego_vehicle_maneuvers_in_scenario(scenario, criterions)
+    ego_vehicle_maneuvers = find_ego_vehicle_maneuvers_in_scenario(scenario, criterions)
     filtered_ego_vehicle_maneuvers = _filter_ego_vehicle_maneuvers_in_scenario(
         scenario,
         scenario_time_steps,
@@ -130,7 +130,7 @@ def select_interesting_ego_vehicle_maneuvers_from_scenario(
         ego_vehicle_maneuvers,
     )
 
-    most_interesting_maneuvers = _select_one_maneuver_per_ego_vehicle(
+    most_interesting_maneuvers = select_one_maneuver_per_ego_vehicle(
         scenario, filtered_ego_vehicle_maneuvers, sensor_range
     )
 

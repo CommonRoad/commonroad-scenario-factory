@@ -4,6 +4,7 @@ __all__ = [
     "pipeline_write_scenario_to_file",
     "WriteScenarioToFileArguments",
     "pipeline_add_metadata_to_scenario",
+    "pipeline_assign_tags_to_scenario",
     # City I/O and Bounding Box computations
     "LoadRegionsFromCsvArguments",
     "pipeline_load_regions_from_csv",
@@ -18,8 +19,7 @@ __all__ = [
     "pipeline_simulate_scenario_with_sumo",
     # Ego Scenario Generation
     "GenerateCommonRoadScenariosArguments",
-    "pipeline_generate_ego_scenarios",
-    "pipeline_assign_tags_to_scenario",
+    "pipeline_generate_scenario_for_ego_vehicle_maneuver",
 ]
 
 from .globetrotter import (
@@ -33,13 +33,13 @@ from .globetrotter import (
 )
 from .scenario_generation import (
     GenerateCommonRoadScenariosArguments,
-    pipeline_assign_tags_to_scenario,
-    pipeline_generate_ego_scenarios,
+    pipeline_generate_scenario_for_ego_vehicle_maneuver,
     pipeline_simulate_scenario_with_sumo,
 )
 from .utils import (
     WriteScenarioToFileArguments,
     pipeline_add_metadata_to_scenario,
+    pipeline_assign_tags_to_scenario,
     pipeline_flatten,
     pipeline_write_scenario_to_file,
 )

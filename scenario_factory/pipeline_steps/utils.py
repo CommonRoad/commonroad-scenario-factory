@@ -7,13 +7,14 @@ __all__ = [
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Optional, TypeVar, Union
+from typing import Iterable, TypeVar
 
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
-from commonroad.scenario.scenario import Scenario
+from commonroad.planning.planning_problem import PlanningProblemSet
 
 from scenario_factory.pipeline import PipelineContext, PipelineStepArguments, pipeline_map, pipeline_map_with_args
-from scenario_factory.scenario_types import EgoScenarioWithPlanningProblemSet
+from scenario_factory.scenario_types import ScenarioContainer, ScenarioWithPlanningProblemSet
+from scenario_factory.tags import find_applicable_tags_for_scenario
 
 _T = TypeVar("_T")
 
@@ -38,33 +39,64 @@ class WriteScenarioToFileArguments(PipelineStepArguments):
 def pipeline_write_scenario_to_file(
     args: WriteScenarioToFileArguments,
     ctx: PipelineContext,
-    scenario: Union[EgoScenarioWithPlanningProblemSet, Scenario],
-) -> Optional[Path]:
-    if isinstance(scenario, EgoScenarioWithPlanningProblemSet):
-        return scenario.write(args.output_folder)
-    elif isinstance(scenario, Scenario):
-        file_path = args.output_folder.joinpath(f"{scenario.scenario_id}.cr.xml")
-        CommonRoadFileWriter(scenario, None).write_scenario_to_file(
-            str(file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS
+    scenario_container: ScenarioContainer,
+) -> Path:
+    planning_problem_set = (
+        scenario_container.planning_problem_set
+        if isinstance(scenario_container, ScenarioWithPlanningProblemSet)
+        else PlanningProblemSet(None)
+    )
+    commonroad_scenario = scenario_container.scenario
+    # Metadata must be set on the scenario, otherwise we refuse to write
+    if commonroad_scenario.author is None:
+        raise ValueError(
+            f"Cannot write scenario '{commonroad_scenario.scenario_id}' to file, because metadata is missing: Author of scenario is not set"
         )
-        return file_path
-    return None
+    if commonroad_scenario.affiliation is None:
+        raise ValueError(
+            f"Cannot write scenario '{commonroad_scenario.scenario_id}' to file, because metadata is missing: Affiliation for author of scenario is not set"
+        )
+    if commonroad_scenario.source is None:
+        raise ValueError(
+            f"Cannot write scenario '{commonroad_scenario.scenario_id}' to file, because metadata is missing: source of scenario is not set"
+        )
+    tags = set() if commonroad_scenario.tags is None else commonroad_scenario.tags
+
+    file_path = args.output_folder.joinpath(f"{commonroad_scenario.scenario_id}.cr.xml")
+    CommonRoadFileWriter(commonroad_scenario, planning_problem_set, tags=tags).write_scenario_to_file(
+        str(file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS
+    )
+    return file_path
 
 
 @pipeline_map
-def pipeline_add_metadata_to_scenario(ctx: PipelineContext, scenario: Scenario) -> Scenario:
+def pipeline_assign_tags_to_scenario(ctx: PipelineContext, scenario_container: ScenarioContainer) -> ScenarioContainer:
+    commonroad_scenario = scenario_container.scenario
+    tags = find_applicable_tags_for_scenario(commonroad_scenario)
+    if commonroad_scenario.tags is None:
+        commonroad_scenario.tags = tags
+    else:
+        commonroad_scenario.tags.update(tags)
+
+    return scenario_container
+
+
+@pipeline_map
+def pipeline_add_metadata_to_scenario(ctx: PipelineContext, scenario_container: ScenarioContainer) -> ScenarioContainer:
     """
     Populate the metadata of the scenario with the values in the scenario factory config that is attached to the pipeline context.
     """
     scenario_factory_config = ctx.get_scenario_config()
 
-    scenario.author = scenario_factory_config.author
-    scenario.affiliation = scenario_factory_config.affiliation
-    scenario.source = scenario_factory_config.source
+    commonroad_scenario = scenario_container.scenario
 
-    if not isinstance(scenario.tags, set):
-        scenario.tags = set()
+    commonroad_scenario.author = scenario_factory_config.author
+    commonroad_scenario.affiliation = scenario_factory_config.affiliation
+    commonroad_scenario.source = scenario_factory_config.source
 
-    scenario.tags.update(scenario_factory_config.tags)
+    if not isinstance(commonroad_scenario.tags, set):
+        commonroad_scenario.tags = set()
 
-    return scenario
+    commonroad_scenario.tags.update(scenario_factory_config.tags)
+
+    return scenario_container

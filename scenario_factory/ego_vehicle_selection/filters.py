@@ -185,7 +185,7 @@ class EgoVehicleManeuverFilter(ABC):
     @abstractmethod
     def matches(self, scenario: Scenario, scenario_time_steps: int, ego_vehicle_maneuver: EgoVehicleManeuver) -> bool:
         """
-        :param scenario: The based scenario from which this ego vehicle maneuver was extracted
+        :param scenario: The base scenario from which this ego vehicle maneuver was extracted
         :param scenario_time_steps: The length of the resulting scenario. This can be used to only consider the wanted time frame in the filter
         :param ego_vehicle_maneuver: The maneuver to test
         """

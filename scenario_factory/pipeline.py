@@ -14,12 +14,13 @@ import io
 import logging
 import time
 import traceback
+import warnings
+from collections import defaultdict
 from contextlib import redirect_stderr, redirect_stdout
 from copy import deepcopy
-from cProfile import Profile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Generic, Iterable, Iterator, List, Optional, TypeAlias, TypeVar
+from typing import Any, Callable, Generic, Iterable, Iterator, List, Optional, Protocol, Sequence, TypeAlias, TypeVar
 
 from commonroad.scenario.scenario import Scenario
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
@@ -118,81 +119,113 @@ class PipelineContext:
 
 
 # Type aliases to make the function definitions more readable
-_PipelineMapType: TypeAlias = Callable[[PipelineContext, _PipelineStepInputType], _PipelineStepOutputType]
-_PipelineMapWithArgsType: TypeAlias = Callable[
+_PipelineMapFuncType: TypeAlias = Callable[[PipelineContext, _PipelineStepInputType], _PipelineStepOutputType]
+_PipelineMapFuncWithArgsType: TypeAlias = Callable[
     [_PipelineStepArgumentsType, PipelineContext, _PipelineStepInputType], _PipelineStepOutputType
 ]
 
-_PipelinePopulateType: TypeAlias = Callable[[PipelineContext], Iterable[_PipelineStepOutputType]]
-_PipelinePopulateWithArgsType: TypeAlias = Callable[
+_PipelinePopulateFuncType: TypeAlias = Callable[[PipelineContext], Iterable[_PipelineStepOutputType]]
+_PipelinePopulateFuncWithArgsType: TypeAlias = Callable[
     [_PipelineStepArgumentsType, PipelineContext], Iterator[_PipelineStepOutputType]
 ]
 
 
-def pipeline_populate(func: _PipelinePopulateType) -> _PipelinePopulateType:
+_PipelineFoldFuncType: TypeAlias = Callable[
+    [PipelineContext, Sequence[_PipelineStepInputType]], Sequence[_PipelineStepOutputType]
+]
+
+
+class PipelineFilterPredicate(Protocol):
+    def matches(self, *args, **kwargs) -> bool:
+        ...
+
+
+_PipelineFilterPredicateType = TypeVar("_PipelineFilterPredicateType", bound=PipelineFilterPredicate)
+
+_PipelineFilterFuncBaseType: TypeAlias = Callable[[PipelineContext, _PipelineStepInputType], bool]
+_PipelineFilterFuncType: TypeAlias = Callable[
+    [_PipelineFilterPredicateType, PipelineContext, _PipelineStepInputType], bool
+]
+
+
+def pipeline_populate(func: _PipelinePopulateFuncType) -> _PipelinePopulateFuncType:
     """
     Decorate a function to indicate that is used as a populate function for the pipeline.
     """
     return func
 
 
-def pipeline_populate_with_args(func: _PipelinePopulateWithArgsType):
+def pipeline_populate_with_args(func: _PipelinePopulateFuncWithArgsType):
     """Decorate a function to indicate its use as a populate function for the pipeline. This decorator will partically apply the function by setting the args parameter."""
 
     def inner_wrapper(
         args: PipelineStepArguments,
-    ) -> _PipelinePopulateType:
+    ) -> _PipelinePopulateFuncType:
         # This allows us to write: pipeline.pupulate(example_populate(ExamplePopulateArguments(foo=1))) i.e. partially apply the populate function with the args, while preserving type safety
         return functools.partial(func, args)
 
     return inner_wrapper
 
 
-def pipeline_map_with_args(
-    func: _PipelineMapWithArgsType,
-) -> Callable[[PipelineStepArguments], _PipelineMapType]:
-    """
-    Decorate a function to indicate its use as a map function for the pipeline. This decorator will partially apply the function by setting the args parameter.
-    """
-
-    def inner_wrapper(
-        args: PipelineStepArguments,
-    ) -> _PipelineMapType:
-        return functools.partial(func, args)
-
-    return inner_wrapper
-
-
-def pipeline_map(func: _PipelineMapType) -> _PipelineMapType:
+def pipeline_map(func: _PipelineMapFuncType) -> _PipelineMapFuncType:
     """
     Decorate a function to indicate that is used as a map function for the pipeline.
     """
     return func
 
 
+def pipeline_map_with_args(
+    func: _PipelineMapFuncWithArgsType,
+) -> Callable[[PipelineStepArguments], _PipelineMapFuncType]:
+    """
+    Decorate a function to indicate its use as a map function for the pipeline. This decorator will partially apply the function by setting the args parameter.
+    """
+
+    def inner_wrapper(
+        args: PipelineStepArguments,
+    ) -> _PipelineMapFuncType:
+        return functools.partial(func, args)
+
+    return inner_wrapper
+
+
+def pipeline_fold(func: _PipelineFoldFuncType) -> _PipelineFoldFuncType:
+    return func
+
+
+def pipeline_filter(func: _PipelineFilterFuncType) -> Callable[[PipelineFilterPredicate], _PipelineFilterFuncBaseType]:
+    """
+    Decorate a function to indicate that is used as a filter function for the pipeline.
+    """
+
+    def inner_wrapper(
+        filter: PipelineFilterPredicate,
+    ) -> _PipelineFilterFuncBaseType:
+        return functools.partial(func, filter)
+
+    return inner_wrapper
+
+
 def _execute_pipeline_function(
-    ctx: PipelineContext, func: _PipelineMapType, input: _PipelineStepInputType, profile: bool = False
+    ctx: PipelineContext,
+    func: Callable[[PipelineContext, _PipelineStepInputType], _PipelineStepOutputType],
+    input: _PipelineStepInputType,
 ) -> PipelineStepResult[_PipelineStepInputType, _PipelineStepOutputType]:
     """
     Helper function to execute a pipeline function on an arbirtary input. Will capture all output and errors.
     """
     stream = io.StringIO()
     value, error = None, None
-    if profile:
-        profiler = Profile()
-        profiler.enable()
     with redirect_stdout(stream):
         with redirect_stderr(stream):
-            start_time = time.time_ns()
-            try:
-                value = func(ctx, input)
-            except Exception:
-                error = traceback.format_exc()
-            end_time = time.time_ns()
+            with warnings.catch_warnings():
+                start_time = time.time_ns()
+                try:
+                    value = func(ctx, input)
+                except Exception:
+                    error = traceback.format_exc()
+                end_time = time.time_ns()
 
-    if profile:
-        profiler.disable()
-        profiler.print_stats(sort="cumtime")
     result: PipelineStepResult[_PipelineStepInputType, _PipelineStepOutputType] = PipelineStepResult(
         _get_function_name(func), input, value, error, stream, end_time - start_time
     )
@@ -213,13 +246,15 @@ class Pipeline:
     Generic pipeline that can apply map or reduce functions on an internal state. This pipeline enables easier orchestration of functions, by centralizing the executing of individual steps and following a functional paradigm.
     """
 
-    _state: List
+    _state: Sequence
 
-    def __init__(self, ctx: PipelineContext):
+    def __init__(self, ctx: PipelineContext, num_processes: int = 1):
         self._ctx = ctx
         self._results: List[PipelineStepResult] = []
 
         self._populated = False
+
+        self._pool = Pool(processes=num_processes)
 
     @staticmethod
     def _guard_against_unpopulated(guarded_method):
@@ -237,7 +272,7 @@ class Pipeline:
 
     def populate(
         self,
-        populate_func: _PipelinePopulateType,
+        populate_func: _PipelinePopulateFuncType,
     ):
         """
         Populates the internal state with the result from the populate_func.
@@ -264,8 +299,8 @@ class Pipeline:
     @_guard_against_unpopulated
     def map(
         self,
-        map_func: _PipelineMapType,
-        num_processes: Optional[int] = None,
+        map_func: _PipelineMapFuncType,
+        parallelize: bool = False,
         profile: bool = False,
         auto_flatten: bool = True,
     ) -> None:
@@ -273,19 +308,16 @@ class Pipeline:
         Apply :param:`map_func` individually on every element of the internal state. The results of each map_func invocation are gathered and set as the new internal state of the pipeline.
 
         :param map_func: The function that will be mapped on the internal pipeline state.
-        :param num_processes: If given, enables multi processing with :param:`num_processes` processes
-        :param profile: Whether the :param:`map_func` should be profiled using the python profiler
+        :param parallelize: Whether the :param:`map_func` should be executed in parallel using the pipelines internal process pool.
+        w:param auto_flatten: Whether the new state should be automatically flatten or not.
         """
         _logger.debug(f"Mapping '{_get_function_name(map_func)}' on '{self._state}'")
         results: List[PipelineStepResult[Any, Any]] = []
-        if num_processes is None:
-            results = [_execute_pipeline_function(self._ctx, map_func, elem, profile) for elem in self._state]
+        if parallelize:
+            input = [(self._ctx, map_func, stack_elem) for stack_elem in self._state]
+            results = self._pool.starmap(_execute_pipeline_function, input)
         else:
-            pool = Pool(
-                processes=num_processes,
-            )
-            input = [(self._ctx, map_func, stack_elem, profile) for stack_elem in self._state]
-            results = pool.starmap(_execute_pipeline_function, input)
+            results = [_execute_pipeline_function(self._ctx, map_func, elem) for elem in self._state]
 
         self._results.extend(results)
         new_state_possibly_nested = [result.output for result in results if result.output is not None]
@@ -296,21 +328,34 @@ class Pipeline:
             self._state = new_state_possibly_nested
 
     @_guard_against_unpopulated
-    def fold(
-        self,
-        fold_func: Callable[[PipelineContext, Iterable[_PipelineStepInputType]], Iterable[_PipelineStepOutputType]],
-    ) -> None:
+    def fold(self, fold_func: _PipelineFoldFuncType) -> None:
         """
-        Apply reduce_func on the whole internal state and set its result as the new internal state.
+        Apply fold_func on the whole internal state and set its result as the new internal state.
         """
         _logger.debug(f"Using '{_get_function_name(fold_func)}' to fold '{self._state}'")
-        self._state = list(fold_func(self._ctx, self._state))
+        result = _execute_pipeline_function(self._ctx, fold_func, self._state)
+        self._results.append(result)
+
+        if result.output is None:
+            raise RuntimeError(f"Method {_get_function_name(fold_func)} failed to to fold pipeline state")
+        self._state = result.output
+
+    @_guard_against_unpopulated
+    def filter(self, filter_func: _PipelineFilterFuncBaseType) -> None:
+        results = [_execute_pipeline_function(self._ctx, filter_func, elem) for elem in self._state]
+        self._results.extend(results)
+        self._state = [result.input for result in results if result.output]
 
     def report_results(self):
+        cum_time_by_pipeline_step = defaultdict(lambda: 0)
         for result in self.results:
+            cum_time_by_pipeline_step[result.step] += result.exec_time
             if result.error is not None:
                 print(f"Failed to process '{result.input}' in step '{result.step}' with traceback:")
                 print(result.error)
+
+        for pipeline_step, cum_time_ns in cum_time_by_pipeline_step.items():
+            print("{:<100} {:>10}s".format(pipeline_step, round(cum_time_ns / 1000000000, 2)))
 
     @property
     def results(self) -> List[PipelineStepResult]:

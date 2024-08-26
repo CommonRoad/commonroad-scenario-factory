@@ -9,6 +9,7 @@ import click
 import numpy as np
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
 
+from scenario_factory.globetrotter.filter import NoTrafficLightsFilter
 from scenario_factory.globetrotter.osm import LocalFileMapProvider, MapProvider, OsmApiMapProvider
 from scenario_factory.globetrotter.region import Coordinates, RegionMetadata
 from scenario_factory.pipeline import Pipeline, PipelineContext
@@ -22,11 +23,17 @@ from scenario_factory.pipeline_steps import (
     pipeline_convert_osm_map_to_commonroad_scenario,
     pipeline_extract_intersections,
     pipeline_extract_osm_map,
-    pipeline_generate_ego_scenarios,
     pipeline_load_regions_from_csv,
     pipeline_simulate_scenario_with_sumo,
     pipeline_verify_and_repair_commonroad_scenario,
     pipeline_write_scenario_to_file,
+)
+from scenario_factory.pipeline_steps.globetrotter import pipeline_filter_lanelet_network
+from scenario_factory.pipeline_steps.scenario_generation import (
+    FindEgoVehicleManeuversArguments,
+    pipeline_filter_ego_vehicle_maneuver,
+    pipeline_find_ego_vehicle_maneuvers,
+    pipeline_generate_scenario_for_ego_vehicle_maneuver,
 )
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 
@@ -88,7 +95,7 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
 
     temp_dir = Path(tempfile.mkdtemp())
     ctx = PipelineContext(temp_dir, scenario_config=scenario_config, sumo_config=sumo_config)
-    pipeline = Pipeline(ctx)
+    pipeline = Pipeline(ctx, num_processes=16)
     if coords is not None:
         coordinates = Coordinates.from_str(coords)
         region = RegionMetadata.from_coordinates(coordinates)
@@ -100,14 +107,17 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
     pipeline.map(pipeline_convert_osm_map_to_commonroad_scenario)
     pipeline.map(pipeline_verify_and_repair_commonroad_scenario)
     pipeline.map(pipeline_extract_intersections)
+    pipeline.filter(pipeline_filter_lanelet_network(NoTrafficLightsFilter()))
     root_logger.info(f"Found {pipeline.size} interesting intersections")
     pipeline.map(pipeline_add_metadata_to_scenario)
-    pipeline.map(pipeline_simulate_scenario_with_sumo, num_processes=16)
+    pipeline.map(pipeline_simulate_scenario_with_sumo, parallelize=True)
     root_logger.info("Generating ego scenarios from simulated scenarios")
     pipeline.map(
-        pipeline_generate_ego_scenarios(GenerateCommonRoadScenariosArguments()),
-        num_processes=16,
+        pipeline_find_ego_vehicle_maneuvers(FindEgoVehicleManeuversArguments(criterions=scenario_config.criterions)),
     )
+    for filter in scenario_config.filters:
+        pipeline.filter(pipeline_filter_ego_vehicle_maneuver(filter))
+    pipeline.map(pipeline_generate_scenario_for_ego_vehicle_maneuver(GenerateCommonRoadScenariosArguments()))
     pipeline.map(pipeline_assign_tags_to_scenario)
     pipeline.map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
     root_logger.info(f"Successfully generated {pipeline.size} scenarios")
