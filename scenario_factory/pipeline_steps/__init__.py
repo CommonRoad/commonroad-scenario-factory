@@ -15,8 +15,7 @@ __all__ = [
     "pipeline_extract_intersections",
     "pipeline_verify_and_repair_commonroad_scenario",
     # SUMO
-    "pipeline_create_sumo_configuration_for_commonroad_scenario",
-    "pipeline_simulate_scenario",
+    "pipeline_simulate_scenario_with_sumo",
     # Ego Scenario Generation
     "GenerateCommonRoadScenariosArguments",
     "pipeline_generate_ego_scenarios",
@@ -35,9 +34,8 @@ from .globetrotter import (
 from .scenario_generation import (
     GenerateCommonRoadScenariosArguments,
     pipeline_assign_tags_to_scenario,
-    pipeline_create_sumo_configuration_for_commonroad_scenario,
     pipeline_generate_ego_scenarios,
-    pipeline_simulate_scenario,
+    pipeline_simulate_scenario_with_sumo,
 )
 from .utils import (
     WriteScenarioToFileArguments,

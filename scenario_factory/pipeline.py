@@ -1,6 +1,16 @@
+__all__ = [
+    "Pipeline",
+    "PipelineStepArguments",
+    "PipelineContext",
+    "PipelineStepResult",
+    "EmptyPipelineError",
+    "pipeline_map",
+    "pipeline_map_with_args",
+    "pipeline_populate_with_args",
+]
+
 import functools
 import io
-import itertools
 import logging
 import time
 import traceback
@@ -18,6 +28,14 @@ from multiprocess import Pool
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 
 _logger = logging.getLogger("scenario_factory")
+
+
+def _flatten_iterable(xss: Iterable[Iterable[Any]]) -> Iterable[Any]:
+    for xs in xss:
+        if not isinstance(xs, Iterable):
+            yield xs
+        else:
+            yield from xs
 
 
 def _get_function_name(func) -> str:
@@ -195,11 +213,11 @@ class Pipeline:
     Generic pipeline that can apply map or reduce functions on an internal state. This pipeline enables easier orchestration of functions, by centralizing the executing of individual steps and following a functional paradigm.
     """
 
-    _state: Iterable
+    _state: List
 
     def __init__(self, ctx: PipelineContext):
         self._ctx = ctx
-        self._results: Iterable[PipelineStepResult] = []
+        self._results: List[PipelineStepResult] = []
 
         self._populated = False
 
@@ -240,11 +258,17 @@ class Pipeline:
                 f"Could not populate pipeline: The populate function {populate_func.__name__} did not produce a value."
             )
 
-        self._state = new_state
+        self._state = list(new_state)
         self._populated = True
 
     @_guard_against_unpopulated
-    def map(self, map_func: _PipelineMapType, num_processes: Optional[int] = None, profile: bool = False) -> None:
+    def map(
+        self,
+        map_func: _PipelineMapType,
+        num_processes: Optional[int] = None,
+        profile: bool = False,
+        auto_flatten: bool = True,
+    ) -> None:
         """
         Apply :param:`map_func` individually on every element of the internal state. The results of each map_func invocation are gathered and set as the new internal state of the pipeline.
 
@@ -253,10 +277,9 @@ class Pipeline:
         :param profile: Whether the :param:`map_func` should be profiled using the python profiler
         """
         _logger.debug(f"Mapping '{_get_function_name(map_func)}' on '{self._state}'")
-        # TODO: correct type annotations for results
-        results: Any = []
+        results: List[PipelineStepResult[Any, Any]] = []
         if num_processes is None:
-            results = map(lambda elem: _execute_pipeline_function(self._ctx, map_func, elem, profile), self._state)
+            results = [_execute_pipeline_function(self._ctx, map_func, elem, profile) for elem in self._state]
         else:
             pool = Pool(
                 processes=num_processes,
@@ -264,20 +287,24 @@ class Pipeline:
             input = [(self._ctx, map_func, stack_elem, profile) for stack_elem in self._state]
             results = pool.starmap(_execute_pipeline_function, input)
 
-        results_iter, state_iter = itertools.tee(results)
-        self._results = itertools.chain(self._results, results_iter)
-        self._state = map(lambda result: result.output, filter(lambda result: result.output is not None, state_iter))
+        self._results.extend(results)
+        new_state_possibly_nested = [result.output for result in results if result.output is not None]
+
+        if auto_flatten:
+            self._state = list(_flatten_iterable(new_state_possibly_nested))
+        else:
+            self._state = new_state_possibly_nested
 
     @_guard_against_unpopulated
-    def reduce(
+    def fold(
         self,
-        reduce_func: Callable[[PipelineContext, Iterable[_PipelineStepInputType]], Iterable[_PipelineStepOutputType]],
-    ):
+        fold_func: Callable[[PipelineContext, Iterable[_PipelineStepInputType]], Iterable[_PipelineStepOutputType]],
+    ) -> None:
         """
         Apply reduce_func on the whole internal state and set its result as the new internal state.
         """
-        _logger.debug(f"Using '{_get_function_name(reduce_func)}' to reduce '{self._state}'")
-        self._state = reduce_func(self._ctx, self._state)
+        _logger.debug(f"Using '{_get_function_name(fold_func)}' to fold '{self._state}'")
+        self._state = list(fold_func(self._ctx, self._state))
 
     def report_results(self):
         for result in self.results:
@@ -287,8 +314,6 @@ class Pipeline:
 
     @property
     def results(self) -> List[PipelineStepResult]:
-        if not isinstance(self._results, list):
-            self._results = list(self._results)
         return self._results
 
     @property
@@ -297,22 +322,8 @@ class Pipeline:
 
     @property
     def state(self):
-        if not isinstance(self._state, list):
-            self._state = list(self._state)
         return self._state
 
-    @_guard_against_unpopulated
-    def evaluate(self):
-        self._state = list(self._state)
-
-
-__all__ = [
-    "Pipeline",
-    "PipelineStepArguments",
-    "PipelineContext",
-    "PipelineStepResult",
-    "EmptyPipelineError",
-    "pipeline_map",
-    "pipeline_map_with_args",
-    "pipeline_populate_with_args",
-]
+    @property
+    def size(self):
+        return len(self._state)

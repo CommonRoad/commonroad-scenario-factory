@@ -17,15 +17,13 @@ def pipeline_blow_up(ctx: PipelineContext, value: int) -> Iterator[int]:
         yield value * i
 
 
-def test_pipeline_flatten_flattens_pipeline_state():
+def test_pipeline_is_automatically_flattened():
     ctx = PipelineContext(Path("."))
     pipeline = Pipeline(ctx)
 
     pipeline.populate(pipeline_simple_populate)
     assert len(pipeline.state) == 10
     pipeline.map(pipeline_blow_up)
-    assert len(pipeline.state) == 10
-    pipeline.reduce(pipeline_flatten)
     assert len(pipeline.state) == 100
     assert all(isinstance(val, int) for val in pipeline.state)
 
@@ -35,7 +33,7 @@ def test_pipeline_flatten_handles_non_nested_pipeline_state():
     pipeline = Pipeline(ctx)
 
     pipeline.populate(pipeline_simple_populate)
-    pipeline.reduce(pipeline_flatten)
+    pipeline.fold(pipeline_flatten)
     assert len(pipeline.state) == 10
 
 
@@ -44,5 +42,5 @@ def test_pipeline_flatten_handles_empty_pipeline_state():
     pipeline = Pipeline(ctx)
 
     pipeline.populate(lambda ctx: [])
-    pipeline.reduce(pipeline_flatten)
+    pipeline.fold(pipeline_flatten)
     assert len(pipeline.state) == 0

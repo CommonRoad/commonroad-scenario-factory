@@ -3,6 +3,7 @@ import random
 import shutil
 import tempfile
 from pathlib import Path
+from typing import Optional
 
 import click
 import numpy as np
@@ -19,13 +20,11 @@ from scenario_factory.pipeline_steps import (
     pipeline_add_metadata_to_scenario,
     pipeline_assign_tags_to_scenario,
     pipeline_convert_osm_map_to_commonroad_scenario,
-    pipeline_create_sumo_configuration_for_commonroad_scenario,
     pipeline_extract_intersections,
     pipeline_extract_osm_map,
-    pipeline_flatten,
     pipeline_generate_ego_scenarios,
     pipeline_load_regions_from_csv,
-    pipeline_simulate_scenario,
+    pipeline_simulate_scenario_with_sumo,
     pipeline_verify_and_repair_commonroad_scenario,
     pipeline_write_scenario_to_file,
 )
@@ -67,7 +66,7 @@ def _select_osm_map_provider(radius: float, maps_path: Path) -> MapProvider:
     "--radius", "-r", type=float, default=0.3, help="The radius in which intersections will be selected from each city"
 )
 @click.option("--seed", type=int, default=12345)
-def generate(cities: str, coords: str, output: str, maps: str, radius: float, seed: int):
+def generate(cities: str, coords: Optional[str], output: str, maps: str, radius: float, seed: int):
     output_path = Path(output)
     if not output_path.exists():
         output_path.mkdir(parents=True)
@@ -96,29 +95,22 @@ def generate(cities: str, coords: str, output: str, maps: str, radius: float, se
         pipeline.populate(lambda _: [region])
     else:
         pipeline.populate(pipeline_load_regions_from_csv(LoadRegionsFromCsvArguments(Path(cities))))
-    root_logger.info(f"Processing {len(pipeline.state)} regions")
+    root_logger.info(f"Processing {pipeline.size} regions")
     pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(map_provider, radius=radius)))
     pipeline.map(pipeline_convert_osm_map_to_commonroad_scenario)
     pipeline.map(pipeline_verify_and_repair_commonroad_scenario)
     pipeline.map(pipeline_extract_intersections)
-    pipeline.reduce(pipeline_flatten)
-    root_logger.info(f"Found {len(pipeline.state)} interesting intersections")
+    root_logger.info(f"Found {pipeline.size} interesting intersections")
     pipeline.map(pipeline_add_metadata_to_scenario)
-    pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario, num_processes=16)
-    pipeline.reduce(pipeline_flatten)
-    pipeline.map(pipeline_simulate_scenario, num_processes=16)
+    pipeline.map(pipeline_simulate_scenario_with_sumo, num_processes=16)
     root_logger.info("Generating ego scenarios from simulated scenarios")
     pipeline.map(
-        pipeline_generate_ego_scenarios(
-            GenerateCommonRoadScenariosArguments(create_noninteractive=True, create_interactive=True)
-        ),
+        pipeline_generate_ego_scenarios(GenerateCommonRoadScenariosArguments()),
         num_processes=16,
     )
-    pipeline.reduce(pipeline_flatten)
-    root_logger.info(f"Successfully generated {len(pipeline.state)} scenarios")
     pipeline.map(pipeline_assign_tags_to_scenario)
     pipeline.map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
-    root_logger.info(f"Successfully generated {len(pipeline.state)} scenarios")
+    root_logger.info(f"Successfully generated {pipeline.size} scenarios")
     pipeline.report_results()
 
     if len(pipeline.errors) == 0:
@@ -176,15 +168,14 @@ def globetrotter(cities, coords, output, maps, radius):
         pipeline.populate(lambda _: [region])
     else:
         pipeline.populate(pipeline_load_regions_from_csv(LoadRegionsFromCsvArguments(Path(cities))))
-    root_logger.info(f"Processing {len(pipeline.state)} regions")
+    root_logger.info(f"Processing {pipeline.state} regions")
     pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(map_provider, radius=radius)))
     pipeline.map(pipeline_convert_osm_map_to_commonroad_scenario)
     pipeline.map(pipeline_verify_and_repair_commonroad_scenario)
     root_logger.info("Extracted and Repaired OpenStreetMap")
     pipeline.map(pipeline_extract_intersections)
-    pipeline.reduce(pipeline_flatten)
     pipeline.map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
-    root_logger.info(f"Found {len(pipeline.state)} interesting intersections")
+    root_logger.info(f"Found {pipeline.state} interesting intersections")
     pipeline.report_results()
     shutil.rmtree(temp_dir)
 

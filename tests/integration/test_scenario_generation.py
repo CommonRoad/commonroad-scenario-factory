@@ -12,18 +12,16 @@ from scenario_factory.pipeline_steps import (
     ExtractOsmMapArguments,
     GenerateCommonRoadScenariosArguments,
     LoadRegionsFromCsvArguments,
+    pipeline_assign_tags_to_scenario,
     pipeline_convert_osm_map_to_commonroad_scenario,
-    pipeline_create_sumo_configuration_for_commonroad_scenario,
     pipeline_extract_intersections,
     pipeline_extract_osm_map,
-    pipeline_flatten,
     pipeline_generate_ego_scenarios,
     pipeline_load_regions_from_csv,
-    pipeline_simulate_scenario,
+    pipeline_simulate_scenario_with_sumo,
+    pipeline_verify_and_repair_commonroad_scenario,
 )
-from scenario_factory.pipeline_steps.globetrotter import pipeline_verify_and_repair_commonroad_scenario
-from scenario_factory.pipeline_steps.scenario_generation import pipeline_assign_tags_to_scenario
-from scenario_factory.scenario_types import NonInteractiveEgoScenario
+from scenario_factory.scenario_types import EgoScenarioWithPlanningProblemSet
 
 
 class TestScenarioGeneration:
@@ -56,19 +54,15 @@ class TestScenarioGeneration:
             pipeline.map(pipeline_convert_osm_map_to_commonroad_scenario)
             pipeline.map(pipeline_verify_and_repair_commonroad_scenario)
             pipeline.map(pipeline_extract_intersections)
-            pipeline.reduce(pipeline_flatten)
             assert len(pipeline.errors) == 0, f"Expected 0 errors, but got {len(pipeline.errors)} errors"
             assert len(pipeline.state) == 39, f"Expected 39 results, but got {len(pipeline.state)} results"
-            pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario)
-            pipeline.reduce(pipeline_flatten)
-            pipeline.map(pipeline_simulate_scenario)
+            pipeline.map(pipeline_simulate_scenario_with_sumo)
             pipeline.map(pipeline_generate_ego_scenarios(GenerateCommonRoadScenariosArguments()))
-            pipeline.reduce(pipeline_flatten)
             pipeline.map(pipeline_assign_tags_to_scenario)
 
             # Expecte that at least one result is generated. We cannot assert the exact number, because this is not deterministic
             assert len(pipeline.state) > 0
-            assert isinstance(pipeline.state[0], NonInteractiveEgoScenario)
+            assert isinstance(pipeline.state[0], EgoScenarioWithPlanningProblemSet)
 
     def test_scenario_generation_with_pipeline_creates_no_scenarios(self):
         cities_file = Path(scenario_factory.__file__).parent.parent.joinpath(
@@ -99,14 +93,10 @@ class TestScenarioGeneration:
             pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(map_provider, radius=0.1)))
             pipeline.map(pipeline_convert_osm_map_to_commonroad_scenario)
             pipeline.map(pipeline_extract_intersections)
-            pipeline.reduce(pipeline_flatten)
             assert len(pipeline.errors) == 0, f"Expected 0 errors, but got {len(pipeline.errors)} errors"
             assert len(pipeline.state) == 1, f"Expected 1 result, but got {len(pipeline.state)} results"
-            pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario)
-            pipeline.reduce(pipeline_flatten)
-            pipeline.map(pipeline_simulate_scenario)
+            pipeline.map(pipeline_simulate_scenario_with_sumo)
             pipeline.map(pipeline_generate_ego_scenarios(GenerateCommonRoadScenariosArguments()))
-            pipeline.reduce(pipeline_flatten)
             pipeline.map(pipeline_assign_tags_to_scenario)
 
             assert len(pipeline.errors) == 0, f"Expected 0 errors, but got {len(pipeline.errors)} errors"

@@ -12,13 +12,11 @@ from scenario_factory.pipeline_steps import (
     GenerateCommonRoadScenariosArguments,
     LoadRegionsFromCsvArguments,
     pipeline_convert_osm_map_to_commonroad_scenario,
-    pipeline_create_sumo_configuration_for_commonroad_scenario,
     pipeline_extract_intersections,
     pipeline_extract_osm_map,
-    pipeline_flatten,
     pipeline_generate_ego_scenarios,
     pipeline_load_regions_from_csv,
-    pipeline_simulate_scenario,
+    pipeline_simulate_scenario_with_sumo,
 )
 from scenario_factory.pipeline_steps.utils import WriteScenarioToFileArguments, pipeline_write_scenario_to_file
 
@@ -45,16 +43,10 @@ with TemporaryDirectory() as temp_dir:
     pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(local_map_provider, radius=radius)))
     pipeline.map(pipeline_convert_osm_map_to_commonroad_scenario)
     pipeline.map(pipeline_extract_intersections)
-    pipeline.reduce(pipeline_flatten)
-    pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario)
-    pipeline.reduce(pipeline_flatten)
-    pipeline.map(pipeline_simulate_scenario)
+    pipeline.map(pipeline_simulate_scenario_with_sumo)
     pipeline.map(
-        pipeline_generate_ego_scenarios(
-            GenerateCommonRoadScenariosArguments(create_noninteractive=True, create_interactive=True)
-        ),
+        pipeline_generate_ego_scenarios(GenerateCommonRoadScenariosArguments()),
         num_processes=4,
     )
-    pipeline.reduce(pipeline_flatten)
     pipeline.map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
     pipeline.report_results()

@@ -70,7 +70,7 @@ class TestPipeline:
         pipeline = Pipeline(ctx)
 
         with pytest.raises(EmptyPipelineError):
-            pipeline.reduce(pipeline_simple_reduce)
+            pipeline.fold(pipeline_simple_reduce)
 
     def test_reduce_updates_internal_state(self):
         ctx = PipelineContext(Path("."))
@@ -83,5 +83,5 @@ class TestPipeline:
 
         pipeline.populate(pipeline_simple_populate)
         pipeline.map(map_blow)
-        pipeline.reduce(pipeline_flatten)
+        pipeline.fold(pipeline_flatten)
         assert len(pipeline.state) > 0
