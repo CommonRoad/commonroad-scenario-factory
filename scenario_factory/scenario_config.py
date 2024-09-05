@@ -19,11 +19,10 @@ from scenario_factory.ego_vehicle_selection import (
 
 @dataclass
 class ScenarioFactoryConfig:
-    # Number of planning problems generated from one scenario
-    planning_pro_per_scen: int = 8
-
     # Define the goal state of the planning problem with a lanelet (if False: define with a state)
     planning_pro_with_lanelet: bool = True
+
+    simulation_steps: int = 300
 
     # scenario length (time of CR scenario -> set simulation duration in sumo_config)
     # The length of the resulting scenarios cut from the simulated scenario. As this determines "how much" will be cut from the simulated scenario, the configured simulation steps must be larger then this option.
@@ -42,12 +41,13 @@ class ScenarioFactoryConfig:
     # obstacle_id of ego vehicles when ego vehicle is exported
     default_ego_id = 8888
 
+    seed: int = 12345
+
     criterions: ClassVar[Sequence[EgoVehicleSelectionCriterion]] = [
         BrakingCriterion(),
         AccelerationCriterion(),
         TurningCriterion(),
         LaneChangeCriterion(),
-        # MergingCriterion(),
     ]
 
     # additional filters to discard uninteresting situations

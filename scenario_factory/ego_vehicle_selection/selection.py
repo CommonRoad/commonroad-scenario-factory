@@ -3,7 +3,7 @@ __all__ = ["select_interesting_ego_vehicle_maneuvers_from_scenario"]
 import functools
 import logging
 from collections import defaultdict
-from typing import List, Sequence
+from typing import Iterable, List, Sequence
 
 import numpy as np
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
@@ -12,12 +12,13 @@ from commonroad.scenario.scenario import Scenario
 from scenario_factory.ego_vehicle_selection.criterions import EgoVehicleSelectionCriterion
 from scenario_factory.ego_vehicle_selection.filters import EgoVehicleManeuverFilter
 from scenario_factory.ego_vehicle_selection.maneuver import EgoVehicleManeuver
+from scenario_factory.scenario_util import is_state_with_position
 
 logger = logging.getLogger(__name__)
 
 
 def find_ego_vehicle_maneuvers_in_scenario(
-    scenario: Scenario, criterions: Sequence[EgoVehicleSelectionCriterion]
+    scenario: Scenario, criterions: Iterable[EgoVehicleSelectionCriterion]
 ) -> List[EgoVehicleManeuver]:
     possible_ego_vehicles = filter(
         lambda obstacle: obstacle.obstacle_type == ObstacleType.CAR, scenario.dynamic_obstacles
@@ -64,6 +65,11 @@ def _get_number_of_vehicles_in_range(
         if obstacle_state is None:
             continue
 
+        if not is_state_with_position(obstacle_state):
+            raise RuntimeError(
+                f"The state {obstacle_state} of obstacle {obstacle.obstacle_id} is invalid: The position attribute is not set!"
+            )
+
         if np.linalg.norm(obstacle_state.position - position, ord=np.inf) >= detection_range:
             continue
 
@@ -89,6 +95,11 @@ def _select_most_interesting_maneuver(
         ego_vehicle_state = maneuver.ego_vehicle.state_at_time(maneuver.start_time)
         if ego_vehicle_state is None:
             continue
+
+        if not is_state_with_position(ego_vehicle_state):
+            raise RuntimeError(
+                f"The state {ego_vehicle_state} of obstacle {maneuver.ego_vehicle.obstacle_id} is invalid: The position attribute is not set!"
+            )
 
         num_vehicles = _get_number_of_vehicles_in_range(
             ego_vehicle_state.position, maneuver.start_time, scenario.dynamic_obstacles, detection_range

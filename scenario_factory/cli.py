@@ -1,49 +1,22 @@
 import logging
-import random
-import shutil
 import tempfile
 from pathlib import Path
 from typing import Optional
 
 import click
-import numpy as np
-from crdesigner.map_conversion.sumo_map.config import SumoConfig
 
-from scenario_factory.globetrotter.filter import NoTrafficLightsFilter
-from scenario_factory.globetrotter.osm import LocalFileMapProvider, MapProvider, OsmApiMapProvider
-from scenario_factory.globetrotter.region import Coordinates, RegionMetadata
-from scenario_factory.pipeline import Pipeline, PipelineContext
+from scenario_factory.globetrotter.region import Coordinates, RegionMetadata, load_regions_from_csv
+from scenario_factory.pipeline import PipelineContext
 from scenario_factory.pipeline_steps import (
-    ExtractOsmMapArguments,
-    GenerateCommonRoadScenariosArguments,
-    LoadRegionsFromCsvArguments,
     WriteScenarioToFileArguments,
     pipeline_add_metadata_to_scenario,
     pipeline_assign_tags_to_scenario,
-    pipeline_convert_osm_map_to_commonroad_scenario,
-    pipeline_extract_intersections,
-    pipeline_extract_osm_map,
-    pipeline_load_regions_from_csv,
     pipeline_simulate_scenario_with_sumo,
-    pipeline_verify_and_repair_commonroad_scenario,
     pipeline_write_scenario_to_file,
 )
-from scenario_factory.pipeline_steps.globetrotter import pipeline_filter_lanelet_network
-from scenario_factory.pipeline_steps.scenario_generation import (
-    FindEgoVehicleManeuversArguments,
-    pipeline_filter_ego_vehicle_maneuver,
-    pipeline_find_ego_vehicle_maneuvers,
-    pipeline_generate_scenario_for_ego_vehicle_maneuver,
-)
+from scenario_factory.pipelines import create_globetrotter_pipeline, create_scenario_generation_pipeline
 from scenario_factory.scenario_config import ScenarioFactoryConfig
-
-
-def _select_osm_map_provider(radius: float, maps_path: Path) -> MapProvider:
-    # radius > 0.8 would result in an error in the OsmApiMapProvider, because the OSM API limits the amount of data we can download
-    if radius > 0.8:
-        return LocalFileMapProvider(maps_path)
-    else:
-        return OsmApiMapProvider()
+from scenario_factory.utils import select_osm_map_provider
 
 
 @click.command()
@@ -77,58 +50,47 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
     output_path = Path(output)
     if not output_path.exists():
         output_path.mkdir(parents=True)
-    root_logger = logging.getLogger("scenario_factory")
+
+    root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
     root_logger.addHandler(handler)
 
-    sumo_config = SumoConfig()
-    sumo_config.simulation_steps = 300
-    sumo_config.random_seed = seed
-    sumo_config.random_seed_trip_generation = seed
-    random.seed(seed)
-    np.random.seed(seed)
+    scenario_config = ScenarioFactoryConfig(seed=seed, cr_scenario_time_steps=75, simulation_steps=600)
+    map_provider = select_osm_map_provider(radius, Path(maps))
 
-    scenario_config = ScenarioFactoryConfig(cr_scenario_time_steps=150)
-    map_provider = _select_osm_map_provider(radius, Path(maps))
+    base_pipeline = (
+        create_globetrotter_pipeline(radius, map_provider)
+        .map(pipeline_add_metadata_to_scenario)
+        .map(pipeline_simulate_scenario_with_sumo)
+    )
 
-    temp_dir = Path(tempfile.mkdtemp())
-    ctx = PipelineContext(temp_dir, scenario_config=scenario_config, sumo_config=sumo_config)
-    pipeline = Pipeline(ctx, num_processes=16)
+    scenario_generation_pipeline = create_scenario_generation_pipeline(
+        scenario_config.criterions, scenario_config.filters
+    )
+
+    pipeline = (
+        base_pipeline.chain(scenario_generation_pipeline)
+        .map(pipeline_assign_tags_to_scenario)
+        .map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
+    )
+
+    inputs = None
     if coords is not None:
         coordinates = Coordinates.from_str(coords)
         region = RegionMetadata.from_coordinates(coordinates)
-        pipeline.populate(lambda _: [region])
+        inputs = [region]
     else:
-        pipeline.populate(pipeline_load_regions_from_csv(LoadRegionsFromCsvArguments(Path(cities))))
-    root_logger.info(f"Processing {pipeline.size} regions")
-    pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(map_provider, radius=radius)))
-    pipeline.map(pipeline_convert_osm_map_to_commonroad_scenario)
-    pipeline.map(pipeline_verify_and_repair_commonroad_scenario)
-    pipeline.map(pipeline_extract_intersections)
-    pipeline.filter(pipeline_filter_lanelet_network(NoTrafficLightsFilter()))
-    root_logger.info(f"Found {pipeline.size} interesting intersections")
-    pipeline.map(pipeline_add_metadata_to_scenario)
-    pipeline.map(pipeline_simulate_scenario_with_sumo, parallelize=True)
-    root_logger.info("Generating ego scenarios from simulated scenarios")
-    pipeline.map(
-        pipeline_find_ego_vehicle_maneuvers(FindEgoVehicleManeuversArguments(criterions=scenario_config.criterions)),
-    )
-    for filter in scenario_config.filters:
-        pipeline.filter(pipeline_filter_ego_vehicle_maneuver(filter))
-    pipeline.map(pipeline_generate_scenario_for_ego_vehicle_maneuver(GenerateCommonRoadScenariosArguments()))
-    pipeline.map(pipeline_assign_tags_to_scenario)
-    pipeline.map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
-    root_logger.info(f"Successfully generated {pipeline.size} scenarios")
-    pipeline.report_results()
+        inputs = list(load_regions_from_csv(Path(cities)))
+    with tempfile.TemporaryDirectory(prefix="scenario_factory") as temp_dir:
+        ctx = PipelineContext(Path(temp_dir), scenario_factory_config=scenario_config)
+        result = pipeline.execute(inputs, ctx)
 
-    if len(pipeline.errors) == 0:
-        shutil.rmtree(temp_dir)
-    else:
-        root_logger.info(
-            f"Scenario factory encountered {len(pipeline.errors)} errors. For debugging purposes the temprorary directory at {temp_dir.absolute()} will not be removed."
-        )
+    result.print_cum_time_per_step()
+    root_logger.info(
+        "Sucessfully generated %s scenarios in %ss", len(result.values), round(result.exec_time_ns / 1000000000, 2)
+    )
 
 
 @click.command()
@@ -167,27 +129,26 @@ def globetrotter(cities, coords, output, maps, radius):
     handler.setFormatter(logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
     root_logger.addHandler(handler)
 
-    map_provider = _select_osm_map_provider(radius, Path(maps))
-
-    temp_dir = Path(tempfile.mkdtemp(prefix="scenario_factory_tmp"))
-    ctx = PipelineContext(temp_dir)
-    pipeline = Pipeline(ctx)
+    map_provider = select_osm_map_provider(radius, Path(maps))
+    globetrotter_pipeline = create_globetrotter_pipeline(radius, map_provider)
+    globetrotter_pipeline.map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
+    inputs = None
     if coords is not None:
         coordinates = Coordinates.from_str(coords)
         region = RegionMetadata.from_coordinates(coordinates)
-        pipeline.populate(lambda _: [region])
+        inputs = [region]
     else:
-        pipeline.populate(pipeline_load_regions_from_csv(LoadRegionsFromCsvArguments(Path(cities))))
-    root_logger.info(f"Processing {pipeline.state} regions")
-    pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(map_provider, radius=radius)))
-    pipeline.map(pipeline_convert_osm_map_to_commonroad_scenario)
-    pipeline.map(pipeline_verify_and_repair_commonroad_scenario)
-    root_logger.info("Extracted and Repaired OpenStreetMap")
-    pipeline.map(pipeline_extract_intersections)
-    pipeline.map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
-    root_logger.info(f"Found {pipeline.state} interesting intersections")
-    pipeline.report_results()
-    shutil.rmtree(temp_dir)
+        inputs = list(load_regions_from_csv(Path(cities)))
+
+    with tempfile.TemporaryDirectory(prefix="scenario_factory") as temp_dir:
+        ctx = PipelineContext(Path(temp_dir))
+        execution_result = globetrotter_pipeline.execute(inputs, ctx)
+
+    root_logger.info(
+        "Sucessfully extracted %s intersections in %ss",
+        len(execution_result.values),
+        round(execution_result.exec_time_ns / 1000000000, 2),
+    )
 
 
 if __name__ == "__main__":

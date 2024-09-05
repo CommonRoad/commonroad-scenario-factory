@@ -3,6 +3,7 @@ __all__ = [
     "WriteScenarioToFileArguments",
     "pipeline_write_scenario_to_file",
     "pipeline_add_metadata_to_scenario",
+    "pipeline_remove_colliding_dynamic_obstacles",
 ]
 
 from dataclasses import dataclass
@@ -12,6 +13,7 @@ from typing import Iterable, TypeVar
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
 from commonroad.planning.planning_problem import PlanningProblemSet
 
+from scenario_factory.generate_senarios import delete_colliding_obstacles_from_scenario
 from scenario_factory.pipeline import PipelineContext, PipelineStepArguments, pipeline_map, pipeline_map_with_args
 from scenario_factory.scenario_types import ScenarioContainer, ScenarioWithPlanningProblemSet
 from scenario_factory.tags import find_applicable_tags_for_scenario
@@ -35,7 +37,7 @@ class WriteScenarioToFileArguments(PipelineStepArguments):
     output_folder: Path
 
 
-@pipeline_map_with_args
+@pipeline_map_with_args()
 def pipeline_write_scenario_to_file(
     args: WriteScenarioToFileArguments,
     ctx: PipelineContext,
@@ -69,7 +71,7 @@ def pipeline_write_scenario_to_file(
     return file_path
 
 
-@pipeline_map
+@pipeline_map()
 def pipeline_assign_tags_to_scenario(ctx: PipelineContext, scenario_container: ScenarioContainer) -> ScenarioContainer:
     commonroad_scenario = scenario_container.scenario
     tags = find_applicable_tags_for_scenario(commonroad_scenario)
@@ -81,12 +83,12 @@ def pipeline_assign_tags_to_scenario(ctx: PipelineContext, scenario_container: S
     return scenario_container
 
 
-@pipeline_map
+@pipeline_map()
 def pipeline_add_metadata_to_scenario(ctx: PipelineContext, scenario_container: ScenarioContainer) -> ScenarioContainer:
     """
     Populate the metadata of the scenario with the values in the scenario factory config that is attached to the pipeline context.
     """
-    scenario_factory_config = ctx.get_scenario_config()
+    scenario_factory_config = ctx.get_scenario_factory_config()
 
     commonroad_scenario = scenario_container.scenario
 
@@ -99,4 +101,13 @@ def pipeline_add_metadata_to_scenario(ctx: PipelineContext, scenario_container: 
 
     commonroad_scenario.tags.update(scenario_factory_config.tags)
 
+    return scenario_container
+
+
+@pipeline_map()
+def pipeline_remove_colliding_dynamic_obstacles(
+    ctx: PipelineContext, scenario_container: ScenarioContainer
+) -> ScenarioContainer:
+    commonroad_scenario = scenario_container.scenario
+    delete_colliding_obstacles_from_scenario(commonroad_scenario)
     return scenario_container

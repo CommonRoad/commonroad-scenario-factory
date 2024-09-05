@@ -1,6 +1,7 @@
 import logging
 import subprocess
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -147,6 +148,20 @@ def verify_and_repair_commonroad_scenario(scenario: Scenario) -> int:
     return len(invalid_states)
 
 
+@contextmanager
+def redirect_all_undirected_log_messages(target_logger):
+    def redirect(msg):
+        target_logger.debug(msg)
+
+    info, debug, warning, error = logging.info, logging.debug, logging.warning, logging.error
+    logging.info, logging.debug, logging.warning, logging.error = redirect, redirect, redirect, redirect
+
+    try:
+        yield
+    finally:
+        logging.info, logging.debug, logging.warning, logging.error = info, debug, warning, error
+
+
 def convert_osm_file_to_commonroad_scenario(osm_file: Path) -> Scenario:
     """
     Convert an OSM file to a CommonRoad Scenario
@@ -157,9 +172,10 @@ def convert_osm_file_to_commonroad_scenario(osm_file: Path) -> Scenario:
 
     logger.debug(f"Converting OSM {osm_file} to CommonRoad Scenario")
 
-    graph = GraphScenario(str(osm_file)).graph
-    scenario, _ = create_scenario_intermediate(graph)
-    sanitize(scenario)
+    with redirect_all_undirected_log_messages(logger):
+        graph = GraphScenario(str(osm_file)).graph
+        scenario, _ = create_scenario_intermediate(graph)
+        sanitize(scenario)
 
     coordinates = Coordinates.from_tuple(graph.center_point)
     map_metadata = RegionMetadata.from_coordinates(coordinates)

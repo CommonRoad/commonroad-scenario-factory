@@ -260,18 +260,10 @@ def generate_scenario_with_planning_problem_set_for_ego_vehicle_maneuver(
     commonroad_scenario: Scenario,
     ego_vehicle_maneuver: EgoVehicleManeuver,
     scenario_config: ScenarioFactoryConfig,
-    max_collisions: Optional[int] = None,
 ) -> Tuple[Scenario, PlanningProblemSet]:
     """
     Extract all interesting ego vehicle maneuvers from a simulated scenario and create new scenarios and planning problems centered around each ego vehicle maneuver.
     """
-
-    num_collisions = len(delete_colliding_obstacles_from_scenario(commonroad_scenario, all=True))
-    if max_collisions is not None:
-        if num_collisions > max_collisions:
-            raise RuntimeError(
-                f"Skipping scenario {commonroad_scenario.scenario_id} because it has {num_collisions}, but the maximum allowed number of collisions is {max_collisions}"
-            )
 
     ego_scenario = create_scenario_for_ego_vehicle_maneuver(commonroad_scenario, scenario_config, ego_vehicle_maneuver)
 

@@ -3,6 +3,7 @@ from typing import Sequence
 import numpy as np
 from commonroad.geometry.shape import Rectangle
 from commonroad.prediction.prediction import TrajectoryPrediction
+from commonroad.scenario.lanelet import Lanelet
 from commonroad.scenario.obstacle import ObstacleType
 from commonroad.scenario.scenario import DynamicObstacle, Scenario
 from commonroad.scenario.state import ExtendedPMState, InitialState, PMState, TraceState
@@ -17,6 +18,7 @@ from scenario_factory.ego_vehicle_selection import (
     threshold_and_lag_detection,
     threshold_and_max_detection,
 )
+from scenario_factory.ego_vehicle_selection.criterions import LaneChangeCriterion
 
 
 class TestThresholdAndLagDection:
@@ -67,17 +69,28 @@ class TestThresholdAndMaxDetection:
 
 def _test_obstacle_with_trajectory(state_list: Sequence[TraceState]) -> DynamicObstacle:
     obstacle_shape = Rectangle(2.0, 2.0)
+
+    initial_state: InitialState = state_list[0].convert_state_to_state(InitialState())
+    initial_state.fill_with_defaults()
+
+    trajectory_state_list = state_list[1:]
+    prediction = (
+        TrajectoryPrediction(
+            shape=obstacle_shape,
+            trajectory=Trajectory(
+                initial_time_step=trajectory_state_list[0].time_step, state_list=list(trajectory_state_list)
+            ),
+        )
+        if len(trajectory_state_list) > 0
+        else None
+    )
+
     test_obstacle = DynamicObstacle(
         obstacle_id=1,
         obstacle_type=ObstacleType.CAR,
         obstacle_shape=obstacle_shape,
-        initial_state=InitialState(
-            time_step=1, position=np.array([0.0, 0.0]), orientation=0.0, velocity=0.0, acceleration=0.0
-        ),
-        prediction=TrajectoryPrediction(
-            trajectory=Trajectory(initial_time_step=2, state_list=list(state_list)),
-            shape=obstacle_shape,
-        ),
+        initial_state=initial_state,
+        prediction=prediction,
     )
     return test_obstacle
 
@@ -85,7 +98,7 @@ def _test_obstacle_with_trajectory(state_list: Sequence[TraceState]) -> DynamicO
 class TestBrakingCriertion:
     def test_should_not_detect_anything_if_acceleration_is_missing(self):
         scenario = Scenario(dt=0.1)
-        test_obstacle = _test_obstacle_with_trajectory([PMState(time_step=2)])
+        test_obstacle = _test_obstacle_with_trajectory([PMState(time_step=1)])
         criterion = BrakingCriterion()
         matches, time_step = criterion.matches(scenario, test_obstacle)
         assert matches is False
@@ -96,7 +109,7 @@ class TestBrakingCriertion:
         test_obstacle = _test_obstacle_with_trajectory(
             [
                 ExtendedPMState(
-                    time_step=i + 2, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=0.0
+                    time_step=i + 1, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=0.0
                 )
                 for i in range(0, 100)
             ]
@@ -109,14 +122,14 @@ class TestBrakingCriertion:
     def test_should_detect_if_braking(self):
         scenario = Scenario(dt=0.1)
         state_list = [
-            ExtendedPMState(time_step=i + 2, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=0.0)
+            ExtendedPMState(time_step=i + 1, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=0.0)
             for i in range(0, 10)
         ]
 
         state_list.extend(
             [
                 ExtendedPMState(
-                    time_step=i + 2, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=-4.0
+                    time_step=i + 1, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=-4.0
                 )
                 for i in range(10, 20)
             ]
@@ -131,14 +144,14 @@ class TestBrakingCriertion:
     def test_should_detect_if_hold_not_met(self):
         scenario = Scenario(dt=0.1)
         state_list = [
-            ExtendedPMState(time_step=i + 2, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=0.0)
+            ExtendedPMState(time_step=i + 1, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=0.0)
             for i in range(0, 10)
         ]
 
         state_list.extend(
             [
                 ExtendedPMState(
-                    time_step=i + 2, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=-5.0
+                    time_step=i + 1, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=-5.0
                 )
                 for i in range(10, 12)
             ]
@@ -165,7 +178,7 @@ class TestAccelerationCriertion:
         test_obstacle = _test_obstacle_with_trajectory(
             [
                 ExtendedPMState(
-                    time_step=i + 2, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=0.0
+                    time_step=i + 1, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=0.0
                 )
                 for i in range(0, 100)
             ]
@@ -174,6 +187,65 @@ class TestAccelerationCriertion:
         matches, time_step = criterion.matches(scenario, test_obstacle)
         assert matches is False
         assert time_step < 0
+
+
+class TestLaneChangeCriterion:
+    def test_should_not_match_if_on_same_lanelet(self):
+        scenario = Scenario(dt=0.1)
+        lanelet = Lanelet(
+            left_vertices=np.array([[0.0, 0.0], [0.0, 10.0]]),
+            center_vertices=np.array([[2.0, 0.0], [2.0, 10.0]]),
+            right_vertices=np.array([[4.0, 0.0], [4.0, 10.0]]),
+            lanelet_id=10,
+        )
+        scenario.add_objects(lanelet)
+        test_obstacle = _test_obstacle_with_trajectory(
+            [
+                PMState(time_step=1, position=np.array([2.0, 0.0]), velocity=12.0),
+                PMState(time_step=2, position=np.array([2.0, 4.0]), velocity=12.0),
+                PMState(time_step=3, position=np.array([2.0, 6.0]), velocity=12.0),
+                PMState(time_step=4, position=np.array([2.0, 8.0]), velocity=12.0),
+            ]
+        )
+        criterion = LaneChangeCriterion()
+        matches, time_step = criterion.matches(scenario, test_obstacle)
+        assert matches is False
+        assert time_step < 0
+
+    def test_should_match_if_ego_vehicle_changes_lane(self):
+        scenario = Scenario(dt=0.1)
+        lanelet0 = Lanelet(
+            left_vertices=np.array([[0.0, 0.0], [0.0, 10.0]]),
+            center_vertices=np.array([[2.0, 0.0], [2.0, 10.0]]),
+            right_vertices=np.array([[4.0, 0.0], [4.0, 10.0]]),
+            adjacent_right=11,
+            adjacent_right_same_direction=True,
+            lanelet_id=10,
+        )
+        scenario.add_objects(lanelet0)
+        lanelet1 = Lanelet(
+            left_vertices=np.array([[4.0, 0.0], [0.0, 10.0]]),
+            center_vertices=np.array([[6.0, 0.0], [6.0, 10.0]]),
+            right_vertices=np.array([[8.0, 0.0], [8.0, 10.0]]),
+            adjacent_left=10,
+            adjacent_left_same_direction=True,
+            lanelet_id=11,
+        )
+        scenario.add_objects(lanelet1)
+        test_obstacle = _test_obstacle_with_trajectory(
+            [
+                PMState(time_step=1, position=np.array([2.0, 0.0]), velocity=12.0),
+                PMState(time_step=2, position=np.array([3.0, 2.0]), velocity=12.0),
+                PMState(time_step=3, position=np.array([4.0, 4.0]), velocity=12.0),
+                PMState(time_step=4, position=np.array([5.0, 6.0]), velocity=12.0),
+                PMState(time_step=5, position=np.array([6.0, 8.0]), velocity=12.0),
+                PMState(time_step=6, position=np.array([6.0, 10.0]), velocity=12.0),
+            ]
+        )
+        criterion = LaneChangeCriterion()
+        matches, time_step = criterion.matches(scenario, test_obstacle)
+        assert matches is True
+        assert time_step == 3
 
 
 class TestMinimumVelocityFilter:

@@ -1,4 +1,5 @@
 import copy
+import logging
 import os
 import subprocess
 import warnings
@@ -13,8 +14,21 @@ from crdesigner.map_conversion.sumo_map.util import update_edge_lengths
 from sumocr.interface.sumo_simulation import SumoSimulation
 from sumocr.scenario.scenario_wrapper import ScenarioWrapper
 
+logger = logging.getLogger(__name__)
 
+
+# The CR2SumoMapConverter does not limit the output of SUMO netconvert.
+# If we process many different scenarios, netconvert will spam unecessary warnings to the console.
+# Therefore, a custmo converter is used, which limits the output by capturing SUMO netconverts output on stderr.
 class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
+    def __init__(self, scenario: Scenario, conf: SumoConfig) -> None:
+        # Override the logging level, otherwise the converter will spam info logs (which should be debug logs...)
+        conf.logging_level = "ERROR"
+        super().__init__(scenario, conf)
+
+    # Overrides the `merge_intermediate_files` method of the parent class
+    # Mostly the same as the method of the parent class, except that we capture the subprocess output.
+    # Otherwise the netconvert output will be spammed to stdout.
     def merge_intermediate_files(
         self,
         output_path: str,
@@ -78,7 +92,17 @@ class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
         )
         success = True
         try:
-            _ = subprocess.check_output(command.split(), timeout=5.0, stderr=subprocess.DEVNULL)
+            # Capture stderr and include in output, so that we can analyze the warnings
+            netconvert_output = subprocess.check_output(command.split(), timeout=5.0, stderr=subprocess.STDOUT)
+
+            # All warnings produced by netconvert are considered debug messages,
+            # because they are usuallay rather informative
+            # and do not affect the functionality of the simulation
+            for line in netconvert_output.decode().splitlines():
+                if line.startswith("Warning"):
+                    warning_message = line.lstrip("Warning: ")
+                    # Although the messages
+                    logger.debug(f"netconvert produced a warning while creating {self._output_file}: {warning_message}")
 
             update_edge_lengths(self._output_file)
             net = sumo_net_from_xml(self._output_file)
@@ -104,7 +128,8 @@ class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
 def convert_commonroad_scenario_to_sumo_scenario(
     commonroad_scenario: Scenario, output_folder: Path, sumo_config: SumoConfig
 ) -> ScenarioWrapper:
-    cr2sumo = CustomCommonroad2SumoMapConverter(commonroad_scenario, sumo_config)
+    new_scenario = copy.deepcopy(commonroad_scenario)
+    cr2sumo = CustomCommonroad2SumoMapConverter(new_scenario, sumo_config)
     conversion_possible = cr2sumo.create_sumo_files(str(output_folder))
 
     if not conversion_possible:
@@ -112,7 +137,7 @@ def convert_commonroad_scenario_to_sumo_scenario(
 
     scenario_wrapper = ScenarioWrapper()
     scenario_wrapper.sumo_cfg_file = str(cr2sumo.sumo_cfg_file)
-    scenario_wrapper.initial_scenario = copy.deepcopy(commonroad_scenario)
+    scenario_wrapper.initial_scenario = new_scenario
     return scenario_wrapper
 
 

@@ -1,4 +1,4 @@
-# Generation of CommonRoad Scenarios with SUMO
+# CommonRoad Scenario Factory
 [![pipeline status](https://gitlab.lrz.de/cps/commonroad/sumocr-scenario-generation/badges/develop/pipeline.svg)](https://gitlab.lrz.de/cps/commonroad/sumocr-scenario-generation/-/commits/develop)
 [![coverage report](https://gitlab.lrz.de/cps/commonroad/sumocr-scenario-generation/badges/develop/coverage.svg)](https://gitlab.lrz.de/cps/commonroad/sumocr-scenario-generation/-/commits/develop)
 

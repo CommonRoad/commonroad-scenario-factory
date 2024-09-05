@@ -1,87 +1,69 @@
 from pathlib import Path
-from typing import Iterable, Iterator
+from typing import Sequence
 
 import pytest
 
-from scenario_factory.pipeline import EmptyPipelineError, Pipeline, PipelineContext, pipeline_map, pipeline_populate
-from scenario_factory.pipeline_steps import pipeline_flatten
+from scenario_factory.pipeline import (
+    Pipeline,
+    PipelineContext,
+    PipelineFilterPredicate,
+    pipeline_filter,
+    pipeline_fold,
+    pipeline_map,
+)
 
 
-@pipeline_populate
-def pipeline_simple_populate(ctx: PipelineContext) -> Iterator[int]:
-    for i in range(0, 10):
-        yield i
-
-
-@pipeline_map
+@pipeline_map()
 def pipeline_simple_map(ctx: PipelineContext, value: int) -> int:
     return value**2
 
 
-def pipeline_simple_reduce(ctx: PipelineContext, state: Iterable[int]) -> Iterable[int]:
-    return state
+@pipeline_filter()
+def pipeline_simple_filter(filter: PipelineFilterPredicate, ctx: PipelineContext, value: int) -> bool:
+    return filter.matches(value)
+
+
+@pipeline_fold()
+def pipeline_simple_fold(ctx: PipelineContext, values: Sequence[int]) -> Sequence[int]:
+    return [sum(values)]
 
 
 class TestPipeline:
-    def test_populate_fails_on_exception(self, capfd):
+    def test_execute_fails_for_empty_pipeline(self):
+        pipeline = Pipeline()
         ctx = PipelineContext(Path("."))
-        pipeline = Pipeline(ctx)
+        with pytest.raises(RuntimeError):
+            pipeline.execute([1, 2, 3, 4, 5], ctx, num_threads=1, num_processes=1)
 
-        err_value = "foo\nbar"
-
-        @pipeline_populate
-        def populate_error(ctx: PipelineContext) -> Iterator:
-            print(err_value, end=None)
-            raise Exception("test")
-
-        with pytest.raises(Exception):
-            pipeline.populate(populate_error)
-
-        out, _ = capfd.readouterr()
-        assert out.strip() == err_value.strip()
-
-    def test_map_fails_on_unpopulated_pipeline(self):
+    def test_correctly_executes_map(self):
+        pipeline = Pipeline()
+        pipeline.map(pipeline_simple_map)
         ctx = PipelineContext(Path("."))
-        pipeline = Pipeline(ctx)
+        input_values = [1, 2, 3, 4, 5]
+        result = pipeline.execute(input_values, ctx, num_threads=1, num_processes=1)
+        assert len(result.errors) == 0
+        assert len(result.values) == 5
+        assert result.values != input_values
 
-        with pytest.raises(EmptyPipelineError):
-            pipeline.map(pipeline_simple_map)
+    def test_correctly_executes_filter(self):
+        class IsEvenFilter(PipelineFilterPredicate):
+            def matches(self, value: int) -> bool:
+                return value % 2 == 0
 
-    def test_map_updates_internal_state(self):
+        pipeline = Pipeline()
+        pipeline.filter(pipeline_simple_filter(IsEvenFilter()))
+
         ctx = PipelineContext(Path("."))
-        pipeline = Pipeline(ctx)
+        input_values = [1, 2, 3, 4, 5]
+        result = pipeline.execute(input_values, ctx, num_threads=1, num_processes=1)
+        assert len(result.errors) == 0
+        assert len(result.values) == 2
 
-        @pipeline_populate
-        def populate_test(ctx: PipelineContext) -> Iterator[int]:
-            for i in range(1, 10):
-                yield i
-
-        @pipeline_map
-        def map_test(ctx: PipelineContext, val: int) -> int:
-            return val * 2
-
-        pipeline.populate(populate_test)
-        assert len(pipeline.state) > 0
-        pipeline.map(map_test)
-        assert len(pipeline.state) > 0
-
-    def test_reduce_fails_on_unpopulated_pipeline(self):
+    def test_correctly_executes_fold(self):
+        pipeline = Pipeline()
+        pipeline.fold(pipeline_simple_fold)
         ctx = PipelineContext(Path("."))
-        pipeline = Pipeline(ctx)
-
-        with pytest.raises(EmptyPipelineError):
-            pipeline.fold(pipeline_simple_reduce)
-
-    def test_reduce_updates_internal_state(self):
-        ctx = PipelineContext(Path("."))
-        pipeline = Pipeline(ctx)
-
-        @pipeline_map
-        def map_blow(ctx: PipelineContext, val: int) -> Iterator[int]:
-            for i in range(0, 10):
-                yield val * i
-
-        pipeline.populate(pipeline_simple_populate)
-        pipeline.map(map_blow)
-        pipeline.fold(pipeline_flatten)
-        assert len(pipeline.state) > 0
+        result = pipeline.execute([1, 2, 3, 4, 5], ctx, num_threads=1, num_processes=1)
+        assert len(result.errors) == 0
+        assert len(result.values) == 1
+        assert result.values[0] == 15

@@ -4,7 +4,6 @@ __all__ = [
     "AccelerationCriterion",
     "TurningCriterion",
     "LaneChangeCriterion",
-    "MergingCriterion",
     "threshold_and_lag_detection",
     "threshold_and_max_detection",
     "select_interesting_ego_vehicle_maneuvers_from_scenario",
@@ -21,7 +20,6 @@ from .criterions import (
     BrakingCriterion,
     EgoVehicleSelectionCriterion,
     LaneChangeCriterion,
-    MergingCriterion,
     TurningCriterion,
 )
 from .filters import (

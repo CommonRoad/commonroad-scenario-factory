@@ -1,19 +1,22 @@
-from typing import Dict, Iterable, Optional, Union
+from typing import Optional, Protocol, Sequence, Union
 
 from commonroad.geometry.shape import Shape
+from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.lanelet import LaneletNetwork
-from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
-from commonroad.scenario.state import TraceState
-
-
-def select_by_vehicle_type(
-    obstacles: Iterable, vehicle_types: Iterable[ObstacleType] = (ObstacleType.CAR)
-) -> Union[Dict[int, DynamicObstacle], Iterable[DynamicObstacle]]:
-    """:returns only obstacles with specified vehicle type(s)."""
-    if isinstance(obstacles, dict):
-        return {obs_id: obs for obs_id, obs in obstacles.items() if (obs.obstacle_type in vehicle_types)}
-    else:
-        return [obs for obs in obstacles if (obs.obstacle_type in vehicle_types)]
+from commonroad.scenario.obstacle import DynamicObstacle
+from commonroad.scenario.state import (
+    ExtendedPMState,
+    InitialState,
+    InputState,
+    KSState,
+    LateralState,
+    LongitudinalState,
+    MBState,
+    PMInputState,
+    PMState,
+    TraceState,
+)
+from typing_extensions import TypeGuard
 
 
 def find_most_likely_lanelet_by_state(lanelet_network: LaneletNetwork, state: TraceState) -> Optional[int]:
@@ -29,3 +32,66 @@ def find_most_likely_lanelet_by_state(lanelet_network: LaneletNetwork, state: Tr
 
     # TODO
     return lanelet_ids[0]
+
+
+def get_full_state_list_of_obstacle(dynamic_obstacle: DynamicObstacle) -> Sequence[TraceState]:
+    if dynamic_obstacle.prediction is None or not isinstance(dynamic_obstacle.prediction, TrajectoryPrediction):
+        return [dynamic_obstacle.initial_state]
+
+    return [dynamic_obstacle.initial_state] + dynamic_obstacle.prediction.trajectory.state_list
+
+
+StateWithAcceleration = Union[InitialState, ExtendedPMState, LongitudinalState, InputState, PMInputState]
+StateWithOrientation = Union[InitialState, ExtendedPMState, KSState, LateralState, MBState]
+StateWithPosition = Union[InitialState, PMState]
+StateWithVelocity = Union[InitialState, PMState, KSState, MBState, LongitudinalState]
+
+
+class StateWithDiscreteTimeStep(Protocol):
+    time_step: int
+
+
+class StateWithDiscreteVelocity(Protocol):
+    velocity: float
+
+
+def is_state_with_acceleration(state: TraceState) -> TypeGuard[StateWithAcceleration]:
+    return state.has_value("acceleration")
+
+
+def is_state_list_with_acceleration(
+    state_list: Sequence[TraceState],
+) -> TypeGuard[Sequence[StateWithAcceleration]]:
+    return all(is_state_with_acceleration(state) for state in state_list)
+
+
+def is_state_with_orientation(state: TraceState) -> TypeGuard[StateWithOrientation]:
+    return state.has_value("orientation")
+
+
+def is_state_list_with_orientation(state_list: Sequence[TraceState]) -> TypeGuard[Sequence[StateWithOrientation]]:
+    return all(is_state_with_orientation(state) for state in state_list)
+
+
+def is_state_with_position(state: TraceState) -> TypeGuard[StateWithPosition]:
+    return state.has_value("position")
+
+
+def is_state_list_with_position(state_list: Sequence[TraceState]) -> TypeGuard[Sequence[StateWithPosition]]:
+    return all(is_state_with_position(state) for state in state_list)
+
+
+def is_state_with_discrete_time_step(state: TraceState) -> TypeGuard[StateWithDiscreteTimeStep]:
+    return isinstance(state.time_step, int)
+
+
+def is_state_with_velocity(state: TraceState) -> TypeGuard[StateWithVelocity]:
+    return state.has_value("velocity")
+
+
+def is_state_with_discrete_velocity(state: StateWithVelocity) -> TypeGuard[StateWithDiscreteVelocity]:
+    return isinstance(state.velocity, float)
+
+
+def is_state_list_with_velocity(state_list: Sequence[TraceState]) -> TypeGuard[Sequence[StateWithVelocity]]:
+    return all(is_state_with_velocity(state) for state in state_list)

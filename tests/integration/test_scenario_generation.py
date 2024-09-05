@@ -1,103 +1,66 @@
-import random
 import tempfile
 from pathlib import Path
 
-import numpy as np
-from crdesigner.map_conversion.sumo_map.config import SumoConfig
-
 import scenario_factory
 from scenario_factory.globetrotter.osm import LocalFileMapProvider
-from scenario_factory.pipeline import Pipeline, PipelineContext
-from scenario_factory.pipeline_steps import (
-    ExtractOsmMapArguments,
-    GenerateCommonRoadScenariosArguments,
-    LoadRegionsFromCsvArguments,
-    pipeline_assign_tags_to_scenario,
-    pipeline_convert_osm_map_to_commonroad_scenario,
-    pipeline_extract_intersections,
-    pipeline_extract_osm_map,
-    pipeline_generate_ego_scenarios,
-    pipeline_load_regions_from_csv,
-    pipeline_simulate_scenario_with_sumo,
-    pipeline_verify_and_repair_commonroad_scenario,
-)
-from scenario_factory.scenario_types import EgoScenarioWithPlanningProblemSet
+from scenario_factory.globetrotter.region import Coordinates, RegionMetadata
+from scenario_factory.pipeline import PipelineContext
+from scenario_factory.pipeline_steps.scenario_generation import pipeline_simulate_scenario_with_sumo
+from scenario_factory.pipelines import create_globetrotter_pipeline, create_scenario_generation_pipeline
+from scenario_factory.scenario_config import ScenarioFactoryConfig
+from scenario_factory.scenario_types import ScenarioContainer
+
+
+class TestGlobetrotterPipeline:
+    def test_globetrotter_pipeline_extracts_exactly_one_intersection(self):
+        input_maps_folder = Path(scenario_factory.__file__).parent.parent.joinpath("files/input_maps")
+        map_provider = LocalFileMapProvider(input_maps_folder)
+        globetrotter_pipeline = create_globetrotter_pipeline(radius=0.1, map_provider=map_provider)
+        with tempfile.TemporaryDirectory() as tempdir:
+            ctx = PipelineContext(Path(tempdir))
+            coords = Coordinates(53.071054226968, 8.847098524980682)
+            region = RegionMetadata.from_coordinates(coords)
+            execution_result = globetrotter_pipeline.execute([region], ctx, num_threads=1, num_processes=1)
+            assert len(execution_result.errors) == 0
+            assert len(execution_result.values) == 1
+
+            scenario = execution_result.values[0]
+            assert isinstance(scenario, ScenarioContainer)
 
 
 class TestScenarioGeneration:
-    def test_scenario_generation_with_pipeline_creates_scenarios(self):
-        cities_file = Path(scenario_factory.__file__).parent.parent.joinpath(
-            "tests/integration/cities_selected_test.csv"
+    def test_scenario_generation_with_pipeline_creates_no_scenarios_for_empty_input(self):
+        scenario_factory_config = ScenarioFactoryConfig(seed=10)
+        scenario_generation_pipeline = create_scenario_generation_pipeline(
+            scenario_factory_config.criterions, scenario_factory_config.filters
         )
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_path = Path(tempdir)
+
+            ctx = PipelineContext(output_path)
+
+            result = scenario_generation_pipeline.execute([], ctx, num_threads=1, num_processes=1)
+            assert len(result.errors) == 0
+            assert len(result.values) == 0
+
+    def test_scenario_generation_and_globetrotter_with_pipeline_creates_one_scenario(self):
+        scenario_factory_config = ScenarioFactoryConfig(seed=100, simulation_steps=600, cr_scenario_time_steps=75)
         input_maps_folder = Path(scenario_factory.__file__).parent.parent.joinpath("files/input_maps")
         map_provider = LocalFileMapProvider(input_maps_folder)
+        base_pipeline = create_globetrotter_pipeline(radius=0.1, map_provider=map_provider)
+        base_pipeline.map(pipeline_simulate_scenario_with_sumo)
+        scenario_generation_pipeline = create_scenario_generation_pipeline(
+            scenario_factory_config.criterions, scenario_factory_config.filters
+        )
+        pipeline = base_pipeline.chain(scenario_generation_pipeline)
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_path = Path(tempdir)
 
-            seed = 10
-            sumo_config = SumoConfig()
-            sumo_config.simulation_steps = 600
-            sumo_config.random_seed = seed
-            sumo_config.random_seed_trip_generation = seed
-            random.seed(seed)
-            np.random.seed(seed)
+            ctx = PipelineContext(output_path, scenario_factory_config)
 
-            ctx = PipelineContext(output_path, sumo_config=sumo_config)
-            pipeline = Pipeline(ctx)
-
-            pipeline.populate(pipeline_load_regions_from_csv(LoadRegionsFromCsvArguments(cities_file)))
-            assert len(pipeline.state) == 1
-            assert len(pipeline.errors) == 0
-
-            pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(map_provider, radius=0.3)))
-            pipeline.map(pipeline_convert_osm_map_to_commonroad_scenario)
-            pipeline.map(pipeline_verify_and_repair_commonroad_scenario)
-            pipeline.map(pipeline_extract_intersections)
-            assert len(pipeline.errors) == 0, f"Expected 0 errors, but got {len(pipeline.errors)} errors"
-            assert len(pipeline.state) == 39, f"Expected 39 results, but got {len(pipeline.state)} results"
-            pipeline.map(pipeline_simulate_scenario_with_sumo)
-            pipeline.map(pipeline_generate_ego_scenarios(GenerateCommonRoadScenariosArguments()))
-            pipeline.map(pipeline_assign_tags_to_scenario)
-
-            # Expecte that at least one result is generated. We cannot assert the exact number, because this is not deterministic
-            assert len(pipeline.state) > 0
-            assert isinstance(pipeline.state[0], EgoScenarioWithPlanningProblemSet)
-
-    def test_scenario_generation_with_pipeline_creates_no_scenarios(self):
-        cities_file = Path(scenario_factory.__file__).parent.parent.joinpath(
-            "tests/integration/cities_selected_test.csv"
-        )
-        input_maps_folder = Path(scenario_factory.__file__).parent.parent.joinpath("files/input_maps")
-        map_provider = LocalFileMapProvider(input_maps_folder)
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            output_path = Path(tempdir)
-
-            seed = 12
-            sumo_config = SumoConfig()
-            sumo_config.simulation_steps = 600
-            sumo_config.random_seed = seed
-            sumo_config.random_seed_trip_generation = seed
-            random.seed(seed)
-            np.random.seed(seed)
-
-            ctx = PipelineContext(output_path, sumo_config=sumo_config)
-            pipeline = Pipeline(ctx)
-
-            pipeline.populate(pipeline_load_regions_from_csv(LoadRegionsFromCsvArguments(cities_file)))
-            assert len(pipeline.state) == 1
-            assert len(pipeline.errors) == 0
-            assert len(pipeline.state) == 1
-
-            pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(map_provider, radius=0.1)))
-            pipeline.map(pipeline_convert_osm_map_to_commonroad_scenario)
-            pipeline.map(pipeline_extract_intersections)
-            assert len(pipeline.errors) == 0, f"Expected 0 errors, but got {len(pipeline.errors)} errors"
-            assert len(pipeline.state) == 1, f"Expected 1 result, but got {len(pipeline.state)} results"
-            pipeline.map(pipeline_simulate_scenario_with_sumo)
-            pipeline.map(pipeline_generate_ego_scenarios(GenerateCommonRoadScenariosArguments()))
-            pipeline.map(pipeline_assign_tags_to_scenario)
-
-            assert len(pipeline.errors) == 0, f"Expected 0 errors, but got {len(pipeline.errors)} errors"
-            assert len(pipeline.state) == 0, f"Expected 0 results, but got {len(pipeline.state)} results"
+            coords = Coordinates(53.071054226968, 8.847098524980682)
+            region = RegionMetadata.from_coordinates(coords)
+            result = pipeline.execute([region], ctx, num_threads=1, num_processes=1)
+            assert len(result.errors) == 0, str(result.errors)
+            assert len(result.values) == 1

@@ -1,11 +1,15 @@
 __all__ = [
     "pipeline_simulate_scenario_with_sumo",
-    "GenerateCommonRoadScenariosArguments",
+    "pipeline_find_ego_vehicle_maneuvers",
+    "pipeline_filter_ego_vehicle_maneuver",
+    "pipeline_select_one_maneuver_per_ego_vehicle",
+    "pipeline_generate_scenario_for_ego_vehicle_maneuver",
+    "FindEgoVehicleManeuversArguments",
 ]
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import List, Optional, Sequence
+from typing import Iterable, List, Sequence
 
 from scenario_factory.ego_vehicle_selection.criterions import EgoVehicleSelectionCriterion
 from scenario_factory.ego_vehicle_selection.filters import EgoVehicleManeuverFilter
@@ -17,6 +21,7 @@ from scenario_factory.generate_senarios import generate_scenario_with_planning_p
 from scenario_factory.pipeline import (
     PipelineContext,
     PipelineStepArguments,
+    PipelineStepMode,
     pipeline_filter,
     pipeline_fold,
     pipeline_map,
@@ -30,13 +35,16 @@ from scenario_factory.scenario_types import (
 from scenario_factory.sumo import convert_commonroad_scenario_to_sumo_scenario, simulate_commonroad_scenario
 
 
-@pipeline_map
+@pipeline_map(mode=PipelineStepMode.PARALLEL)
 def pipeline_simulate_scenario_with_sumo(
     ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> ScenarioContainer:
+    """
+    Convert a CommonRoad Scenario to SUMO, generate random traffic on the network and simulate the traffic in SUMO.
+    """
     commonroad_scenario = scenario_container.scenario
-    output_folder = ctx.get_temporary_folder("output")
-    intermediate_sumo_files_path = output_folder.joinpath("intermediate", str(commonroad_scenario.scenario_id))
+    output_folder = ctx.get_temporary_folder("sumo_simulation_intermediates")
+    intermediate_sumo_files_path = output_folder.joinpath(str(commonroad_scenario.scenario_id))
     intermediate_sumo_files_path.mkdir(parents=True, exist_ok=True)
 
     sumo_config = ctx.get_sumo_config_for_scenario(commonroad_scenario)
@@ -49,13 +57,16 @@ def pipeline_simulate_scenario_with_sumo(
 
 @dataclass
 class FindEgoVehicleManeuversArguments(PipelineStepArguments):
-    criterions: Sequence[EgoVehicleSelectionCriterion]
+    criterions: Iterable[EgoVehicleSelectionCriterion]
 
 
-@pipeline_map_with_args
+@pipeline_map_with_args()
 def pipeline_find_ego_vehicle_maneuvers(
     args: FindEgoVehicleManeuversArguments, ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> List[ScenarioWithEgoVehicleManeuver]:
+    """
+    Find maneuvers in the scenario that qualify as interesting according to the criterions.
+    """
     ego_vehicle_maneuvers = find_ego_vehicle_maneuvers_in_scenario(scenario_container.scenario, args.criterions)
     return [
         ScenarioWithEgoVehicleManeuver(scenario_container.scenario, ego_vehicle_maneuver)
@@ -63,11 +74,11 @@ def pipeline_find_ego_vehicle_maneuvers(
     ]
 
 
-@pipeline_filter
+@pipeline_filter()
 def pipeline_filter_ego_vehicle_maneuver(
     filter: EgoVehicleManeuverFilter, ctx: PipelineContext, scenario_container: ScenarioWithEgoVehicleManeuver
 ) -> bool:
-    scenario_factory_config = ctx.get_scenario_config()
+    scenario_factory_config = ctx.get_scenario_factory_config()
     return filter.matches(
         scenario_container.scenario,
         scenario_factory_config.cr_scenario_time_steps,
@@ -75,11 +86,11 @@ def pipeline_filter_ego_vehicle_maneuver(
     )
 
 
-@pipeline_fold
+@pipeline_fold()
 def pipeline_select_one_maneuver_per_ego_vehicle(
     ctx: PipelineContext, scenario_containers: Sequence[ScenarioWithEgoVehicleManeuver]
 ) -> Sequence[ScenarioWithEgoVehicleManeuver]:
-    scenario_factory_config = ctx.get_scenario_config()
+    scenario_factory_config = ctx.get_scenario_factory_config()
 
     ego_vehicle_maneuvers_sorted_by_scenario_id = defaultdict(list)
     scenario_id_map = dict()
@@ -101,22 +112,16 @@ def pipeline_select_one_maneuver_per_ego_vehicle(
     return results
 
 
-@dataclass
-class GenerateCommonRoadScenariosArguments(PipelineStepArguments):
-    max_collisions: Optional[int] = None
-
-
-@pipeline_map_with_args
+@pipeline_map()
 def pipeline_generate_scenario_for_ego_vehicle_maneuver(
-    args: GenerateCommonRoadScenariosArguments, ctx: PipelineContext, scenario_container: ScenarioWithEgoVehicleManeuver
+    ctx: PipelineContext, scenario_container: ScenarioWithEgoVehicleManeuver
 ) -> ScenarioWithPlanningProblemSet:
-    scenario_config = ctx.get_scenario_config()
+    scenario_config = ctx.get_scenario_factory_config()
 
     scenario, planning_problem_set = generate_scenario_with_planning_problem_set_for_ego_vehicle_maneuver(
         scenario_container.scenario,
         scenario_container.ego_vehicle_maneuver,
         scenario_config,
-        max_collisions=args.max_collisions,
     )
 
     return ScenarioWithPlanningProblemSet(scenario, planning_problem_set)

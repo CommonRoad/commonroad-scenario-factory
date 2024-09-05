@@ -6,6 +6,7 @@ __all__ = [
 
 import csv
 import math
+import warnings
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -23,7 +24,8 @@ RADIUS_EARTH: float = 6.371 * 1e3
 # Cache the geonames database so it is only loaded once
 @lru_cache
 def _get_geonames_tree():
-    return create_tree_from_file()
+    with warnings.catch_warnings():
+        return create_tree_from_file()
 
 
 @dataclass
