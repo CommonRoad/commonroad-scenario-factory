@@ -21,7 +21,7 @@ pre_commit:
 
 main_testing:
   stage: testing
-  image: gitlab.lrz.de:5005/cps/commonroad/sumocr-scenario-generation
+  image: gitlab.lrz.de:5005/cps/commonroad/scenario-factory
   script:
     - poetry run coverage run -m pytest
     - poetry run coverage report -m || true
