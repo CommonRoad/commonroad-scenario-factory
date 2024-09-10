@@ -15,6 +15,9 @@ from scenario_factory.pipeline_steps import (
     ExtractOsmMapArguments,
     GenerateCommonRoadScenariosArguments,
     LoadRegionsFromCsvArguments,
+    WriteScenarioToFileArguments,
+    pipeline_add_metadata_to_scenario,
+    pipeline_assign_tags_to_scenario,
     pipeline_convert_osm_map_to_commonroad_scenario,
     pipeline_create_sumo_configuration_for_commonroad_scenario,
     pipeline_extract_intersections,
@@ -23,11 +26,9 @@ from scenario_factory.pipeline_steps import (
     pipeline_generate_ego_scenarios,
     pipeline_load_regions_from_csv,
     pipeline_simulate_scenario,
+    pipeline_verify_and_repair_commonroad_scenario,
     pipeline_write_scenario_to_file,
 )
-from scenario_factory.pipeline_steps.globetrotter import pipeline_verify_and_repair_commonroad_scenario
-from scenario_factory.pipeline_steps.scenario_generation import pipeline_assign_tags_to_scenario
-from scenario_factory.pipeline_steps.utils import WriteScenarioToFileArguments
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 
 
@@ -102,6 +103,7 @@ def generate(cities: str, coords: str, output: str, maps: str, radius: float, se
     pipeline.map(pipeline_extract_intersections)
     pipeline.reduce(pipeline_flatten)
     root_logger.info(f"Found {len(pipeline.state)} interesting intersections")
+    pipeline.map(pipeline_add_metadata_to_scenario)
     pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario, num_processes=16)
     pipeline.reduce(pipeline_flatten)
     pipeline.map(pipeline_simulate_scenario, num_processes=16)

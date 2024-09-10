@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import ClassVar, Sequence
 
+from commonroad.scenario.scenario import Tag
+
 from scenario_factory.ego_vehicle_selection import (
     AccelerationCriterion,
     BrakingCriterion,
@@ -34,7 +36,7 @@ class ScenarioFactoryConfig:
     author = "Florian Finkeldei"
     affiliation = "TUM - Cyber-Physical Systems"
     source = "OpenStreetMap, SUMO Traffic Simulator"
-    tags = ["simulated"]
+    tags = {Tag.SIMULATED}
 
     # EGO VEHICLE SELECTION ############################################################################################
     # obstacle_id of ego vehicles when ego vehicle is exported

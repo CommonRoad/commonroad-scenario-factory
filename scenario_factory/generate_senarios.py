@@ -45,9 +45,31 @@ from scenario_factory.scenario_util import find_most_likely_lanelet_by_state
 logger = logging.getLogger(__name__)
 
 
+def _create_new_scenario_with_metadata_from_old_scenario(scenario: Scenario) -> Scenario:
+    """
+    Create a new scenario from an old scenario and include all its metadata.
+
+    :param scenario: The old scenario, from which the metadata will be taken
+    :returns: The new scenario with all metadata, which is safe to modify.
+    """
+    new_scenario = Scenario(dt=scenario.dt)
+    # The following metadata are all objects. As they could be arbitrarily modified in-place they need to be copied
+    new_scenario.scenario_id = copy.deepcopy(scenario.scenario_id)
+    new_scenario.location = copy.deepcopy(scenario.location)
+    new_scenario.tags = copy.deepcopy(scenario.tags)
+    # Author, afiiliation and source are plain strings and do not need to be copied
+    new_scenario.author = scenario.author
+    new_scenario.affiliation = scenario.affiliation
+    new_scenario.source = scenario.source
+
+    return new_scenario
+
+
 def create_non_interactive_scenario(ego_scenario: EgoScenarioWithPlanningProblemSet) -> NonInteractiveEgoScenario:
     """
     Transform an ego scenario to a non-interactive scenario. This function will not modify the original ego scenario.
+
+    :param ego_scenario: An ego maneuver aligned scenario with a planning problem set
     """
     new_scenario = copy.copy(ego_scenario.scenario)
     new_scenario.scenario_id = copy.deepcopy(new_scenario.scenario_id)
@@ -59,10 +81,10 @@ def create_non_interactive_scenario(ego_scenario: EgoScenarioWithPlanningProblem
 def create_interactive_scenario(ego_scenario: EgoScenarioWithPlanningProblemSet) -> InteractiveEgoScenario:
     """
     Transform an ego scenario to an interactive scenario. This function will not modify the original ego scenario.
+
+    :param ego_scenario: An ego maneuver aligned scenario with a planning problem set
     """
-    new_scenario = Scenario(dt=ego_scenario.scenario.dt)
-    # Deep copy the Id, as it will be modified
-    new_scenario.scenario_id = copy.deepcopy(ego_scenario.scenario.scenario_id)
+    new_scenario = _create_new_scenario_with_metadata_from_old_scenario(ego_scenario.scenario)
     new_scenario.scenario_id.obstacle_behavior = "I"
 
     # Only add a reference of the lanelet network to the scenario
@@ -322,8 +344,7 @@ def create_ego_scenario_for_ego_vehicle_maneuver(
         if new_obstacle is not None:
             new_obstacles.append(new_obstacle)
 
-    new_scenario = Scenario(dt=scenario.dt)
-    new_scenario.scenario_id = copy.deepcopy(scenario.scenario_id)
+    new_scenario = _create_new_scenario_with_metadata_from_old_scenario(scenario)
     new_scenario.add_objects(new_obstacles)
     new_scenario.add_objects(scenario.lanelet_network)
 
