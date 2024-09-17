@@ -1,7 +1,7 @@
 __all__ = [
-    "pipeline_flatten",
     "WriteScenarioToFileArguments",
     "pipeline_write_scenario_to_file",
+    "pipeline_assign_tags_to_scenario",
     "pipeline_add_metadata_to_scenario",
     "pipeline_remove_colliding_dynamic_obstacles",
 ]
@@ -9,7 +9,6 @@ __all__ = [
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, TypeVar
 
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
 from commonroad.common.solution import CommonRoadSolutionWriter
@@ -26,22 +25,11 @@ from scenario_factory.tags import find_applicable_tags_for_scenario
 
 _LOGGER = logging.getLogger(__name__)
 
-_T = TypeVar("_T")
-
-
-def pipeline_flatten(ctx: PipelineContext, xss: Iterable[Iterable[_T]]) -> Iterable[_T]:
-    """
-    If xss is a nested iterable, it is flattend by one level. Otherwise the iterable is preserved.
-    """
-    for xs in xss:
-        if not isinstance(xs, Iterable):
-            yield xs
-        else:
-            yield from xs
-
 
 @dataclass
 class WriteScenarioToFileArguments(PipelineStepArguments):
+    """Arguments for the step `pipeline_write_scenario_to_file`"""
+
     output_folder: Path
 
 
@@ -51,6 +39,9 @@ def pipeline_write_scenario_to_file(
     ctx: PipelineContext,
     scenario_container: ScenarioContainer,
 ) -> ScenarioContainer:
+    """
+    Write a CommonRoad scenario to a file in the :param:`args.output_folder`. If the :param:`scenario_container` also holds a planning problem set or a planning problem solution, they will also be written to disk.
+    """
     planning_problem_set = (
         scenario_container.planning_problem_set
         if is_scenario_with_planning_problem_set(scenario_container)
@@ -89,6 +80,9 @@ def pipeline_write_scenario_to_file(
 
 @pipeline_map()
 def pipeline_assign_tags_to_scenario(ctx: PipelineContext, scenario_container: ScenarioContainer) -> ScenarioContainer:
+    """
+    Find applicable tags for the scenario. Preserves existing tags.
+    """
     commonroad_scenario = scenario_container.scenario
     tags = find_applicable_tags_for_scenario(commonroad_scenario)
     if commonroad_scenario.tags is None:
@@ -102,7 +96,7 @@ def pipeline_assign_tags_to_scenario(ctx: PipelineContext, scenario_container: S
 @pipeline_map()
 def pipeline_add_metadata_to_scenario(ctx: PipelineContext, scenario_container: ScenarioContainer) -> ScenarioContainer:
     """
-    Populate the metadata of the scenario with the values in the scenario factory config that is attached to the pipeline context.
+    Populate the metadata of the scenario with the values in the scenario factory config that is attached to the pipeline context. Will override existing metadata, except tags.
     """
     scenario_factory_config = ctx.get_scenario_factory_config()
 
@@ -124,7 +118,10 @@ def pipeline_add_metadata_to_scenario(ctx: PipelineContext, scenario_container: 
 def pipeline_remove_colliding_dynamic_obstacles(
     ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> ScenarioContainer:
+    """
+    Remove all dynamic obstacles that are part of a collision from the scenario in :param:`scenario_container`
+    """
     commonroad_scenario = scenario_container.scenario
-    deleted_obstacles = delete_colliding_obstacles_from_scenario(commonroad_scenario)
+    deleted_obstacles = delete_colliding_obstacles_from_scenario(commonroad_scenario, all=True)
     _LOGGER.debug("Removed %s obstacles from scenario %s", len(deleted_obstacles), commonroad_scenario.scenario_id)
     return scenario_container

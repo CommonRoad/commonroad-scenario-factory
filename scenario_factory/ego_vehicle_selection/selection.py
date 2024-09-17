@@ -1,6 +1,5 @@
-__all__ = ["select_interesting_ego_vehicle_maneuvers_from_scenario"]
+__all__ = ["find_ego_vehicle_maneuvers_in_scenario", "select_one_maneuver_per_ego_vehicle"]
 
-import functools
 import logging
 from collections import defaultdict
 from typing import Iterable, List, Sequence
@@ -10,9 +9,8 @@ from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.scenario import Scenario
 
 from scenario_factory.ego_vehicle_selection.criterions import EgoVehicleSelectionCriterion
-from scenario_factory.ego_vehicle_selection.filters import EgoVehicleManeuverFilter
 from scenario_factory.ego_vehicle_selection.maneuver import EgoVehicleManeuver
-from scenario_factory.scenario_util import is_state_with_position
+from scenario_factory.utils import is_state_with_position
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,6 +18,15 @@ _LOGGER = logging.getLogger(__name__)
 def find_ego_vehicle_maneuvers_in_scenario(
     scenario: Scenario, criterions: Iterable[EgoVehicleSelectionCriterion]
 ) -> List[EgoVehicleManeuver]:
+    """
+    Using the ego vehicle selection criterions from :param:`criterions`, select maneuvers of obstacles in the scenario which match any of the criterions.
+
+    :param scenario: CommonRoad scenario with dynamic obstacles
+    :param criterions: The ego vehicle selection criterion which will be matched
+
+    :returns: All maneuvers found in the scenario
+    """
+    # For the time being, only cars can be ego vehicles
     possible_ego_vehicles = filter(
         lambda obstacle: obstacle.obstacle_type == ObstacleType.CAR, scenario.dynamic_obstacles
     )
@@ -38,22 +45,6 @@ def find_ego_vehicle_maneuvers_in_scenario(
             selected_maneuvers.append(EgoVehicleManeuver(obstacle, adjusted_absolute_init_time))
 
     return selected_maneuvers
-
-
-def _filter_ego_vehicle_maneuvers_in_scenario(
-    scenario: Scenario,
-    scenario_time_steps: int,
-    maneuver_filters: Sequence[EgoVehicleManeuverFilter],
-    maneuvers: List[EgoVehicleManeuver],
-) -> List[EgoVehicleManeuver]:
-    # Transform the maneuvers into a filter, because otherwise mypy will complain about a mismatched type
-    filtered_maneuvers = filter(lambda _: True, maneuvers)
-    for maneuver_filter in maneuver_filters:
-        prepared_maneuver_filter = functools.partial(maneuver_filter.matches, scenario, scenario_time_steps)
-        filtered_maneuvers = filter(prepared_maneuver_filter, filtered_maneuvers)
-
-    # The generator produced by filter must be converted to a list
-    return list(filtered_maneuvers)
 
 
 def _get_number_of_vehicles_in_range(
@@ -116,6 +107,13 @@ def _select_most_interesting_maneuver(
 def select_one_maneuver_per_ego_vehicle(
     scenario: Scenario, maneuvers: Sequence[EgoVehicleManeuver], detection_range: int
 ) -> List[EgoVehicleManeuver]:
+    """
+    For every vehicle with a qualifying ego vehicle maneuver in one scenario select only the most 'interesting' maneuver. The most interesting maneuver is the one with the most other vehicles around the vehicle in it's :param:`detection_range`.
+
+    :param scenario: The scenario in which the maneuvers were found
+    :param maneuvers: All qualifying ego vehicle maneuvers found in the given scenario
+    :param detection_range: The range around the possible ego vehicle to look for other vehicles for determening the most interesting maneuver.
+    """
     maneuvers_per_ego_vehicle = defaultdict(list)
     for maneuver in maneuvers:
         maneuvers_per_ego_vehicle[maneuver.ego_vehicle.obstacle_id].append(maneuver)
@@ -124,25 +122,3 @@ def select_one_maneuver_per_ego_vehicle(
         _select_most_interesting_maneuver(scenario, ego_vehicle_maneuver_list, detection_range)
         for ego_vehicle_maneuver_list in maneuvers_per_ego_vehicle.values()
     ]
-
-
-def select_interesting_ego_vehicle_maneuvers_from_scenario(
-    scenario: Scenario,
-    criterions: Sequence[EgoVehicleSelectionCriterion],
-    filters: Sequence[EgoVehicleManeuverFilter],
-    scenario_time_steps: int,
-    sensor_range: int,
-) -> List[EgoVehicleManeuver]:
-    ego_vehicle_maneuvers = find_ego_vehicle_maneuvers_in_scenario(scenario, criterions)
-    filtered_ego_vehicle_maneuvers = _filter_ego_vehicle_maneuvers_in_scenario(
-        scenario,
-        scenario_time_steps,
-        filters,
-        ego_vehicle_maneuvers,
-    )
-
-    most_interesting_maneuvers = select_one_maneuver_per_ego_vehicle(
-        scenario, filtered_ego_vehicle_maneuvers, sensor_range
-    )
-
-    return most_interesting_maneuvers

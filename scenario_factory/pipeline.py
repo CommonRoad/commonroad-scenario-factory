@@ -3,10 +3,13 @@ __all__ = [
     "PipelineStepArguments",
     "PipelineContext",
     "PipelineStepResult",
+    "PipelineStepType",
+    "PipelineStepMode",
     "pipeline_map",
     "pipeline_map_with_args",
     "pipeline_filter",
     "pipeline_fold",
+    "PipelineExecutionResult",
 ]
 
 import builtins
@@ -49,7 +52,7 @@ def _get_function_name(func) -> str:
 
 
 @contextmanager
-def suppress_all_calls_to_print():
+def _suppress_all_calls_to_print():
     """
     Patch out the python builtin `print` function so that it becomes a nop.
     """
@@ -429,7 +432,7 @@ class PipelineExecutor:
             # this results in a ton of unecessary console output. To circumvent this,
             # the whole print function is replaced for the pipeline execution.
             # Generally, all functions should make use of the logging module...
-            with suppress_all_calls_to_print():
+            with _suppress_all_calls_to_print():
                 for elem in input_values:
                     self._submit_step_for_execution(self._steps[0], 0, elem)
 
@@ -479,7 +482,7 @@ class PipelineExecutionResult:
 
 class Pipeline:
     """
-    A pipeline defines the sub-sequent execution of map, filter and fold steps.
+    A pipeline defines the sequential execution of map, filter and fold steps.
     """
 
     def __init__(self, steps: Optional[List[PipelineStep]] = None):

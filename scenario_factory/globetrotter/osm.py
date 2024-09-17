@@ -1,3 +1,11 @@
+__all__ = [
+    "MapProvider",
+    "LocalFileMapProvider",
+    "OsmApiMapProvider",
+    "verify_and_repair_commonroad_scenario",
+    "convert_osm_file_to_commonroad_scenario",
+]
+
 import logging
 import subprocess
 from abc import ABC, abstractmethod
@@ -149,7 +157,7 @@ def verify_and_repair_commonroad_scenario(scenario: Scenario) -> int:
 
 
 @contextmanager
-def redirect_all_undirected_log_messages(target_logger):
+def _redirect_all_undirected_log_messages(target_logger):
     def redirect(msg):
         target_logger.debug(msg)
 
@@ -172,7 +180,7 @@ def convert_osm_file_to_commonroad_scenario(osm_file: Path) -> Scenario:
 
     _LOGGER.debug(f"Converting OSM {osm_file} to CommonRoad Scenario")
 
-    with redirect_all_undirected_log_messages(_LOGGER):
+    with _redirect_all_undirected_log_messages(_LOGGER):
         graph = GraphScenario(str(osm_file)).graph
         scenario, _ = create_scenario_intermediate(graph)
         sanitize(scenario)

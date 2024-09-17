@@ -19,7 +19,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # The CR2SumoMapConverter does not limit the output of SUMO netconvert.
 # If we process many different scenarios, netconvert will spam unecessary warnings to the console.
-# Therefore, a custmo converter is used, which limits the output by capturing SUMO netconverts output on stderr.
+# Therefore, a custom converter is used, which limits the output by capturing SUMO netconverts output on stderr.
 class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
     def __init__(self, scenario: Scenario, conf: SumoConfig) -> None:
         # Override the logging level, otherwise the converter will spam info logs (which should be debug logs...)
@@ -130,6 +130,15 @@ class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
 def convert_commonroad_scenario_to_sumo_scenario(
     commonroad_scenario: Scenario, output_folder: Path, sumo_config: SumoConfig
 ) -> ScenarioWrapper:
+    """
+    Convert the lanelet network in :param:`commonroad_scenario` to a SUMO network. This will also generate the random traffic on the network.
+
+    :param commonroad_scenario: Scenario with a lanelet network that should be converted
+    :param output_folder: The folder in which the SUMO files will be created
+    :param sumo_config: Configuration for the converter
+
+    :returns: A wrapper that can be used in the SUMO simulation
+    """
     new_scenario = copy.deepcopy(commonroad_scenario)
     cr2sumo = CustomCommonroad2SumoMapConverter(new_scenario, sumo_config)
     conversion_possible = cr2sumo.create_sumo_files(str(output_folder))
@@ -144,6 +153,9 @@ def convert_commonroad_scenario_to_sumo_scenario(
 
 
 def simulate_commonroad_scenario(scenario_wrapper: ScenarioWrapper, sumo_config: SumoConfig) -> Scenario:
+    """
+    Simulate a CommonRoad scenario
+    """
     sumo_sim = SumoSimulation()
     sumo_sim.initialize(sumo_config, scenario_wrapper)
 

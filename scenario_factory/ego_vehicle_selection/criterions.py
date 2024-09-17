@@ -1,7 +1,7 @@
 __all__ = [
     "EgoVehicleSelectionCriterion",
-    "BrakingCriterion",
     "AccelerationCriterion",
+    "BrakingCriterion",
     "TurningCriterion",
     "LaneChangeCriterion",
 ]
@@ -17,7 +17,7 @@ from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
 
 from scenario_factory.ego_vehicle_selection.utils import threshold_and_lag_detection, threshold_and_max_detection
-from scenario_factory.scenario_util import (
+from scenario_factory.utils import (
     get_full_state_list_of_obstacle,
     is_state_list_with_acceleration,
     is_state_list_with_orientation,
@@ -30,7 +30,7 @@ from scenario_factory.scenario_util import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def pairwise(iterable: Iterable[Any]) -> Iterable[Any]:
+def _pairwise(iterable: Iterable[Any]) -> Iterable[Any]:
     iterator = iter(iterable)
     a = next(iterator, None)
     for b in iterator:
@@ -112,7 +112,6 @@ class AccelerationCriterion(EgoVehicleSelectionCriterion):
 
 
 class BrakingCriterion(EgoVehicleSelectionCriterion):
-    # TODO: In theory a braking criterion is the same as an acceleration criterion so, the both could be merged
     """
     Criterion that matches if a dynamic obstacle is accelerating.
 
@@ -235,7 +234,7 @@ def _changes_lanes(lanelet_network: LaneletNetwork, obstacle: DynamicObstacle) -
     position_list = [state.position for state in state_list]
     mapped_lanelets_list = lanelet_network.find_lanelet_by_position(position_list)
 
-    for state_index, (curr_lanelet_list, next_lanelet_list) in enumerate(pairwise(mapped_lanelets_list)):
+    for state_index, (curr_lanelet_list, next_lanelet_list) in enumerate(_pairwise(mapped_lanelets_list)):
         if curr_lanelet_list is None or next_lanelet_list is None:
             # If no lanelet could be mapped at this position, None is returned by find_lanelet_by_position...
             continue
@@ -264,6 +263,13 @@ def _changes_lanes(lanelet_network: LaneletNetwork, obstacle: DynamicObstacle) -
 
 
 class LaneChangeCriterion(EgoVehicleSelectionCriterion):
+    """
+    Criterion that matches if a dynamic obstacle is switches to an adjacent lane once.
+
+    :param lc_detection_min_velocity: The minimum velocity that the vehicle must have, so that this is considered as a lane change
+    :param lc_detection_start_time_offset: The start time offset for the resulting scenario
+    """
+
     def __init__(self, lc_detection_min_velocity: float = 10.0, lc_detection_start_time_offset: float = 0.5):
         super().__init__(lc_detection_start_time_offset)
         self._lc_detection_min_velocity = lc_detection_min_velocity

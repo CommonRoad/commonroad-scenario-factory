@@ -2,7 +2,7 @@ import numpy as np
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.state import ExtendedPMState
 
-from scenario_factory.generate_senarios import (
+from scenario_factory.scenario_generation import (
     create_planning_problem_set_and_solution_for_ego_vehicle,
     delete_colliding_obstacles_from_scenario,
 )

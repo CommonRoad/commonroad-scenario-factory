@@ -1,5 +1,6 @@
 __all__ = [
     "generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_maneuver",
+    "delete_colliding_obstacles_from_scenario",
 ]
 
 
@@ -11,7 +12,7 @@ from typing import List, Optional, Set, Tuple, Type
 import numpy as np
 from commonroad.common.solution import CostFunction, KSState, PlanningProblemSolution, VehicleModel, VehicleType
 from commonroad.common.util import Interval
-from commonroad.geometry.shape import Rectangle
+from commonroad.geometry.shape import Rectangle, Shape
 from commonroad.planning.goal import GoalRegion
 from commonroad.planning.planning_problem import PlanningProblem, PlanningProblemSet
 from commonroad.prediction.prediction import TrajectoryPrediction
@@ -23,9 +24,23 @@ from commonroad.scenario.trajectory import Trajectory
 from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
 from scenario_factory.scenario_checker import get_colliding_dynamic_obstacles_in_scenario
 from scenario_factory.scenario_config import ScenarioFactoryConfig
-from scenario_factory.scenario_util import find_most_likely_lanelet_by_state, get_full_state_list_of_obstacle
+from scenario_factory.utils import get_full_state_list_of_obstacle
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _find_most_likely_lanelet_by_state(lanelet_network: LaneletNetwork, state: TraceState) -> Optional[int]:
+    if not isinstance(state.position, Shape):
+        return None
+
+    lanelet_ids = lanelet_network.find_lanelet_by_shape(state.position)
+    if len(lanelet_ids) == 0:
+        return None
+
+    if len(lanelet_ids) == 1:
+        return lanelet_ids[0]
+
+    return lanelet_ids[0]
 
 
 def _create_new_scenario_with_metadata_from_old_scenario(scenario: Scenario) -> Scenario:
@@ -189,7 +204,7 @@ def _create_planning_problem_for_ego_vehicle(
     goal_region_lanelet_mapping = None
     if planning_problem_with_lanelet is True:
         # We should create a planning problem goal region, that is associated with the lanelet on which the ego vehicle lands in its goal_state
-        lanelet_id_at_goal_state = find_most_likely_lanelet_by_state(lanelet_network=lanelet_network, state=goal_state)
+        lanelet_id_at_goal_state = _find_most_likely_lanelet_by_state(lanelet_network=lanelet_network, state=goal_state)
         if lanelet_id_at_goal_state is None:
             raise ValueError(
                 f"Tried to match ego vehicle {ego_vehicle} to the lanelet in its goal state, but no lanelet could be found for state: {goal_state}"

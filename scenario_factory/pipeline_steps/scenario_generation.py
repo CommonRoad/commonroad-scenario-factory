@@ -1,10 +1,10 @@
 __all__ = [
     "pipeline_simulate_scenario_with_sumo",
+    "FindEgoVehicleManeuversArguments",
     "pipeline_find_ego_vehicle_maneuvers",
     "pipeline_filter_ego_vehicle_maneuver",
     "pipeline_select_one_maneuver_per_ego_vehicle",
     "pipeline_generate_scenario_for_ego_vehicle_maneuver",
-    "FindEgoVehicleManeuversArguments",
 ]
 
 import logging
@@ -18,9 +18,6 @@ from scenario_factory.ego_vehicle_selection.selection import (
     find_ego_vehicle_maneuvers_in_scenario,
     select_one_maneuver_per_ego_vehicle,
 )
-from scenario_factory.generate_senarios import (
-    generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_maneuver,
-)
 from scenario_factory.pipeline import (
     PipelineContext,
     PipelineStepArguments,
@@ -29,6 +26,9 @@ from scenario_factory.pipeline import (
     pipeline_fold,
     pipeline_map,
     pipeline_map_with_args,
+)
+from scenario_factory.scenario_generation import (
+    generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_maneuver,
 )
 from scenario_factory.scenario_types import ScenarioContainer, ScenarioWithEgoVehicleManeuver, ScenarioWithSolution
 from scenario_factory.sumo import convert_commonroad_scenario_to_sumo_scenario, simulate_commonroad_scenario

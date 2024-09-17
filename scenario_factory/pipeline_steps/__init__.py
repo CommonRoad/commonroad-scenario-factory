@@ -1,6 +1,5 @@
 __all__ = [
     # Utils
-    "pipeline_flatten",
     "pipeline_write_scenario_to_file",
     "WriteScenarioToFileArguments",
     "pipeline_add_metadata_to_scenario",
@@ -43,7 +42,6 @@ from .utils import (
     WriteScenarioToFileArguments,
     pipeline_add_metadata_to_scenario,
     pipeline_assign_tags_to_scenario,
-    pipeline_flatten,
     pipeline_remove_colliding_dynamic_obstacles,
     pipeline_write_scenario_to_file,
 )

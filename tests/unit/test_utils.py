@@ -1,7 +1,7 @@
 import numpy as np
 from commonroad.scenario.state import ExtendedPMState, InitialState
 
-from scenario_factory.scenario_util import get_full_state_list_of_obstacle
+from scenario_factory.utils import get_full_state_list_of_obstacle
 from tests.helpers import create_test_obstacle_with_trajectory
 
 

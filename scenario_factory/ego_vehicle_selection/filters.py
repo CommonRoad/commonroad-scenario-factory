@@ -1,9 +1,9 @@
 __all__ = [
     "EgoVehicleManeuverFilter",
-    "EnoughSurroundingVehiclesFilter",
-    "InterestingLaneletNetworkFilter",
-    "MinimumVelocityFilter",
     "LongEnoughManeuverFilter",
+    "MinimumVelocityFilter",
+    "InterestingLaneletNetworkFilter",
+    "EnoughSurroundingVehiclesFilter",
 ]
 
 import logging
@@ -17,6 +17,7 @@ from commonroad.scenario.scenario import Scenario
 
 from scenario_factory.ego_vehicle_selection.maneuver import EgoVehicleManeuver
 from scenario_factory.scenario_features.models.scenario_model import ScenarioModel
+from scenario_factory.utils import is_state_list_with_velocity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,10 +31,6 @@ def _does_ego_vehicle_maneuver_reach_minimum_velocity(
     if not isinstance(maneuver.ego_vehicle.initial_state.time_step, int):
         return False
 
-    # Ensure that each state has the 'velocity' attribute
-    if not all(hasattr(state, "velocity") for state in maneuver.ego_vehicle.prediction.trajectory.state_list):
-        return False
-
     # Verify that the vehicle exceeds the minimum velocity at least once during the complete time interval
     adjusted_state_list_start_index = maneuver.start_time - maneuver.ego_vehicle.initial_state.time_step
     state_list = maneuver.ego_vehicle.prediction.trajectory.state_list[
@@ -41,6 +38,11 @@ def _does_ego_vehicle_maneuver_reach_minimum_velocity(
     ]
     if len(state_list) == 0:
         return False
+
+    if not is_state_list_with_velocity(state_list):
+        raise RuntimeError(
+            "Cannot check whether the ego vehicle reaches the minimum velocity, because the states in it's trajectory do not have a velocity attribute set!"
+        )
 
     if not any(state.velocity >= min_ego_velocity for state in state_list):
         v_max = max([state.velocity for state in state_list])
@@ -182,6 +184,10 @@ def _does_ego_vehicle_maneuver_have_enough_surrounding_vehicles_on_adjacent_lane
 
 
 class EgoVehicleManeuverFilter(ABC):
+    """
+    Abstract base class for ego vehicle maneuver filters, that determine whether an ego vehicle maneuver can be used to generate new scenarios.
+    """
+
     @abstractmethod
     def matches(self, scenario: Scenario, scenario_time_steps: int, ego_vehicle_maneuver: EgoVehicleManeuver) -> bool:
         """
