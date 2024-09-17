@@ -14,7 +14,7 @@ from crdesigner.map_conversion.sumo_map.util import update_edge_lengths
 from sumocr.interface.sumo_simulation import SumoSimulation
 from sumocr.scenario.scenario_wrapper import ScenarioWrapper
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 
 # The CR2SumoMapConverter does not limit the output of SUMO netconvert.
@@ -102,7 +102,9 @@ class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
                 if line.startswith("Warning"):
                     warning_message = line.lstrip("Warning: ")
                     # Although the messages
-                    logger.debug(f"netconvert produced a warning while creating {self._output_file}: {warning_message}")
+                    _LOGGER.debug(
+                        f"netconvert produced a warning while creating {self._output_file}: {warning_message}"
+                    )
 
             update_edge_lengths(self._output_file)
             net = sumo_net_from_xml(self._output_file)

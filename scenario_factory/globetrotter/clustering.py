@@ -12,7 +12,7 @@ from commonroad.scenario.traffic_sign import TrafficSign
 from scipy.spatial import distance
 from sklearn.cluster import AgglomerativeClustering
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 
 def find_clusters_agglomerative(points: np.ndarray) -> AgglomerativeClustering:
@@ -175,7 +175,7 @@ def cut_intersection_from_scenario(scenario: Scenario, center: np.ndarray, max_d
     traffic_lights = relevant_traffic_lights(scenario.lanelet_network.traffic_lights, lanelets_not_none)
     traffic_signs = relevant_traffic_signs(scenario.lanelet_network.traffic_signs, lanelets_not_none)
     intersections = relevant_intersections(scenario.lanelet_network.intersections, lanelets_not_none)
-    logger.debug(
+    _LOGGER.debug(
         f"For new scenario from {scenario.scenario_id} identified the interesting intersections '{intersections}' out of all intersections '{[intersection.intersection_id for intersection in scenario.lanelet_network.intersections]}'"
     )
 
@@ -211,7 +211,7 @@ def cut_intersection_from_scenario(scenario: Scenario, center: np.ndarray, max_d
             remove_intersection.add(intersection)
 
     for intersection in remove_intersection:
-        logger.debug(
+        _LOGGER.debug(
             f"Dicarded intersection {intersection} from scenario {cut_lanelet_scenario.scenario_id} because it does not contain "
         )
         cut_lanelet_scenario.lanelet_network.remove_intersection(intersection)
@@ -248,7 +248,7 @@ def generate_intersections(scenario: Scenario, forking_points: np.ndarray) -> Li
     labels = clustering_result.labels_
     centroids, distances, clusters = centroids_and_distances(labels, forking_points)
 
-    logger.debug(f"Found {len(clusters)} new intersections for base scenario {scenario.scenario_id}")
+    _LOGGER.debug(f"Found {len(clusters)} new intersections for base scenario {scenario.scenario_id}")
 
     intersections = []
     for idx, key in enumerate(centroids):

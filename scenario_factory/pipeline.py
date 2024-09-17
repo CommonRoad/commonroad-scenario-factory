@@ -33,7 +33,7 @@ from multiprocess import Pool
 
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 
 def _get_function_name(func) -> str:
@@ -438,7 +438,7 @@ class PipelineExecutor:
                         self._perform_fold_on_all_queued_values()
                     time.sleep(1)
         except KeyboardInterrupt:
-            logger.info("Received shutdown signal, terminating all remaining tasks...")
+            _LOGGER.info("Received shutdown signal, terminating all remaining tasks...")
         finally:
             # make sure that no new tasks will be scheduled during shutdown
             self._scheduling_enabled = False
@@ -463,10 +463,18 @@ class PipelineExecutionResult:
         for result in self.results:
             cum_time_by_pipeline_step[result.step.name] += result.exec_time
 
-        fmt_str = "{:<100} {:>10}"
-        fmt_str.format("Pipeline Step", "Total Execution Time (s)")
+        cum_elements_by_pipeline_step = defaultdict(lambda: 0)
+        for result in self.results:
+            cum_elements_by_pipeline_step[result.step.name] += 1
+
+        fmt_str = "{:<100} {:>10} {:>10}"
+        fmt_str.format("Pipeline Step", "Total Execution Time (s)", "Num.")
         for pipeline_step, cum_time_ns in cum_time_by_pipeline_step.items():
-            print(fmt_str.format(pipeline_step, round(cum_time_ns / 1000000000, 2)))
+            print(
+                fmt_str.format(
+                    pipeline_step, round(cum_time_ns / 1000000000, 2), cum_elements_by_pipeline_step[pipeline_step]
+                )
+            )
 
 
 class Pipeline:

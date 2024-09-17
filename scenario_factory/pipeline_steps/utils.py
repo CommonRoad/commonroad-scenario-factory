@@ -6,17 +6,25 @@ __all__ = [
     "pipeline_remove_colliding_dynamic_obstacles",
 ]
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, TypeVar
 
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
+from commonroad.common.solution import CommonRoadSolutionWriter
 from commonroad.planning.planning_problem import PlanningProblemSet
 
 from scenario_factory.generate_senarios import delete_colliding_obstacles_from_scenario
 from scenario_factory.pipeline import PipelineContext, PipelineStepArguments, pipeline_map, pipeline_map_with_args
-from scenario_factory.scenario_types import ScenarioContainer, ScenarioWithPlanningProblemSet
+from scenario_factory.scenario_types import (
+    ScenarioContainer,
+    is_scenario_with_planning_problem_set,
+    is_scenario_with_solution,
+)
 from scenario_factory.tags import find_applicable_tags_for_scenario
+
+_LOGGER = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
 
@@ -42,10 +50,10 @@ def pipeline_write_scenario_to_file(
     args: WriteScenarioToFileArguments,
     ctx: PipelineContext,
     scenario_container: ScenarioContainer,
-) -> Path:
+) -> ScenarioContainer:
     planning_problem_set = (
         scenario_container.planning_problem_set
-        if isinstance(scenario_container, ScenarioWithPlanningProblemSet)
+        if is_scenario_with_planning_problem_set(scenario_container)
         else PlanningProblemSet(None)
     )
     commonroad_scenario = scenario_container.scenario
@@ -64,11 +72,19 @@ def pipeline_write_scenario_to_file(
         )
     tags = set() if commonroad_scenario.tags is None else commonroad_scenario.tags
 
-    file_path = args.output_folder.joinpath(f"{commonroad_scenario.scenario_id}.cr.xml")
-    CommonRoadFileWriter(commonroad_scenario, planning_problem_set, tags=tags).write_scenario_to_file(
-        str(file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS
+    scenario_file_path = args.output_folder.joinpath(f"{commonroad_scenario.scenario_id}.cr.xml")
+    CommonRoadFileWriter(commonroad_scenario, planning_problem_set, tags=tags).write_to_file(
+        str(scenario_file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS
     )
-    return file_path
+
+    if is_scenario_with_solution(scenario_container):
+        solution = scenario_container.solution
+        solution_file_name = f"{solution.scenario_id}.solution.xml"
+        CommonRoadSolutionWriter(solution).write_to_file(
+            str(args.output_folder), filename=solution_file_name, overwrite=True
+        )
+
+    return scenario_container
 
 
 @pipeline_map()
@@ -109,5 +125,6 @@ def pipeline_remove_colliding_dynamic_obstacles(
     ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> ScenarioContainer:
     commonroad_scenario = scenario_container.scenario
-    delete_colliding_obstacles_from_scenario(commonroad_scenario)
+    deleted_obstacles = delete_colliding_obstacles_from_scenario(commonroad_scenario)
+    _LOGGER.debug("Removed %s obstacles from scenario %s", len(deleted_obstacles), commonroad_scenario.scenario_id)
     return scenario_container

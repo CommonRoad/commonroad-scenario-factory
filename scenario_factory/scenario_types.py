@@ -1,13 +1,14 @@
-from __future__ import annotations
-
 import logging
+from typing import Sequence
 
+from commonroad.common.solution import PlanningProblemSolution, Solution
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
+from typing_extensions import TypeGuard
 
 from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 
 class ScenarioContainer:
@@ -31,9 +32,46 @@ class ScenarioWithPlanningProblemSet(ScenarioContainer):
         self.planning_problem_set = planning_problem_set
 
 
+def is_scenario_with_planning_problem_set(
+    scenario_container: ScenarioContainer,
+) -> TypeGuard[ScenarioWithPlanningProblemSet]:
+    return isinstance(scenario_container, ScenarioWithPlanningProblemSet)
+
+
+class ScenarioWithSolution(ScenarioWithPlanningProblemSet):
+    """
+    Container for a CommonRoad Scenario, PlanningProblemSet and its associated solutions.
+    """
+
+    def __init__(
+        self, scenario: Scenario, planning_problem_set: PlanningProblemSet, solutions: Sequence[PlanningProblemSolution]
+    ) -> None:
+        super().__init__(scenario, planning_problem_set)
+        self._solutions = solutions
+
+    @property
+    def solution(self):
+        # Only construct the Solution object here, to include the 'final' scenario ID.
+        # This is required because the scenario ID might be manipulated in different places,
+        # and so it would be difficult to track the ID of the scenario and the solution indepdently.
+        return Solution(self.scenario.scenario_id, planning_problem_solutions=self._solutions)
+
+
+def is_scenario_with_solution(
+    scenario_container: ScenarioContainer,
+) -> TypeGuard[ScenarioWithSolution]:
+    return isinstance(scenario_container, ScenarioWithSolution)
+
+
 class ScenarioWithEgoVehicleManeuver(ScenarioContainer):
     ego_vehicle_maneuver: EgoVehicleManeuver
 
-    def __init__(self, scenario: Scenario, ego_vehicle_maneuver: EgoVehicleManeuver):
+    def __init__(self, scenario: Scenario, ego_vehicle_maneuver: EgoVehicleManeuver) -> None:
         super().__init__(scenario)
         self.ego_vehicle_maneuver = ego_vehicle_maneuver
+
+
+def is_scenario_with_ego_vehicle_maneuver(
+    scenario_container: ScenarioContainer,
+) -> TypeGuard[ScenarioWithPlanningProblemSet]:
+    return isinstance(scenario_container, ScenarioWithEgoVehicleManeuver)

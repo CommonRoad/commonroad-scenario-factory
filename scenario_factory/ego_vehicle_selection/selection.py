@@ -14,7 +14,7 @@ from scenario_factory.ego_vehicle_selection.filters import EgoVehicleManeuverFil
 from scenario_factory.ego_vehicle_selection.maneuver import EgoVehicleManeuver
 from scenario_factory.scenario_util import is_state_with_position
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 
 def find_ego_vehicle_maneuvers_in_scenario(
@@ -31,7 +31,7 @@ def find_ego_vehicle_maneuvers_in_scenario(
                 continue
             # Each criterion has a specific start time offset which must be used to shift the adsolute init time, so that scenarios start before a specific maneuver
             adjusted_absolute_init_time = criterion.compute_adjusted_start_time(absolute_init_time, scenario.dt)
-            logger.debug(
+            _LOGGER.debug(
                 f"Adjusted maneuver start time {absolute_init_time} of obstacle {obstacle.obstacle_id} to {adjusted_absolute_init_time}"
             )
 

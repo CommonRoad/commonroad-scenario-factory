@@ -27,7 +27,7 @@ from scenario_factory.scenario_util import (
     is_state_with_velocity,
 )
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 
 def pairwise(iterable: Iterable[Any]) -> Iterable[Any]:
@@ -106,7 +106,7 @@ class AccelerationCriterion(EgoVehicleSelectionCriterion):
             return False, -1
         time_step = matching_state.time_step
 
-        logger.debug(f"AccelerationCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}")
+        _LOGGER.debug(f"AccelerationCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}")
 
         return True, time_step
 
@@ -157,7 +157,7 @@ class BrakingCriterion(EgoVehicleSelectionCriterion):
             return False, -1
         time_step = matching_state.time_step
 
-        logger.debug(f"BrakingCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}")
+        _LOGGER.debug(f"BrakingCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}")
 
         return True, time_step
 
@@ -208,7 +208,7 @@ class TurningCriterion(EgoVehicleSelectionCriterion):
             return False, -1
         time_step = matched_state.time_step
 
-        logger.debug(f"TurningCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}")
+        _LOGGER.debug(f"TurningCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}")
 
         return True, time_step
 
@@ -286,6 +286,6 @@ class LaneChangeCriterion(EgoVehicleSelectionCriterion):
         if matched_state.velocity <= self._lc_detection_min_velocity:
             return False, -1
 
-        logger.debug(f"LaneChangeCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}")
+        _LOGGER.debug(f"LaneChangeCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}")
 
         return True, time_step

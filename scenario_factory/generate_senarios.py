@@ -1,14 +1,15 @@
 __all__ = [
-    "generate_scenario_with_planning_problem_set_for_ego_vehicle_maneuver",
+    "generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_maneuver",
 ]
 
 
 import copy
 import logging
 import math
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple, Type
 
 import numpy as np
+from commonroad.common.solution import CostFunction, KSState, PlanningProblemSolution, VehicleModel, VehicleType
 from commonroad.common.util import Interval
 from commonroad.geometry.shape import Rectangle
 from commonroad.planning.goal import GoalRegion
@@ -16,15 +17,15 @@ from commonroad.planning.planning_problem import PlanningProblem, PlanningProble
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.scenario import DynamicObstacle, Scenario
-from commonroad.scenario.state import InitialState, PMState, TraceState
+from commonroad.scenario.state import InitialState, PMState, State, TraceState
 from commonroad.scenario.trajectory import Trajectory
 
 from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
 from scenario_factory.scenario_checker import get_colliding_dynamic_obstacles_in_scenario
 from scenario_factory.scenario_config import ScenarioFactoryConfig
-from scenario_factory.scenario_util import find_most_likely_lanelet_by_state
+from scenario_factory.scenario_util import find_most_likely_lanelet_by_state, get_full_state_list_of_obstacle
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 
 def _create_new_scenario_with_metadata_from_old_scenario(scenario: Scenario) -> Scenario:
@@ -32,10 +33,11 @@ def _create_new_scenario_with_metadata_from_old_scenario(scenario: Scenario) -> 
     Create a new scenario from an old scenario and include all its metadata.
 
     :param scenario: The old scenario, from which the metadata will be taken
+
     :returns: The new scenario with all metadata, which is safe to modify.
     """
     new_scenario = Scenario(dt=scenario.dt)
-    # The following metadata are all objects. As they could be arbitrarily modified in-place they need to be copied
+    # The following metadata values are al.l objects. As they could be arbitrarily modified in-place they need to be copied.
     new_scenario.scenario_id = copy.deepcopy(scenario.scenario_id)
     new_scenario.scenario_id.obstacle_behavior = "T"
     new_scenario.location = copy.deepcopy(scenario.location)
@@ -58,7 +60,10 @@ def _create_new_obstacle_in_time_frame(
     :param start_time: Start of the time frame (inclusive)
     :param end_time: End of the time frame (exclusive)
     :param with_prediction: Whether to include the aligned trajectory in the resulting obstacle
+
+    :returns: The new DynamicObstacle that is aligned to the time frame or None, if no state was definied for the start of the time frame
     """
+    # TODO: The inclusion criterion here is quiet weak, because it is only checked whether the obstacle is there at the beginning of the scenario. Maybe a better inclusion criterion would be to check, whether there is a trajectory of minimum length x in the time frame?
     state_at_start = copy.deepcopy(orig_obstacle.state_at_time(start_time))
     if state_at_start is None:
         return None
@@ -107,8 +112,8 @@ def _select_obstacles_in_sensor_range_of_ego_vehicle(
 
     :returns: The selected dynamic obstacles
     """
-    # Use a dictionary to improve looks up speed
-    relevant_obstacle_map = {ego_vehicle.obstacle_id: ego_vehicle}
+    # Use a dictionary to improve look up speed
+    relevant_obstacle_map = {}
 
     assert isinstance(ego_vehicle.prediction, TrajectoryPrediction)
 
@@ -118,6 +123,9 @@ def _select_obstacles_in_sensor_range_of_ego_vehicle(
         proj_pos[0] += math.cos(ego_vehicle_state.orientation) + 2.0 * ego_vehicle_state.velocity
         proj_pos[1] += math.sin(ego_vehicle_state.orientation) + 2.0 * ego_vehicle_state.velocity
         for obstacle in obstacles:
+            if obstacle.obstacle_id == ego_vehicle.obstacle_id:
+                continue
+
             if obstacle.obstacle_id in relevant_obstacle_map:
                 continue
 
@@ -145,6 +153,9 @@ def _create_planning_problem_initial_state_for_ego_vehicle(
 def _create_planning_problem_goal_state_for_ego_vehicle(
     ego_vehicle: DynamicObstacle,
 ) -> TraceState:
+    """
+    Create a new state that can be used as a goal state in a planning problem
+    """
     final_state_of_ego_vehicle = copy.deepcopy(ego_vehicle.prediction.trajectory.final_state)
     goal_state = PMState(
         time_step=Interval(final_state_of_ego_vehicle.time_step - 1, final_state_of_ego_vehicle.time_step),
@@ -164,8 +175,13 @@ def _create_planning_problem_for_ego_vehicle(
     planning_problem_with_lanelet: bool = True,
 ) -> PlanningProblem:
     """
-    Create a new planning problem set for the ego vehicle in the scenario.
+    Create a new planning problem for the trajectory of the :param:`ego_vehicle`. The initial and final state will become the start and goal state of the planning problem, while the trajectory will be used as the solution trajectory.
 
+    :param lanelet_network: Lanelet network used to match the goal state to the final lanelets
+    :param ego_vehicle: The ego vehicle with a trajectory that will form the basis for the planning problem
+    :param planning_problem_with_lanelet: Whether the goal region should also contain references to the final lanelet
+
+    :returns: A new PlanningProblem for the :param:`ego_vehicle`
     """
     initial_state = _create_planning_problem_initial_state_for_ego_vehicle(ego_vehicle)
     goal_state = _create_planning_problem_goal_state_for_ego_vehicle(ego_vehicle)
@@ -194,14 +210,65 @@ def _create_planning_problem_for_ego_vehicle(
     return planning_problem
 
 
-def create_planning_problem_set_for_ego_vehicle_maneuver(
-    scenario: Scenario, ego_vehicle_maneuver: EgoVehicleManeuver, planning_problem_with_lanelet: bool = True
-) -> PlanningProblemSet:
+def _create_trajectory_for_planning_problem_solution(
+    ego_vehicle: DynamicObstacle, target_state_type: Type[State]
+) -> Trajectory:
+    """
+    Create a trajectory of the :param:`ego_vehicle`, that can be used in a planning problem solution.
+    """
+    state_list = get_full_state_list_of_obstacle(ego_vehicle, target_state_type)
+
+    trajectory = Trajectory(
+        initial_time_step=state_list[0].time_step,
+        state_list=state_list,
+    )
+    return trajectory
+
+
+def _create_planning_problem_solution_for_ego_vehicle(
+    ego_vehicle: DynamicObstacle, planning_problem: PlanningProblem
+) -> PlanningProblemSolution:
+    """
+    Create a planning problem solution for the :param:`planning_problem` with the trajectory of the :param:`ego_vehicle`. The solution always has the KS vehicle model.
+    """
+    # TODO: Enable different solution vehicle models, instead of only KS.
+    # It would be better, to select the vehicle model based on the trajectory state types.
+    # Currently, this is not possible easily because their are some discrepencies between
+    # the states used in trajectories and the state types for solutions.
+    # See https://gitlab.lrz.de/cps/commonroad/commonroad-io/-/issues/131 for more infos.
+    trajectory = _create_trajectory_for_planning_problem_solution(ego_vehicle, target_state_type=KSState)
+    planning_problem_solution = PlanningProblemSolution(
+        planning_problem_id=planning_problem.planning_problem_id,
+        vehicle_model=VehicleModel.KS,
+        vehicle_type=VehicleType.FORD_ESCORT,
+        cost_function=CostFunction.TR1,
+        trajectory=trajectory,
+    )
+    return planning_problem_solution
+
+
+def create_planning_problem_set_and_solution_for_ego_vehicle(
+    scenario: Scenario, ego_vehicle: DynamicObstacle, planning_problem_with_lanelet: bool = True
+) -> Tuple[PlanningProblemSet, PlanningProblemSolution]:
+    """
+    Create a new planning problem set and solution for the trajectory of the :param:`ego_vehicle`. The initial and final state will become the start and goal state of the planning problem, while the trajectory will be used as the solution trajectory.
+
+    :param scenario: Scenario used to match the trajectory to the lanelet network
+    :param ego_vehicle: The ego vehicle with a trajectory that will form the basis for the planning problem and solution
+    :param planning_problem_with_lanelet: Whether the goal region should also contain references to the final lanelet
+
+    :returns: The planning problem set and its associated solution
+    """
     planning_problem = _create_planning_problem_for_ego_vehicle(
-        scenario.lanelet_network, ego_vehicle_maneuver.ego_vehicle, planning_problem_with_lanelet
+        scenario.lanelet_network, ego_vehicle, planning_problem_with_lanelet
     )
     planning_problem_set = PlanningProblemSet([planning_problem])
-    return planning_problem_set
+    planning_problem_solution = _create_planning_problem_solution_for_ego_vehicle(ego_vehicle, planning_problem)
+    # The planning problem solution is not wrapped in its container object like the planning problem is wrapped in a planning problem set,
+    # because the solution wrapper object requires a reference to the benchmark ID.
+    # This benchmark ID might change throughout the different steps, so it is not a good idea
+    # to wrap the planning problem solution here already, because we do not have a way to bind those two reliable together (we could just use the same object for both, but who says no-one will just copy the scenario id somewhere?).
+    return planning_problem_set, planning_problem_solution
 
 
 def create_scenario_for_ego_vehicle_maneuver(
@@ -210,7 +277,13 @@ def create_scenario_for_ego_vehicle_maneuver(
     ego_vehicle_maneuver: EgoVehicleManeuver,
 ) -> Scenario:
     """
-    Create a trajectory scenario from an ego vehicle maneuver
+    Create a new scenario that is centered around the ego vehicle from the :param:`ego_vehicle_maneuver` and starts at the beginning of the :param:`ego_vehicle_maneuver`. The ego vehicle will not be included in the final scenario.
+
+    :param scenario: The base scenario with the lanelet network and all other obstacles (can include the ego vehicle)
+    :param scenario_config: Scenario factory configuration used to paremterize the scenario creation
+    :param ego_vehicle_maneuver: The maneuver, the resulting scenario will be centered around
+
+    :returns: A new scenario with the same metadata and lanelet network as the input scenario but with obstacles that are aligned to the start of the ego vehicle maneuver
     """
     relevant_obstacles = _select_obstacles_in_sensor_range_of_ego_vehicle(
         scenario.dynamic_obstacles, ego_vehicle_maneuver.ego_vehicle, scenario_config.sensor_range
@@ -241,7 +314,7 @@ def delete_colliding_obstacles_from_scenario(scenario: Scenario, all: bool = Tru
     """
     Delete dynamic obstacles from the scenario that are involved in a collision.
 
-    :param scenario: The scenario from which the
+    :param scenario: The scenario from which the obstacle shall be delted
     :param all: Whether all objects involved in a collision should be deleted or only one
 
     :returns: The ID set of dynamic obstacles that were removed
@@ -256,20 +329,38 @@ def delete_colliding_obstacles_from_scenario(scenario: Scenario, all: bool = Tru
     return ids
 
 
-def generate_scenario_with_planning_problem_set_for_ego_vehicle_maneuver(
+def generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_maneuver(
     commonroad_scenario: Scenario,
     ego_vehicle_maneuver: EgoVehicleManeuver,
     scenario_config: ScenarioFactoryConfig,
-) -> Tuple[Scenario, PlanningProblemSet]:
+) -> Tuple[Scenario, PlanningProblemSet, PlanningProblemSolution]:
     """
     Extract all interesting ego vehicle maneuvers from a simulated scenario and create new scenarios and planning problems centered around each ego vehicle maneuver.
     """
+    _LOGGER.debug(
+        "Creating scenario, planning problem and solution for ego vehicle %s in scenario %s",
+        ego_vehicle_maneuver.ego_vehicle.obstacle_id,
+        commonroad_scenario.scenario_id,
+    )
 
     ego_scenario = create_scenario_for_ego_vehicle_maneuver(commonroad_scenario, scenario_config, ego_vehicle_maneuver)
 
+    # Make sure that the ego vehicle is also aligned to the start of the new scenario and not to the old scenario.
+    # This is important, because the planning problem will be created from the trajectories start and end state.
+    aligned_ego_vehicle = _create_new_obstacle_in_time_frame(
+        ego_vehicle_maneuver.ego_vehicle,
+        start_time=ego_vehicle_maneuver.start_time,
+        end_time=ego_vehicle_maneuver.start_time + scenario_config.cr_scenario_time_steps + 1,
+        with_prediction=True,
+    )
+    if aligned_ego_vehicle is None:
+        raise RuntimeError(
+            f"Tried to align ego vehicle {ego_vehicle_maneuver.ego_vehicle} to the start of its scenario, but somehow it does not have a state at its maneuver start. This is a bug."
+        )
+
     ego_scenario.scenario_id.prediction_id = ego_vehicle_maneuver.ego_vehicle.obstacle_id
 
-    planning_problem_set = create_planning_problem_set_for_ego_vehicle_maneuver(
-        ego_scenario, ego_vehicle_maneuver, scenario_config.planning_pro_with_lanelet
+    planning_problem_set, planning_problem_solution = create_planning_problem_set_and_solution_for_ego_vehicle(
+        ego_scenario, aligned_ego_vehicle, scenario_config.planning_pro_with_lanelet
     )
-    return ego_scenario, planning_problem_set
+    return ego_scenario, planning_problem_set, planning_problem_solution

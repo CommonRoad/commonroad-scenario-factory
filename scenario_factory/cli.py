@@ -75,7 +75,6 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
         .map(pipeline_assign_tags_to_scenario)
         .map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
     )
-
     inputs = None
     if coords is not None:
         coordinates = Coordinates.from_str(coords)

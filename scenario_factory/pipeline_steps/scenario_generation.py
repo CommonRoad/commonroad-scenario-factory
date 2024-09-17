@@ -7,6 +7,7 @@ __all__ = [
     "FindEgoVehicleManeuversArguments",
 ]
 
+import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Iterable, List, Sequence
@@ -17,7 +18,9 @@ from scenario_factory.ego_vehicle_selection.selection import (
     find_ego_vehicle_maneuvers_in_scenario,
     select_one_maneuver_per_ego_vehicle,
 )
-from scenario_factory.generate_senarios import generate_scenario_with_planning_problem_set_for_ego_vehicle_maneuver
+from scenario_factory.generate_senarios import (
+    generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_maneuver,
+)
 from scenario_factory.pipeline import (
     PipelineContext,
     PipelineStepArguments,
@@ -27,12 +30,10 @@ from scenario_factory.pipeline import (
     pipeline_map,
     pipeline_map_with_args,
 )
-from scenario_factory.scenario_types import (
-    ScenarioContainer,
-    ScenarioWithEgoVehicleManeuver,
-    ScenarioWithPlanningProblemSet,
-)
+from scenario_factory.scenario_types import ScenarioContainer, ScenarioWithEgoVehicleManeuver, ScenarioWithSolution
 from scenario_factory.sumo import convert_commonroad_scenario_to_sumo_scenario, simulate_commonroad_scenario
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @pipeline_map(mode=PipelineStepMode.PARALLEL)
@@ -68,6 +69,11 @@ def pipeline_find_ego_vehicle_maneuvers(
     Find maneuvers in the scenario that qualify as interesting according to the criterions.
     """
     ego_vehicle_maneuvers = find_ego_vehicle_maneuvers_in_scenario(scenario_container.scenario, args.criterions)
+    _LOGGER.debug(
+        "Identified %s maneuvers in scenario %s that could qualify for an ego vehicle",
+        len(ego_vehicle_maneuvers),
+        scenario_container.scenario.scenario_id,
+    )
     return [
         ScenarioWithEgoVehicleManeuver(scenario_container.scenario, ego_vehicle_maneuver)
         for ego_vehicle_maneuver in ego_vehicle_maneuvers
@@ -115,13 +121,17 @@ def pipeline_select_one_maneuver_per_ego_vehicle(
 @pipeline_map()
 def pipeline_generate_scenario_for_ego_vehicle_maneuver(
     ctx: PipelineContext, scenario_container: ScenarioWithEgoVehicleManeuver
-) -> ScenarioWithPlanningProblemSet:
+) -> ScenarioWithSolution:
     scenario_config = ctx.get_scenario_factory_config()
 
-    scenario, planning_problem_set = generate_scenario_with_planning_problem_set_for_ego_vehicle_maneuver(
+    (
+        scenario,
+        planning_problem_set,
+        planning_problem_solution,
+    ) = generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_maneuver(
         scenario_container.scenario,
         scenario_container.ego_vehicle_maneuver,
         scenario_config,
     )
 
-    return ScenarioWithPlanningProblemSet(scenario, planning_problem_set)
+    return ScenarioWithSolution(scenario, planning_problem_set, [planning_problem_solution])
