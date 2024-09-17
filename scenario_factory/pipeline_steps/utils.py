@@ -14,8 +14,8 @@ from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistin
 from commonroad.common.solution import CommonRoadSolutionWriter
 from commonroad.planning.planning_problem import PlanningProblemSet
 
-from scenario_factory.generate_senarios import delete_colliding_obstacles_from_scenario
 from scenario_factory.pipeline import PipelineContext, PipelineStepArguments, pipeline_map, pipeline_map_with_args
+from scenario_factory.scenario_generation import delete_colliding_obstacles_from_scenario
 from scenario_factory.scenario_types import (
     ScenarioContainer,
     is_scenario_with_planning_problem_set,
