@@ -123,5 +123,10 @@ def pipeline_remove_colliding_dynamic_obstacles(
     """
     commonroad_scenario = scenario_container.scenario
     deleted_obstacles = delete_colliding_obstacles_from_scenario(commonroad_scenario, all=True)
-    _LOGGER.debug("Removed %s obstacles from scenario %s", len(deleted_obstacles), commonroad_scenario.scenario_id)
+    if len(deleted_obstacles) > 0:
+        _LOGGER.debug(
+            "Removed %s obstacles from scenario %s because they are involved in a collision with another dynamic obstacle",
+            len(deleted_obstacles),
+            commonroad_scenario.scenario_id,
+        )
     return scenario_container

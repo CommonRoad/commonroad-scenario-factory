@@ -10,7 +10,7 @@ __all__ = [
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Iterable, List, Sequence
+from typing import Iterable, List, Optional, Sequence
 
 from scenario_factory.ego_vehicle_selection.criterions import EgoVehicleSelectionCriterion
 from scenario_factory.ego_vehicle_selection.filters import EgoVehicleManeuverFilter
@@ -18,6 +18,7 @@ from scenario_factory.ego_vehicle_selection.selection import (
     find_ego_vehicle_maneuvers_in_scenario,
     select_one_maneuver_per_ego_vehicle,
 )
+from scenario_factory.ots import generate_random_traffic_with_ots
 from scenario_factory.pipeline import (
     PipelineContext,
     PipelineStepArguments,
@@ -53,6 +54,32 @@ def pipeline_simulate_scenario_with_sumo(
         commonroad_scenario, intermediate_sumo_files_path, sumo_config
     )
     simulated_scenario = simulate_commonroad_scenario(scenario_wrapper, sumo_config)
+    _LOGGER.debug(
+        "Simulated scenario %s with SUMO and created %s new obstacles",
+        simulated_scenario.scenario_id,
+        len(simulated_scenario.dynamic_obstacles),
+    )
+    return ScenarioContainer(simulated_scenario)
+
+
+@pipeline_map(mode=PipelineStepMode.PARALLEL)
+def pipeline_simulate_scenario_with_ots(
+    ctx: PipelineContext, scenario_container: ScenarioContainer
+) -> Optional[ScenarioContainer]:
+    commonroad_scenario = scenario_container.scenario
+    seed = ctx.get_scenario_factory_config().seed
+    sumo_config = ctx.get_sumo_config_for_scenario(commonroad_scenario)
+    simulated_scenario = generate_random_traffic_with_ots(
+        commonroad_scenario, seed, simulation_length=sumo_config.simulation_steps
+    )
+    if simulated_scenario is None:
+        return None
+
+    _LOGGER.debug(
+        "Simulated scenario %s with OTS and created %s new obstacles",
+        simulated_scenario.scenario_id,
+        len(simulated_scenario.dynamic_obstacles),
+    )
     return ScenarioContainer(simulated_scenario)
 
 
