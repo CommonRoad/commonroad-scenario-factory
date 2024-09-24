@@ -12,7 +12,6 @@ __all__ = [
     "PipelineExecutionResult",
 ]
 
-import builtins
 import collections.abc
 import functools
 import logging
@@ -23,18 +22,18 @@ import traceback
 import warnings
 from collections import defaultdict
 from concurrent.futures import Future, ThreadPoolExecutor
-from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
 from typing import Callable, Generic, Iterable, List, Optional, Protocol, Sequence, Tuple, TypeAlias, TypeVar
 
+import multiprocess
 import numpy as np
 from commonroad.scenario.scenario import Scenario
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
-from multiprocess import Pool
 
 from scenario_factory.scenario_config import ScenarioFactoryConfig
+from scenario_factory.utils import suppress_all_calls_to_print
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,19 +48,6 @@ def _get_function_name(func) -> str:
         return func.__name__
     else:
         return str(func)
-
-
-@contextmanager
-def _suppress_all_calls_to_print():
-    """
-    Patch out the python builtin `print` function so that it becomes a nop.
-    """
-    backup_print = builtins.print
-    builtins.print = lambda *args, **kwargs: None
-    try:
-        yield
-    finally:
-        builtins.print = backup_print
 
 
 # Upper Type bound for arguments to pipeline steps
@@ -302,7 +288,9 @@ class PipelineExecutor:
 
         seed = ctx.get_scenario_factory_config().seed
 
-        self._process_pool = Pool(processes=num_processes, initializer=_process_worker_init, initargs=(seed,))
+        self._process_pool = multiprocess.Pool(
+            processes=num_processes, initializer=_process_worker_init, initargs=(seed,)
+        )
         self._thread_executor = ThreadPoolExecutor(max_workers=num_threads)
         # By default, no tasks may be scheduled on the worker pools
         self._scheduling_enabled = False
@@ -362,6 +350,11 @@ class PipelineExecutor:
             return
 
         return_value_of_previous_step = result_of_previous_step.output
+        # Steps might return None, if the input value could not be processed.
+        # If this is the case, the element should not be processed any further.
+        if return_value_of_previous_step is None:
+            return
+
         # Filter pipeline steps are special, because they do not return the input value
         # that is needed for the next step. Instead they return a bool.
         # So, we must first get the 'real' input value for the next step,
@@ -432,7 +425,7 @@ class PipelineExecutor:
             # this results in a ton of unecessary console output. To circumvent this,
             # the whole print function is replaced for the pipeline execution.
             # Generally, all functions should make use of the logging module...
-            with _suppress_all_calls_to_print():
+            with suppress_all_calls_to_print():
                 for elem in input_values:
                     self._submit_step_for_execution(self._steps[0], 0, elem)
 
@@ -447,6 +440,7 @@ class PipelineExecutor:
             self._scheduling_enabled = False
             self._thread_executor.shutdown()
             self._process_pool.terminate()
+            self._process_pool.close()
 
         return self._pipeline_step_results
 
@@ -558,7 +552,11 @@ class Pipeline:
         return len(self._steps) == len(set(self._steps))
 
     def execute(
-        self, input_values: Iterable, ctx: PipelineContext, num_threads: int = 4, num_processes: int = 4
+        self,
+        input_values: Iterable,
+        ctx: PipelineContext,
+        num_threads: Optional[int] = None,
+        num_processes: Optional[int] = None,
     ) -> PipelineExecutionResult:
         """
         Execute the pipeline on the :param:`input_values` with :param:`ctx`.
@@ -579,6 +577,11 @@ class Pipeline:
             raise RuntimeError(
                 "Cannot execute pipeline: pipeline has duplicated steps! Each pipeline step might only occur once in a single pipeline!"
             )
+        if num_threads is None:
+            num_threads = multiprocess.cpu_count()
+
+        if num_processes is None:
+            num_processes = multiprocess.cpu_count()
 
         if num_threads < 1:
             raise ValueError("Number of threads for pipeline execution must be at least 1")

@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Optional
 
 import iso3166
+from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.scenario import Scenario
 from crdesigner.common.config.osm_config import osm_config
 from crdesigner.map_conversion.osm2cr.converter_modules.converter import GraphScenario
@@ -142,10 +143,19 @@ class OsmApiMapProvider(MapProvider):
         return target_file
 
 
+def _fix_center_polylines(lanelet_network: LaneletNetwork) -> None:
+    """
+    Recalculate all center polylines in the :param:`lanelet_network`, to make sure they are all realy centered between the left and right polylines.
+    """
+    for lanelet in lanelet_network.lanelets:
+        lanelet.center_vertices = 0.5 * (lanelet.left_vertices + lanelet.right_vertices)
+
+
 def verify_and_repair_commonroad_scenario(scenario: Scenario) -> int:
     """
     Use the Map verification and repairing from the CommonRoad Scenario Designer to repair a CommonRoad scenario.
     """
+
     map_verifier = MapVerifier(scenario.lanelet_network, MapVerParams(evaluation=EvaluationParams(partitioned=True)))
     invalid_states = map_verifier.verify()
 
@@ -153,13 +163,15 @@ def verify_and_repair_commonroad_scenario(scenario: Scenario) -> int:
         map_repairer = MapRepairer(scenario.lanelet_network)
         map_repairer.repair_map(invalid_states)
 
+    _fix_center_polylines(scenario.lanelet_network)
+
     return len(invalid_states)
 
 
 @contextmanager
 def _redirect_all_undirected_log_messages(target_logger):
-    def redirect(msg):
-        target_logger.debug(msg)
+    def redirect(msg, *args, **kwargs):
+        target_logger.debug(msg, *args, **kwargs)
 
     info, debug, warning, error = logging.info, logging.debug, logging.warning, logging.error
     logging.info, logging.debug, logging.warning, logging.error = redirect, redirect, redirect, redirect

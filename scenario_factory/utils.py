@@ -1,6 +1,9 @@
+import builtins
 import dataclasses
+import logging
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional, Protocol, Sequence, Type, TypeVar, Union
+from typing import AnyStr, Optional, Protocol, Sequence, Type, TypeVar, Union
 
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import DynamicObstacle
@@ -21,6 +24,38 @@ from commonroad.scenario.state import (
 from typing_extensions import TypeGuard
 
 from scenario_factory.globetrotter.osm import LocalFileMapProvider, MapProvider, OsmApiMapProvider
+
+
+@contextmanager
+def suppress_all_calls_to_print():
+    """
+    Patch out the python builtin `print` function so that it becomes a nop.
+    """
+    backup_print = builtins.print
+    builtins.print = lambda *args, **kwargs: None
+    try:
+        yield
+    finally:
+        builtins.print = backup_print
+
+
+class StreamToLogger:
+    def __init__(self, logger: logging.Logger) -> None:
+        self._logger = logger
+
+    def write(self, s: AnyStr) -> int:
+        stripped = s.strip()
+        if len(stripped) == 0:
+            return 0
+
+        self._logger.debug(stripped)
+        return len(s)
+
+    def flush(self):
+        pass
+
+    def close(self):
+        pass
 
 
 def select_osm_map_provider(radius: float, maps_path: Path) -> MapProvider:

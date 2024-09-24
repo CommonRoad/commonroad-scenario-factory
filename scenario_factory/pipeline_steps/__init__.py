@@ -15,6 +15,7 @@ __all__ = [
     "pipeline_filter_lanelet_network",
     # Ego Scenario Generation
     "pipeline_simulate_scenario_with_sumo",
+    "pipeline_simulate_scenario_with_ots",
     "pipeline_find_ego_vehicle_maneuvers",
     "pipeline_filter_ego_vehicle_maneuver",
     "pipeline_select_one_maneuver_per_ego_vehicle",
@@ -36,6 +37,7 @@ from .scenario_generation import (
     pipeline_find_ego_vehicle_maneuvers,
     pipeline_generate_scenario_for_ego_vehicle_maneuver,
     pipeline_select_one_maneuver_per_ego_vehicle,
+    pipeline_simulate_scenario_with_ots,
     pipeline_simulate_scenario_with_sumo,
 )
 from .utils import (

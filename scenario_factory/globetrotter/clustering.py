@@ -5,7 +5,7 @@ from typing import Dict, List, Sequence, Tuple
 
 import numpy as np
 from commonroad.scenario.intersection import Intersection
-from commonroad.scenario.lanelet import Lanelet
+from commonroad.scenario.lanelet import Lanelet, LaneletNetwork
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.traffic_light import TrafficLight
 from commonroad.scenario.traffic_sign import TrafficSign
@@ -169,7 +169,7 @@ def cut_intersection_from_scenario(scenario: Scenario, center: np.ndarray, max_d
     intersection_cut_margin = 30
     radius = max_distance + intersection_cut_margin
 
-    net = scenario.lanelet_network
+    net = deepcopy(scenario.lanelet_network)
     lanelets = net.lanelets_in_proximity(center, radius)  # TODO debug cases where lanelets contains none entries
     lanelets_not_none = [i for i in lanelets if i is not None]
     traffic_lights = relevant_traffic_lights(scenario.lanelet_network.traffic_lights, lanelets_not_none)
@@ -182,7 +182,7 @@ def cut_intersection_from_scenario(scenario: Scenario, center: np.ndarray, max_d
     # create new scenario
     cut_lanelet_scenario = Scenario(dt=0.1)
     cut_lanelet_scenario.scenario_id = deepcopy(scenario.scenario_id)
-    cut_lanelet_network = scenario.lanelet_network.create_from_lanelet_list(lanelets_not_none, cleanup_ids=False)
+    cut_lanelet_network = LaneletNetwork.create_from_lanelet_list(lanelets_not_none, cleanup_ids=False)
     cut_lanelet_scenario.location = scenario.location
     cut_lanelet_scenario.replace_lanelet_network(cut_lanelet_network)
     cut_lanelet_scenario.add_objects(traffic_lights)
