@@ -12,7 +12,7 @@ commonroad-io = ">=2024.1"
 commonroad-drivability-checker = "^2024.1"
 commonroad-scenario-designer = "^0.8.2"
 commonroad-labeling = { git = "git@gitlab.lrz.de:cps/commonroad/automatic-scenario-labeling.git", rev="c4b1f19fdb9548655cf4703ab5c2c4a43314578f"}
-crots = { git = "git@gitlab.lrz.de:cps/commonroad/cr-ots-interface.git", rev = "877cefd7fe2c1afeb2f05c6a31e4510dbd9da8bf"}
+crots = { git = "git@gitlab.lrz.de:cps/commonroad/cr-ots-interface.git", rev = "7e98f33a56ef5c5b394f73c8f397c4ee952521a7"}
 sumocr = "^2024.1"
 osmium = ">=2.16.0"
 pyproj = "^3.6.1"
