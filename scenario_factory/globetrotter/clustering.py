@@ -5,14 +5,14 @@ from typing import Dict, List, Sequence, Tuple
 
 import numpy as np
 from commonroad.scenario.intersection import Intersection
-from commonroad.scenario.lanelet import Lanelet
+from commonroad.scenario.lanelet import Lanelet, LaneletNetwork
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.traffic_light import TrafficLight
 from commonroad.scenario.traffic_sign import TrafficSign
 from scipy.spatial import distance
 from sklearn.cluster import AgglomerativeClustering
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 
 def find_clusters_agglomerative(points: np.ndarray) -> AgglomerativeClustering:
@@ -169,20 +169,20 @@ def cut_intersection_from_scenario(scenario: Scenario, center: np.ndarray, max_d
     intersection_cut_margin = 30
     radius = max_distance + intersection_cut_margin
 
-    net = scenario.lanelet_network
+    net = deepcopy(scenario.lanelet_network)
     lanelets = net.lanelets_in_proximity(center, radius)  # TODO debug cases where lanelets contains none entries
     lanelets_not_none = [i for i in lanelets if i is not None]
     traffic_lights = relevant_traffic_lights(scenario.lanelet_network.traffic_lights, lanelets_not_none)
     traffic_signs = relevant_traffic_signs(scenario.lanelet_network.traffic_signs, lanelets_not_none)
     intersections = relevant_intersections(scenario.lanelet_network.intersections, lanelets_not_none)
-    logger.debug(
+    _LOGGER.debug(
         f"For new scenario from {scenario.scenario_id} identified the interesting intersections '{intersections}' out of all intersections '{[intersection.intersection_id for intersection in scenario.lanelet_network.intersections]}'"
     )
 
     # create new scenario
     cut_lanelet_scenario = Scenario(dt=0.1)
     cut_lanelet_scenario.scenario_id = deepcopy(scenario.scenario_id)
-    cut_lanelet_network = scenario.lanelet_network.create_from_lanelet_list(lanelets_not_none, cleanup_ids=False)
+    cut_lanelet_network = LaneletNetwork.create_from_lanelet_list(lanelets_not_none, cleanup_ids=False)
     cut_lanelet_scenario.location = scenario.location
     cut_lanelet_scenario.replace_lanelet_network(cut_lanelet_network)
     cut_lanelet_scenario.add_objects(traffic_lights)
@@ -211,7 +211,7 @@ def cut_intersection_from_scenario(scenario: Scenario, center: np.ndarray, max_d
             remove_intersection.add(intersection)
 
     for intersection in remove_intersection:
-        logger.debug(
+        _LOGGER.debug(
             f"Dicarded intersection {intersection} from scenario {cut_lanelet_scenario.scenario_id} because it does not contain "
         )
         cut_lanelet_scenario.lanelet_network.remove_intersection(intersection)
@@ -248,7 +248,7 @@ def generate_intersections(scenario: Scenario, forking_points: np.ndarray) -> Li
     labels = clustering_result.labels_
     centroids, distances, clusters = centroids_and_distances(labels, forking_points)
 
-    logger.debug(f"Found {len(clusters)} new intersections for base scenario {scenario.scenario_id}")
+    _LOGGER.debug(f"Found {len(clusters)} new intersections for base scenario {scenario.scenario_id}")
 
     intersections = []
     for idx, key in enumerate(centroids):

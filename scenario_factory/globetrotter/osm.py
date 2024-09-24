@@ -1,10 +1,20 @@
+__all__ = [
+    "MapProvider",
+    "LocalFileMapProvider",
+    "OsmApiMapProvider",
+    "verify_and_repair_commonroad_scenario",
+    "convert_osm_file_to_commonroad_scenario",
+]
+
 import logging
 import subprocess
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
 import iso3166
+from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.scenario import Scenario
 from crdesigner.common.config.osm_config import osm_config
 from crdesigner.map_conversion.osm2cr.converter_modules.converter import GraphScenario
@@ -19,7 +29,7 @@ from crdesigner.verification_repairing.verification.map_verifier import MapVerif
 
 from scenario_factory.globetrotter.region import BoundingBox, Coordinates, RegionMetadata
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 # Override the default traffic light cycles generated during the conversion from OSM to CommonRoad
 osm_config.TRAFFIC_LIGHT_CYCLE = {
@@ -74,16 +84,16 @@ def extract_bounding_box_from_osm_map(
     :raises RuntimeError: When the extraction failed
     """
 
-    logger.debug(f"Extracting {bounding_box} from {map_file}")
+    _LOGGER.debug(f"Extracting {bounding_box} from {map_file}")
 
     cmd = ["osmium", "extract", "--bbox", str(bounding_box), "-o", str(output_file), str(map_file)]
     if overwrite:
         cmd.append("--overwrite")
 
-    logger.debug(f"Osmium extraction command: {' '.join(cmd)}")
+    _LOGGER.debug(f"Osmium extraction command: {' '.join(cmd)}")
     proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if proc.returncode > 1 or output_file.stat().st_size <= 200:
-        logger.debug(proc.stdout)
+        _LOGGER.debug(proc.stdout)
         raise RuntimeError(f"Failed to extract bounding box {bounding_box} from {map_file} using osmium")
 
 
@@ -133,10 +143,19 @@ class OsmApiMapProvider(MapProvider):
         return target_file
 
 
+def _fix_center_polylines(lanelet_network: LaneletNetwork) -> None:
+    """
+    Recalculate all center polylines in the :param:`lanelet_network`, to make sure they are all realy centered between the left and right polylines.
+    """
+    for lanelet in lanelet_network.lanelets:
+        lanelet.center_vertices = 0.5 * (lanelet.left_vertices + lanelet.right_vertices)
+
+
 def verify_and_repair_commonroad_scenario(scenario: Scenario) -> int:
     """
     Use the Map verification and repairing from the CommonRoad Scenario Designer to repair a CommonRoad scenario.
     """
+
     map_verifier = MapVerifier(scenario.lanelet_network, MapVerParams(evaluation=EvaluationParams(partitioned=True)))
     invalid_states = map_verifier.verify()
 
@@ -144,7 +163,23 @@ def verify_and_repair_commonroad_scenario(scenario: Scenario) -> int:
         map_repairer = MapRepairer(scenario.lanelet_network)
         map_repairer.repair_map(invalid_states)
 
+    _fix_center_polylines(scenario.lanelet_network)
+
     return len(invalid_states)
+
+
+@contextmanager
+def _redirect_all_undirected_log_messages(target_logger):
+    def redirect(msg, *args, **kwargs):
+        target_logger.debug(msg, *args, **kwargs)
+
+    info, debug, warning, error = logging.info, logging.debug, logging.warning, logging.error
+    logging.info, logging.debug, logging.warning, logging.error = redirect, redirect, redirect, redirect
+
+    try:
+        yield
+    finally:
+        logging.info, logging.debug, logging.warning, logging.error = info, debug, warning, error
 
 
 def convert_osm_file_to_commonroad_scenario(osm_file: Path) -> Scenario:
@@ -155,16 +190,17 @@ def convert_osm_file_to_commonroad_scenario(osm_file: Path) -> Scenario:
     :returns: The resulting scenario
     """
 
-    logger.debug(f"Converting OSM {osm_file} to CommonRoad Scenario")
+    _LOGGER.debug(f"Converting OSM {osm_file} to CommonRoad Scenario")
 
-    graph = GraphScenario(str(osm_file)).graph
-    scenario, _ = create_scenario_intermediate(graph)
-    sanitize(scenario)
+    with _redirect_all_undirected_log_messages(_LOGGER):
+        graph = GraphScenario(str(osm_file)).graph
+        scenario, _ = create_scenario_intermediate(graph)
+        sanitize(scenario)
 
     coordinates = Coordinates.from_tuple(graph.center_point)
     map_metadata = RegionMetadata.from_coordinates(coordinates)
     scenario.location = map_metadata.as_commonroad_scenario_location()
     scenario.scenario_id = map_metadata.as_commonroad_scenario_id()
 
-    logger.debug(f"Convertered OSM {osm_file} at {map_metadata} to CommonRoad Scenario")
+    _LOGGER.debug(f"Convertered OSM {osm_file} at {map_metadata} to CommonRoad Scenario")
     return scenario

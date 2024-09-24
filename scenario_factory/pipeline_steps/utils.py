@@ -1,70 +1,132 @@
 __all__ = [
-    "pipeline_flatten",
     "WriteScenarioToFileArguments",
     "pipeline_write_scenario_to_file",
+    "pipeline_assign_tags_to_scenario",
     "pipeline_add_metadata_to_scenario",
+    "pipeline_remove_colliding_dynamic_obstacles",
 ]
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Optional, TypeVar, Union
 
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
-from commonroad.scenario.scenario import Scenario
+from commonroad.common.solution import CommonRoadSolutionWriter
+from commonroad.planning.planning_problem import PlanningProblemSet
 
 from scenario_factory.pipeline import PipelineContext, PipelineStepArguments, pipeline_map, pipeline_map_with_args
-from scenario_factory.scenario_types import EgoScenarioWithPlanningProblemSet
+from scenario_factory.scenario_generation import delete_colliding_obstacles_from_scenario
+from scenario_factory.scenario_types import (
+    ScenarioContainer,
+    is_scenario_with_planning_problem_set,
+    is_scenario_with_solution,
+)
+from scenario_factory.tags import find_applicable_tags_for_scenario
 
-_T = TypeVar("_T")
-
-
-def pipeline_flatten(ctx: PipelineContext, xss: Iterable[Iterable[_T]]) -> Iterable[_T]:
-    """
-    If xss is a nested iterable, it is flattend by one level. Otherwise the iterable is preserved.
-    """
-    for xs in xss:
-        if not isinstance(xs, Iterable):
-            yield xs
-        else:
-            yield from xs
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
 class WriteScenarioToFileArguments(PipelineStepArguments):
+    """Arguments for the step `pipeline_write_scenario_to_file`"""
+
     output_folder: Path
 
 
-@pipeline_map_with_args
+@pipeline_map_with_args()
 def pipeline_write_scenario_to_file(
     args: WriteScenarioToFileArguments,
     ctx: PipelineContext,
-    scenario: Union[EgoScenarioWithPlanningProblemSet, Scenario],
-) -> Optional[Path]:
-    if isinstance(scenario, EgoScenarioWithPlanningProblemSet):
-        return scenario.write(args.output_folder)
-    elif isinstance(scenario, Scenario):
-        file_path = args.output_folder.joinpath(f"{scenario.scenario_id}.cr.xml")
-        CommonRoadFileWriter(scenario, None).write_scenario_to_file(
-            str(file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS
+    scenario_container: ScenarioContainer,
+) -> ScenarioContainer:
+    """
+    Write a CommonRoad scenario to a file in the :param:`args.output_folder`. If the :param:`scenario_container` also holds a planning problem set or a planning problem solution, they will also be written to disk.
+    """
+    planning_problem_set = (
+        scenario_container.planning_problem_set
+        if is_scenario_with_planning_problem_set(scenario_container)
+        else PlanningProblemSet(None)
+    )
+    commonroad_scenario = scenario_container.scenario
+    # Metadata must be set on the scenario, otherwise we refuse to write
+    if commonroad_scenario.author is None:
+        raise ValueError(
+            f"Cannot write scenario '{commonroad_scenario.scenario_id}' to file, because metadata is missing: Author of scenario is not set"
         )
-        return file_path
-    return None
+    if commonroad_scenario.affiliation is None:
+        raise ValueError(
+            f"Cannot write scenario '{commonroad_scenario.scenario_id}' to file, because metadata is missing: Affiliation for author of scenario is not set"
+        )
+    if commonroad_scenario.source is None:
+        raise ValueError(
+            f"Cannot write scenario '{commonroad_scenario.scenario_id}' to file, because metadata is missing: source of scenario is not set"
+        )
+    tags = set() if commonroad_scenario.tags is None else commonroad_scenario.tags
+
+    scenario_file_path = args.output_folder.joinpath(f"{commonroad_scenario.scenario_id}.cr.xml")
+    CommonRoadFileWriter(commonroad_scenario, planning_problem_set, tags=tags).write_to_file(
+        str(scenario_file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS
+    )
+
+    if is_scenario_with_solution(scenario_container):
+        solution = scenario_container.solution
+        solution_file_name = f"{solution.scenario_id}.solution.xml"
+        CommonRoadSolutionWriter(solution).write_to_file(
+            str(args.output_folder), filename=solution_file_name, overwrite=True
+        )
+
+    return scenario_container
 
 
-@pipeline_map
-def pipeline_add_metadata_to_scenario(ctx: PipelineContext, scenario: Scenario) -> Scenario:
+@pipeline_map()
+def pipeline_assign_tags_to_scenario(ctx: PipelineContext, scenario_container: ScenarioContainer) -> ScenarioContainer:
     """
-    Populate the metadata of the scenario with the values in the scenario factory config that is attached to the pipeline context.
+    Find applicable tags for the scenario. Preserves existing tags.
     """
-    scenario_factory_config = ctx.get_scenario_config()
+    commonroad_scenario = scenario_container.scenario
+    tags = find_applicable_tags_for_scenario(commonroad_scenario)
+    if commonroad_scenario.tags is None:
+        commonroad_scenario.tags = tags
+    else:
+        commonroad_scenario.tags.update(tags)
 
-    scenario.author = scenario_factory_config.author
-    scenario.affiliation = scenario_factory_config.affiliation
-    scenario.source = scenario_factory_config.source
+    return scenario_container
 
-    if not isinstance(scenario.tags, set):
-        scenario.tags = set()
 
-    scenario.tags.update(scenario_factory_config.tags)
+@pipeline_map()
+def pipeline_add_metadata_to_scenario(ctx: PipelineContext, scenario_container: ScenarioContainer) -> ScenarioContainer:
+    """
+    Populate the metadata of the scenario with the values in the scenario factory config that is attached to the pipeline context. Will override existing metadata, except tags.
+    """
+    scenario_factory_config = ctx.get_scenario_factory_config()
 
-    return scenario
+    commonroad_scenario = scenario_container.scenario
+
+    commonroad_scenario.author = scenario_factory_config.author
+    commonroad_scenario.affiliation = scenario_factory_config.affiliation
+    commonroad_scenario.source = scenario_factory_config.source
+
+    if not isinstance(commonroad_scenario.tags, set):
+        commonroad_scenario.tags = set()
+
+    commonroad_scenario.tags.update(scenario_factory_config.tags)
+
+    return scenario_container
+
+
+@pipeline_map()
+def pipeline_remove_colliding_dynamic_obstacles(
+    ctx: PipelineContext, scenario_container: ScenarioContainer
+) -> ScenarioContainer:
+    """
+    Remove all dynamic obstacles that are part of a collision from the scenario in :param:`scenario_container`
+    """
+    commonroad_scenario = scenario_container.scenario
+    deleted_obstacles = delete_colliding_obstacles_from_scenario(commonroad_scenario, all=True)
+    if len(deleted_obstacles) > 0:
+        _LOGGER.debug(
+            "Removed %s obstacles from scenario %s because they are involved in a collision with another dynamic obstacle",
+            len(deleted_obstacles),
+            commonroad_scenario.scenario_id,
+        )
+    return scenario_container

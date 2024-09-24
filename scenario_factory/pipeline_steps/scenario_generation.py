@@ -1,29 +1,52 @@
 __all__ = [
     "pipeline_simulate_scenario_with_sumo",
-    "GenerateCommonRoadScenariosArguments",
-    "pipeline_generate_ego_scenarios",
-    "pipeline_assign_tags_to_scenario",
+    "FindEgoVehicleManeuversArguments",
+    "pipeline_find_ego_vehicle_maneuvers",
+    "pipeline_filter_ego_vehicle_maneuver",
+    "pipeline_select_one_maneuver_per_ego_vehicle",
+    "pipeline_generate_scenario_for_ego_vehicle_maneuver",
 ]
 
+import logging
+from collections import defaultdict
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Iterable, List, Optional, Sequence
 
-from commonroad.scenario.scenario import Scenario
-
-from scenario_factory.generate_senarios import (
-    convert_commonroad_scenario_to_sumo_scenario,
-    generate_ego_scenarios_with_planning_problem_set_from_simulated_scenario,
-    simulate_commonroad_scenario,
+from scenario_factory.ego_vehicle_selection.criterions import EgoVehicleSelectionCriterion
+from scenario_factory.ego_vehicle_selection.filters import EgoVehicleManeuverFilter
+from scenario_factory.ego_vehicle_selection.selection import (
+    find_ego_vehicle_maneuvers_in_scenario,
+    select_one_maneuver_per_ego_vehicle,
 )
-from scenario_factory.pipeline import PipelineContext, PipelineStepArguments, pipeline_map, pipeline_map_with_args
-from scenario_factory.scenario_types import EgoScenarioWithPlanningProblemSet, SimulatedScenario
-from scenario_factory.tags import find_applicable_tags_for_scenario
+from scenario_factory.ots import generate_random_traffic_with_ots
+from scenario_factory.pipeline import (
+    PipelineContext,
+    PipelineStepArguments,
+    PipelineStepMode,
+    pipeline_filter,
+    pipeline_fold,
+    pipeline_map,
+    pipeline_map_with_args,
+)
+from scenario_factory.scenario_generation import (
+    generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_maneuver,
+)
+from scenario_factory.scenario_types import ScenarioContainer, ScenarioWithEgoVehicleManeuver, ScenarioWithSolution
+from scenario_factory.sumo import convert_commonroad_scenario_to_sumo_scenario, simulate_commonroad_scenario
+
+_LOGGER = logging.getLogger(__name__)
 
 
-@pipeline_map
-def pipeline_simulate_scenario_with_sumo(ctx: PipelineContext, commonroad_scenario: Scenario) -> SimulatedScenario:
-    output_folder = ctx.get_temporary_folder("output")
-    intermediate_sumo_files_path = output_folder.joinpath("intermediate", str(commonroad_scenario.scenario_id))
+@pipeline_map(mode=PipelineStepMode.PARALLEL)
+def pipeline_simulate_scenario_with_sumo(
+    ctx: PipelineContext, scenario_container: ScenarioContainer
+) -> ScenarioContainer:
+    """
+    Convert a CommonRoad Scenario to SUMO, generate random traffic on the network and simulate the traffic in SUMO.
+    """
+    commonroad_scenario = scenario_container.scenario
+    output_folder = ctx.get_temporary_folder("sumo_simulation_intermediates")
+    intermediate_sumo_files_path = output_folder.joinpath(str(commonroad_scenario.scenario_id))
     intermediate_sumo_files_path.mkdir(parents=True, exist_ok=True)
 
     sumo_config = ctx.get_sumo_config_for_scenario(commonroad_scenario)
@@ -31,35 +54,111 @@ def pipeline_simulate_scenario_with_sumo(ctx: PipelineContext, commonroad_scenar
         commonroad_scenario, intermediate_sumo_files_path, sumo_config
     )
     simulated_scenario = simulate_commonroad_scenario(scenario_wrapper, sumo_config)
-    return simulated_scenario
+    _LOGGER.debug(
+        "Simulated scenario %s with SUMO and created %s new obstacles",
+        simulated_scenario.scenario_id,
+        len(simulated_scenario.dynamic_obstacles),
+    )
+    return ScenarioContainer(simulated_scenario)
+
+
+@pipeline_map(mode=PipelineStepMode.PARALLEL)
+def pipeline_simulate_scenario_with_ots(
+    ctx: PipelineContext, scenario_container: ScenarioContainer
+) -> Optional[ScenarioContainer]:
+    commonroad_scenario = scenario_container.scenario
+    seed = ctx.get_scenario_factory_config().seed
+    sumo_config = ctx.get_sumo_config_for_scenario(commonroad_scenario)
+    simulated_scenario = generate_random_traffic_with_ots(
+        commonroad_scenario, seed, simulation_length=sumo_config.simulation_steps
+    )
+    if simulated_scenario is None:
+        return None
+
+    _LOGGER.debug(
+        "Simulated scenario %s with OTS and created %s new obstacles",
+        simulated_scenario.scenario_id,
+        len(simulated_scenario.dynamic_obstacles),
+    )
+    return ScenarioContainer(simulated_scenario)
 
 
 @dataclass
-class GenerateCommonRoadScenariosArguments(PipelineStepArguments):
-    max_collisions: Optional[int] = None
+class FindEgoVehicleManeuversArguments(PipelineStepArguments):
+    criterions: Iterable[EgoVehicleSelectionCriterion]
 
 
-@pipeline_map_with_args
-def pipeline_generate_ego_scenarios(
-    args: GenerateCommonRoadScenariosArguments, ctx: PipelineContext, simulated_scenario: SimulatedScenario
-) -> List[EgoScenarioWithPlanningProblemSet]:
-    scenario_config = ctx.get_scenario_config()
+@pipeline_map_with_args()
+def pipeline_find_ego_vehicle_maneuvers(
+    args: FindEgoVehicleManeuversArguments, ctx: PipelineContext, scenario_container: ScenarioContainer
+) -> List[ScenarioWithEgoVehicleManeuver]:
+    """
+    Find maneuvers in the scenario that qualify as interesting according to the criterions.
+    """
+    ego_vehicle_maneuvers = find_ego_vehicle_maneuvers_in_scenario(scenario_container.scenario, args.criterions)
+    _LOGGER.debug(
+        "Identified %s maneuvers in scenario %s that could qualify for an ego vehicle",
+        len(ego_vehicle_maneuvers),
+        scenario_container.scenario.scenario_id,
+    )
+    return [
+        ScenarioWithEgoVehicleManeuver(scenario_container.scenario, ego_vehicle_maneuver)
+        for ego_vehicle_maneuver in ego_vehicle_maneuvers
+    ]
 
-    return generate_ego_scenarios_with_planning_problem_set_from_simulated_scenario(
-        simulated_scenario,
-        scenario_config,
-        max_collisions=args.max_collisions,
+
+@pipeline_filter()
+def pipeline_filter_ego_vehicle_maneuver(
+    filter: EgoVehicleManeuverFilter, ctx: PipelineContext, scenario_container: ScenarioWithEgoVehicleManeuver
+) -> bool:
+    scenario_factory_config = ctx.get_scenario_factory_config()
+    return filter.matches(
+        scenario_container.scenario,
+        scenario_factory_config.cr_scenario_time_steps,
+        scenario_container.ego_vehicle_maneuver,
     )
 
 
-@pipeline_map
-def pipeline_assign_tags_to_scenario(
-    ctx: PipelineContext, ego_scenario: EgoScenarioWithPlanningProblemSet
-) -> EgoScenarioWithPlanningProblemSet:
-    tags = find_applicable_tags_for_scenario(ego_scenario.scenario)
-    if ego_scenario.scenario.tags is None:
-        ego_scenario.scenario.tags = tags
-    else:
-        ego_scenario.scenario.tags.update(tags)
+@pipeline_fold()
+def pipeline_select_one_maneuver_per_ego_vehicle(
+    ctx: PipelineContext, scenario_containers: Sequence[ScenarioWithEgoVehicleManeuver]
+) -> Sequence[ScenarioWithEgoVehicleManeuver]:
+    scenario_factory_config = ctx.get_scenario_factory_config()
 
-    return ego_scenario
+    ego_vehicle_maneuvers_sorted_by_scenario_id = defaultdict(list)
+    scenario_id_map = dict()
+    for scenario_container in scenario_containers:
+        ego_vehicle_maneuvers_sorted_by_scenario_id[scenario_container.scenario.scenario_id].append(
+            scenario_container.ego_vehicle_maneuver
+        )
+        scenario_id_map[scenario_container.scenario.scenario_id] = scenario_container.scenario
+
+    results = []
+    for scenario_id, ego_vehicle_maneuvers in ego_vehicle_maneuvers_sorted_by_scenario_id.items():
+        commonroad_scenario = scenario_id_map[scenario_id]
+        maneuvers = select_one_maneuver_per_ego_vehicle(
+            commonroad_scenario, ego_vehicle_maneuvers, scenario_factory_config.sensor_range
+        )
+        for maneuver in maneuvers:
+            results.append(ScenarioWithEgoVehicleManeuver(commonroad_scenario, maneuver))
+
+    return results
+
+
+@pipeline_map()
+def pipeline_generate_scenario_for_ego_vehicle_maneuver(
+    ctx: PipelineContext, scenario_container: ScenarioWithEgoVehicleManeuver
+) -> ScenarioWithSolution:
+    scenario_config = ctx.get_scenario_factory_config()
+
+    (
+        scenario,
+        planning_problem_set,
+        planning_problem_solution,
+    ) = generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_maneuver(
+        scenario_container.scenario,
+        scenario_container.ego_vehicle_maneuver,
+        scenario_config,
+    )
+
+    return ScenarioWithSolution(scenario, planning_problem_set, [planning_problem_solution])

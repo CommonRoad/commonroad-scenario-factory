@@ -1,8 +1,7 @@
-# Generation of CommonRoad Scenarios with SUMO
+# CommonRoad Scenario Factory
 [![pipeline status](https://gitlab.lrz.de/cps/commonroad/sumocr-scenario-generation/badges/develop/pipeline.svg)](https://gitlab.lrz.de/cps/commonroad/sumocr-scenario-generation/-/commits/develop)
 [![coverage report](https://gitlab.lrz.de/cps/commonroad/sumocr-scenario-generation/badges/develop/coverage.svg)](https://gitlab.lrz.de/cps/commonroad/sumocr-scenario-generation/-/commits/develop)
-
-This repo refactors code which was developed mainly by Moritz Klischat. It can generate interactive and non-interactive CommonRoad traffic scenario, as used, e.g., in the CommonRoad competition.
+The CommonRoad Scenario Factory is a toolbox that combines many different tools from the whole CommonRoad ecosystem to efficiently process CommonRoad Scenarios.
 
 # Usage
 
