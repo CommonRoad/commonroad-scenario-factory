@@ -29,8 +29,6 @@ from typing import Callable, Generic, Iterable, List, Optional, Protocol, Sequen
 
 import multiprocess
 import numpy as np
-from commonroad.scenario.scenario import Scenario
-from crdesigner.map_conversion.sumo_map.config import SumoConfig
 
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 from scenario_factory.utils import suppress_all_calls_to_print
@@ -83,21 +81,6 @@ class PipelineContext:
         temp_folder = self._base_temp_path.joinpath(folder_name)
         temp_folder.mkdir(parents=True, exist_ok=True)
         return temp_folder
-
-    # TODO: This represents are tight coupling of the pipeline with SUMO, which should be removed in the future.
-    def get_sumo_config_for_scenario(self, scenario: Scenario) -> SumoConfig:
-        """
-        Derive a new SumoConfig from the internal base SumoConfig for the given scenario.
-        """
-        new_sumo_config = SumoConfig()
-
-        new_sumo_config.random_seed = self._scenario_factory_config.seed
-        new_sumo_config.random_seed_trip_generation = self._scenario_factory_config.seed
-        new_sumo_config.simulation_steps = self._scenario_factory_config.simulation_steps
-        new_sumo_config.scenario_name = str(scenario.scenario_id)
-        new_sumo_config.dt = scenario.dt
-
-        return new_sumo_config
 
     def get_scenario_factory_config(self) -> ScenarioFactoryConfig:
         return self._scenario_factory_config

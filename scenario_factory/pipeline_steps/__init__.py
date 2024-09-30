@@ -37,9 +37,8 @@ from .scenario_generation import (
     pipeline_find_ego_vehicle_maneuvers,
     pipeline_generate_scenario_for_ego_vehicle_maneuver,
     pipeline_select_one_maneuver_per_ego_vehicle,
-    pipeline_simulate_scenario_with_ots,
-    pipeline_simulate_scenario_with_sumo,
 )
+from .simulation import pipeline_simulate_scenario_with_ots, pipeline_simulate_scenario_with_sumo
 from .utils import (
     WriteScenarioToFileArguments,
     pipeline_add_metadata_to_scenario,

@@ -14,8 +14,10 @@ from scenario_factory.pipeline_steps import (
     pipeline_simulate_scenario_with_sumo,
     pipeline_write_scenario_to_file,
 )
+from scenario_factory.pipeline_steps.simulation import SimulateScenarioArguments
 from scenario_factory.pipelines import create_globetrotter_pipeline, create_scenario_generation_pipeline
 from scenario_factory.scenario_config import ScenarioFactoryConfig
+from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 from scenario_factory.utils import select_osm_map_provider
 
 
@@ -57,13 +59,14 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
     handler.setFormatter(logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
     root_logger.addHandler(handler)
 
-    scenario_config = ScenarioFactoryConfig(seed=seed, cr_scenario_time_steps=75, simulation_steps=600)
+    scenario_config = ScenarioFactoryConfig(seed=seed, cr_scenario_time_steps=75)
     map_provider = select_osm_map_provider(radius, Path(maps))
+    simulation_config = SimulationConfig(mode=SimulationMode.RANDOM_TRAFFIC_GENERATION, simulation_steps=600)
 
     base_pipeline = (
         create_globetrotter_pipeline(radius, map_provider)
         .map(pipeline_add_metadata_to_scenario)
-        .map(pipeline_simulate_scenario_with_sumo)
+        .map(pipeline_simulate_scenario_with_sumo(SimulateScenarioArguments(config=simulation_config)))
     )
 
     scenario_generation_pipeline = create_scenario_generation_pipeline(
