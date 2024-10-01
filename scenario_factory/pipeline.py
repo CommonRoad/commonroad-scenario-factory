@@ -19,6 +19,7 @@ import random
 import signal
 import time
 import traceback
+import uuid
 import warnings
 from collections import defaultdict
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -125,21 +126,51 @@ class PipelineStepMode(Enum):
 _AnyPipelineStep = TypeVar("_AnyPipelineStep", _PipelineMapFuncType, _PipelineFilterFuncType, _PipelineFoldFuncType)
 
 
-@dataclass
 class PipelineStep(Generic[_AnyPipelineStep]):
-    step_func: _AnyPipelineStep
-    type: PipelineStepType
-    mode: PipelineStepMode = PipelineStepMode.CONCURRENT
+    def __init__(
+        self, step_func: _AnyPipelineStep, type: PipelineStepType, mode: PipelineStepMode = PipelineStepMode.CONCURRENT
+    ):
+        self._step_func: _AnyPipelineStep = step_func
+        self._type = type
+        self._mode = mode
+
+        self._name = _get_function_name(self._step_func)
+        # The id is used to compare pipeline steps to each other.
+        # The name cannot be used for this, because multiple pipeline steps with the same name might be used in one pipeline.
+        # Additionally, instance checks also don't work because the step objects might be moved around between different processes, resulting in different instances.
+        self._id = uuid.uuid4()
+
+    @property
+    def type(self):
+        return self._type
+
+    @property
+    def mode(self):
+        return self._mode
 
     @property
     def name(self):
-        return _get_function_name(self.step_func)
+        return self._name
+
+    @property
+    def identifier(self):
+        return self._id
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, PipelineStep):
+            return False
+
+        return self.identifier == other.identifier
 
     def __call__(self, *args, **kwargs):
-        return self.step_func(*args, **kwargs)
+        return self._step_func(*args, **kwargs)
 
     def __hash__(self) -> int:
-        return hash(self.name)
+        # bind the hash dunder to the identifier, so it can be used reliably as dict keys
+        return self._id.int
+
+    def __str__(self) -> str:
+        return f"{self._name} ({self._id})"
 
 
 def pipeline_map(

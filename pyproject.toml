@@ -6,13 +6,19 @@ authors = ["Florian Finkeldei <florian.finkeldei@tum.de>"]
 readme = "README.md"
 packages = [{include = "scenario_factory"}]
 
+[[tool.poetry.source]]
+name = "test"
+url = "https://test.pypi.org/simple/"
+priority = "explicit"
+
 [tool.poetry.dependencies]
 python = "~3.10" # Constraint is given by commonroad-labeling
 commonroad-io = ">=2024.1"
 commonroad-drivability-checker = "^2024.1"
 commonroad-scenario-designer = "^0.8.2"
 commonroad-labeling = { git = "git@gitlab.lrz.de:cps/commonroad/automatic-scenario-labeling.git", rev="c4b1f19fdb9548655cf4703ab5c2c4a43314578f"}
-crots = { git = "git@gitlab.lrz.de:cps/commonroad/cr-ots-interface.git", rev = "7e98f33a56ef5c5b394f73c8f397c4ee952521a7"}
+opentrafficsim = { version = "1.7.5", source = "test" }
+crots = { git = "git@gitlab.lrz.de:cps/commonroad/cr-ots-interface.git", rev = "31feb24680295bc846f8873dd10ebcc79caae83d"}
 sumocr = "^2024.1"
 osmium = ">=2.16.0"
 pyproj = "^3.6.1"
