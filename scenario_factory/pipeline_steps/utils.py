@@ -14,7 +14,12 @@ from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistin
 from commonroad.common.solution import CommonRoadSolutionWriter
 from commonroad.planning.planning_problem import PlanningProblemSet
 
-from scenario_factory.pipeline import PipelineContext, PipelineStepArguments, pipeline_map, pipeline_map_with_args
+from scenario_factory.pipeline import (
+    PipelineContext,
+    PipelineStepArguments,
+    pipeline_map,
+    pipeline_map_with_args,
+)
 from scenario_factory.scenario_generation import delete_colliding_obstacles_from_scenario
 from scenario_factory.scenario_types import (
     ScenarioContainer,
@@ -79,7 +84,9 @@ def pipeline_write_scenario_to_file(
 
 
 @pipeline_map()
-def pipeline_assign_tags_to_scenario(ctx: PipelineContext, scenario_container: ScenarioContainer) -> ScenarioContainer:
+def pipeline_assign_tags_to_scenario(
+    ctx: PipelineContext, scenario_container: ScenarioContainer
+) -> ScenarioContainer:
     """
     Find applicable tags for the scenario. Preserves existing tags.
     """
@@ -94,7 +101,9 @@ def pipeline_assign_tags_to_scenario(ctx: PipelineContext, scenario_container: S
 
 
 @pipeline_map()
-def pipeline_add_metadata_to_scenario(ctx: PipelineContext, scenario_container: ScenarioContainer) -> ScenarioContainer:
+def pipeline_add_metadata_to_scenario(
+    ctx: PipelineContext, scenario_container: ScenarioContainer
+) -> ScenarioContainer:
     """
     Populate the metadata of the scenario with the values in the scenario factory config that is attached to the pipeline context. Will override existing metadata, except tags.
     """

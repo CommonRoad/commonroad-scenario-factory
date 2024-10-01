@@ -26,7 +26,9 @@ def _find_first_greater(vec: np.ndarray, item):
     return None
 
 
-def threshold_and_lag_detection(signal: np.ndarray, threshold: float, lag_threshold: float) -> Tuple[bool, int]:
+def threshold_and_lag_detection(
+    signal: np.ndarray, threshold: float, lag_threshold: float
+) -> Tuple[bool, int]:
     """
     Find whether threshold is exceeded and time step by comparing with lagged signal.
 
@@ -57,7 +59,9 @@ def threshold_and_lag_detection(signal: np.ndarray, threshold: float, lag_thresh
     return True, init_time
 
 
-def threshold_and_max_detection(signal: np.ndarray, threshold: float, n_hold: int = 2) -> Tuple[bool, int]:
+def threshold_and_max_detection(
+    signal: np.ndarray, threshold: float, n_hold: int = 2
+) -> Tuple[bool, int]:
     """
     Chceks whether signal exceeds threshold for at least n_hold consecutive time steps and
     returns first time_step.

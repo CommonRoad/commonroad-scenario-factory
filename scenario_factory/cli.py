@@ -14,7 +14,10 @@ from scenario_factory.pipeline_steps import (
     pipeline_simulate_scenario_with_sumo,
     pipeline_write_scenario_to_file,
 )
-from scenario_factory.pipelines import create_globetrotter_pipeline, create_scenario_generation_pipeline
+from scenario_factory.pipelines import (
+    create_globetrotter_pipeline,
+    create_scenario_generation_pipeline,
+)
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 from scenario_factory.utils import select_osm_map_provider
 
@@ -43,7 +46,11 @@ from scenario_factory.utils import select_osm_map_provider
     help="Directory that will be used by osmium to extract OSM maps",
 )
 @click.option(
-    "--radius", "-r", type=float, default=0.3, help="The radius in which intersections will be selected from each city"
+    "--radius",
+    "-r",
+    type=float,
+    default=0.3,
+    help="The radius in which intersections will be selected from each city",
 )
 @click.option("--seed", type=int, default=12345)
 def generate(cities: str, coords: Optional[str], output: str, maps: str, radius: float, seed: int):
@@ -54,10 +61,14 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
+    handler.setFormatter(
+        logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s")
+    )
     root_logger.addHandler(handler)
 
-    scenario_config = ScenarioFactoryConfig(seed=seed, cr_scenario_time_steps=75, simulation_steps=600)
+    scenario_config = ScenarioFactoryConfig(
+        seed=seed, cr_scenario_time_steps=75, simulation_steps=600
+    )
     map_provider = select_osm_map_provider(radius, Path(maps))
 
     base_pipeline = (
@@ -88,7 +99,9 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
 
     result.print_cum_time_per_step()
     root_logger.info(
-        "Sucessfully generated %s scenarios in %ss", len(result.values), round(result.exec_time_ns / 1000000000, 2)
+        "Sucessfully generated %s scenarios in %ss",
+        len(result.values),
+        round(result.exec_time_ns / 1000000000, 2),
     )
 
 
@@ -115,7 +128,11 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
     help="Directory that will be used by osmium to extract OSM maps",
 )
 @click.option(
-    "--radius", "-r", type=float, default=0.3, help="The radius in which intersections will be selected from each city"
+    "--radius",
+    "-r",
+    type=float,
+    default=0.3,
+    help="The radius in which intersections will be selected from each city",
 )
 def globetrotter(cities, coords, output, maps, radius):
     output_path = Path(output)
@@ -125,12 +142,16 @@ def globetrotter(cities, coords, output, maps, radius):
     root_logger = logging.getLogger("scenario_factory")
     root_logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
+    handler.setFormatter(
+        logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s")
+    )
     root_logger.addHandler(handler)
 
     map_provider = select_osm_map_provider(radius, Path(maps))
     globetrotter_pipeline = create_globetrotter_pipeline(radius, map_provider)
-    globetrotter_pipeline.map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
+    globetrotter_pipeline.map(
+        pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path))
+    )
     inputs = None
     if coords is not None:
         coordinates = Coordinates.from_str(coords)

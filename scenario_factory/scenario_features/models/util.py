@@ -10,9 +10,14 @@ def smoothen_polyline(polyline, resampling_distance: float = 1.5, n_lengthen=3):
 
     # lengthen by n_lengthen points
     for _ in range(n_lengthen):
-        resampled_polyline = np.insert(resampled_polyline, 0, 2 * resampled_polyline[0] - resampled_polyline[1], axis=0)
         resampled_polyline = np.insert(
-            resampled_polyline, len(resampled_polyline), 2 * resampled_polyline[-1] - resampled_polyline[-2], axis=0
+            resampled_polyline, 0, 2 * resampled_polyline[0] - resampled_polyline[1], axis=0
+        )
+        resampled_polyline = np.insert(
+            resampled_polyline,
+            len(resampled_polyline),
+            2 * resampled_polyline[-1] - resampled_polyline[-2],
+            axis=0,
         )
 
     return resampled_polyline

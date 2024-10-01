@@ -8,7 +8,9 @@ from commonroad.scenario.state import InitialState, TraceState
 from commonroad.scenario.trajectory import Trajectory
 
 
-def create_test_obstacle_with_trajectory(state_list: Sequence[TraceState], obstacle_id: int = 1) -> DynamicObstacle:
+def create_test_obstacle_with_trajectory(
+    state_list: Sequence[TraceState], obstacle_id: int = 1
+) -> DynamicObstacle:
     obstacle_shape = Rectangle(2.0, 2.0)
 
     initial_state: InitialState = state_list[0].convert_state_to_state(InitialState())
@@ -19,7 +21,8 @@ def create_test_obstacle_with_trajectory(state_list: Sequence[TraceState], obsta
         TrajectoryPrediction(
             shape=obstacle_shape,
             trajectory=Trajectory(
-                initial_time_step=trajectory_state_list[0].time_step, state_list=list(trajectory_state_list)
+                initial_time_step=trajectory_state_list[0].time_step,
+                state_list=list(trajectory_state_list),
             ),
         )
         if len(trajectory_state_list) > 0

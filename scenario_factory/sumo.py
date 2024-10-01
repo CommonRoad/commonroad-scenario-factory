@@ -93,7 +93,9 @@ class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
         success = True
         try:
             # Capture stderr and include in output, so that we can analyze the warnings
-            netconvert_output = subprocess.check_output(command.split(), timeout=5.0, stderr=subprocess.STDOUT)
+            netconvert_output = subprocess.check_output(
+                command.split(), timeout=5.0, stderr=subprocess.STDOUT
+            )
 
             # All warnings produced by netconvert are considered debug messages,
             # because they are usuallay rather informative
@@ -144,7 +146,9 @@ def convert_commonroad_scenario_to_sumo_scenario(
     conversion_possible = cr2sumo.create_sumo_files(str(output_folder))
 
     if not conversion_possible:
-        raise RuntimeError(f"Failed to convert CommonRoad scenario {commonroad_scenario.scenario_id} to SUMO")
+        raise RuntimeError(
+            f"Failed to convert CommonRoad scenario {commonroad_scenario.scenario_id} to SUMO"
+        )
 
     scenario_wrapper = ScenarioWrapper()
     scenario_wrapper.sumo_cfg_file = str(cr2sumo.sumo_cfg_file)
@@ -152,7 +156,9 @@ def convert_commonroad_scenario_to_sumo_scenario(
     return scenario_wrapper
 
 
-def simulate_commonroad_scenario(scenario_wrapper: ScenarioWrapper, sumo_config: SumoConfig) -> Scenario:
+def simulate_commonroad_scenario(
+    scenario_wrapper: ScenarioWrapper, sumo_config: SumoConfig
+) -> Scenario:
     """
     Simulate a CommonRoad scenario
     """

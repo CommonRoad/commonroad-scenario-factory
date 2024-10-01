@@ -12,7 +12,9 @@ from commonroad_labeling.road_configuration.scenario.scenario_lanelet_layout imp
     LaneletLayoutRoundabout,
     LaneletLayoutSingleLane,
 )
-from commonroad_labeling.road_configuration.scenario.scenario_traffic_sign import TrafficSignSpeedLimit
+from commonroad_labeling.road_configuration.scenario.scenario_traffic_sign import (
+    TrafficSignSpeedLimit,
+)
 
 _LOGGER = logging.getLogger(__name__)
 

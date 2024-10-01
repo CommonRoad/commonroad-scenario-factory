@@ -24,13 +24,17 @@ class TestThresholdAndLagDection:
 
     def test_should_not_detect_anything_under_threshold(self):
         signals = np.array([i for i in range(0, 100)])
-        matches, time_step = threshold_and_lag_detection(signals, threshold=100.0, lag_threshold=1.0)
+        matches, time_step = threshold_and_lag_detection(
+            signals, threshold=100.0, lag_threshold=1.0
+        )
         assert matches is False
         assert time_step == -1
 
     def test_should_not_detect_if_lagged_threshold_is_not_met(self):
         signals = np.array([i for i in range(0, 100)])
-        matches, time_step = threshold_and_lag_detection(signals, threshold=60.0, lag_threshold=60.0)
+        matches, time_step = threshold_and_lag_detection(
+            signals, threshold=60.0, lag_threshold=60.0
+        )
         assert matches is False
         assert time_step == -1
 
@@ -48,7 +52,9 @@ class TestThresholdAndMaxDetection:
         assert time_step == -1
 
     def test_should_not_detect_anything_under_threshold(self):
-        matches, time_step = threshold_and_max_detection(np.array([i for i in range(0, 100)]), threshold=100.0)
+        matches, time_step = threshold_and_max_detection(
+            np.array([i for i in range(0, 100)]), threshold=100.0
+        )
         assert matches is False
         assert time_step == -1
 
@@ -57,7 +63,9 @@ class TestThresholdAndMaxDetection:
         assert time_step == -1
 
     def test_should_detect_over_threshold(self):
-        matches, time_step = threshold_and_max_detection(np.array([i for i in range(0, 100)]), threshold=50.0)
+        matches, time_step = threshold_and_max_detection(
+            np.array([i for i in range(0, 100)]), threshold=50.0
+        )
         assert matches
         assert time_step == 50
 
@@ -76,7 +84,10 @@ class TestBrakingCriertion:
         test_obstacle = create_test_obstacle_with_trajectory(
             [
                 ExtendedPMState(
-                    time_step=i + 1, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=0.0
+                    time_step=i + 1,
+                    position=np.array([float(i), float(i)]),
+                    velocity=1.0,
+                    acceleration=0.0,
                 )
                 for i in range(0, 100)
             ]
@@ -89,14 +100,22 @@ class TestBrakingCriertion:
     def test_should_detect_if_braking(self):
         scenario = Scenario(dt=0.1)
         state_list = [
-            ExtendedPMState(time_step=i + 1, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=0.0)
+            ExtendedPMState(
+                time_step=i + 1,
+                position=np.array([float(i), float(i)]),
+                velocity=1.0,
+                acceleration=0.0,
+            )
             for i in range(0, 10)
         ]
 
         state_list.extend(
             [
                 ExtendedPMState(
-                    time_step=i + 1, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=-4.0
+                    time_step=i + 1,
+                    position=np.array([float(i), float(i)]),
+                    velocity=1.0,
+                    acceleration=-4.0,
                 )
                 for i in range(10, 20)
             ]
@@ -111,14 +130,22 @@ class TestBrakingCriertion:
     def test_should_detect_if_hold_not_met(self):
         scenario = Scenario(dt=0.1)
         state_list = [
-            ExtendedPMState(time_step=i + 1, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=0.0)
+            ExtendedPMState(
+                time_step=i + 1,
+                position=np.array([float(i), float(i)]),
+                velocity=1.0,
+                acceleration=0.0,
+            )
             for i in range(0, 10)
         ]
 
         state_list.extend(
             [
                 ExtendedPMState(
-                    time_step=i + 1, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=-5.0
+                    time_step=i + 1,
+                    position=np.array([float(i), float(i)]),
+                    velocity=1.0,
+                    acceleration=-5.0,
                 )
                 for i in range(10, 12)
             ]
@@ -145,7 +172,10 @@ class TestAccelerationCriertion:
         test_obstacle = create_test_obstacle_with_trajectory(
             [
                 ExtendedPMState(
-                    time_step=i + 1, position=np.array([float(i), float(i)]), velocity=1.0, acceleration=0.0
+                    time_step=i + 1,
+                    position=np.array([float(i), float(i)]),
+                    velocity=1.0,
+                    acceleration=0.0,
                 )
                 for i in range(0, 100)
             ]
@@ -223,9 +253,14 @@ class TestMinimumVelocityFilter:
         )
         maneuver = EgoVehicleManeuver(ego_vehicle, start_time=5)
         filter = MinimumVelocityFilter(min_ego_velocity=23.5)
-        assert filter.matches(scenario, scenario_time_steps=150, ego_vehicle_maneuver=maneuver) is False
+        assert (
+            filter.matches(scenario, scenario_time_steps=150, ego_vehicle_maneuver=maneuver)
+            is False
+        )
         filter = MinimumVelocityFilter(min_ego_velocity=20)
-        assert filter.matches(scenario, scenario_time_steps=10, ego_vehicle_maneuver=maneuver) is False
+        assert (
+            filter.matches(scenario, scenario_time_steps=10, ego_vehicle_maneuver=maneuver) is False
+        )
 
     def test_should_accept_if_ego_vehicle_exactly_matches_minimum_velocity_at_least_once(self):
         scenario = Scenario(dt=0.1)
@@ -239,14 +274,19 @@ class TestMinimumVelocityFilter:
         filter = MinimumVelocityFilter(min_ego_velocity=29.0)
         assert filter.matches(scenario, scenario_time_steps=20, ego_vehicle_maneuver=maneuver)
 
-    def test_should_reject_if_maneuver_start_time_is_after_state_that_reaches_minimum_velocity(self):
+    def test_should_reject_if_maneuver_start_time_is_after_state_that_reaches_minimum_velocity(
+        self,
+    ):
         scenario = Scenario(dt=0.1)
         state_list = [PMState(time_step=2 + i, velocity=30) for i in range(0, 10)]
         state_list.extend([PMState(time_step=12 + i, velocity=13.0) for i in range(0, 10)])
         ego_vehicle = create_test_obstacle_with_trajectory(state_list)
         maneuver = EgoVehicleManeuver(ego_vehicle, start_time=14)
         filter = MinimumVelocityFilter(min_ego_velocity=23.5)
-        assert filter.matches(scenario, scenario_time_steps=150, ego_vehicle_maneuver=maneuver) is False
+        assert (
+            filter.matches(scenario, scenario_time_steps=150, ego_vehicle_maneuver=maneuver)
+            is False
+        )
 
 
 class TestLongEnoughManeuverFilter:
@@ -256,7 +296,10 @@ class TestLongEnoughManeuverFilter:
         ego_vehicle = create_test_obstacle_with_trajectory(state_list)
         maneuver = EgoVehicleManeuver(ego_vehicle, start_time=5)
         filter = LongEnoughManeuverFilter()
-        assert filter.matches(scenario, scenario_time_steps=150, ego_vehicle_maneuver=maneuver) is False
+        assert (
+            filter.matches(scenario, scenario_time_steps=150, ego_vehicle_maneuver=maneuver)
+            is False
+        )
 
     def test_should_accept_maneuver_that_is_exactly_long_enough(self):
         scenario = Scenario(dt=0.1)
@@ -272,4 +315,7 @@ class TestLongEnoughManeuverFilter:
         ego_vehicle = create_test_obstacle_with_trajectory(state_list)
         maneuver = EgoVehicleManeuver(ego_vehicle, start_time=20)
         filter = LongEnoughManeuverFilter()
-        assert filter.matches(scenario, scenario_time_steps=100, ego_vehicle_maneuver=maneuver) is False
+        assert (
+            filter.matches(scenario, scenario_time_steps=100, ego_vehicle_maneuver=maneuver)
+            is False
+        )
