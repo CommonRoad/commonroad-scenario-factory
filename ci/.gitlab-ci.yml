@@ -23,6 +23,7 @@ main_testing:
   stage: testing
   image: gitlab.lrz.de:5005/cps/commonroad/scenario-factory
   script:
+    - apt-get install openjdk-17-jre-headless -y
     - poetry run coverage run -m pytest
     - poetry run coverage report -m || true
   coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
