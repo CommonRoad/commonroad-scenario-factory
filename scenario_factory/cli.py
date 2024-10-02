@@ -45,7 +45,11 @@ from scenario_factory.utils import select_osm_map_provider
     help="Directory that will be used by osmium to extract OSM maps",
 )
 @click.option(
-    "--radius", "-r", type=float, default=0.3, help="The radius in which intersections will be selected from each city"
+    "--radius",
+    "-r",
+    type=float,
+    default=0.3,
+    help="The radius in which intersections will be selected from each city",
 )
 @click.option("--seed", type=int, default=12345)
 def generate(cities: str, coords: Optional[str], output: str, maps: str, radius: float, seed: int):
@@ -54,14 +58,14 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
         output_path.mkdir(parents=True)
 
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
+    root_logger.setLevel(logging.DEBUG)
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
     root_logger.addHandler(handler)
 
     scenario_config = ScenarioFactoryConfig(seed=seed, cr_scenario_time_steps=75)
     map_provider = select_osm_map_provider(radius, Path(maps))
-    simulation_config = SimulationConfig(mode=SimulationMode.RANDOM_TRAFFIC_GENERATION, simulation_steps=600)
+    simulation_config = SimulationConfig(mode=SimulationMode.RANDOM_TRAFFIC_GENERATION, simulation_steps=150)
 
     base_pipeline = (
         create_globetrotter_pipeline(radius, map_provider)
@@ -91,7 +95,9 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
 
     result.print_cum_time_per_step()
     root_logger.info(
-        "Sucessfully generated %s scenarios in %ss", len(result.values), round(result.exec_time_ns / 1000000000, 2)
+        "Sucessfully generated %s scenarios in %ss",
+        len(result.values),
+        round(result.exec_time_ns / 1000000000, 2),
     )
 
 
@@ -118,7 +124,11 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
     help="Directory that will be used by osmium to extract OSM maps",
 )
 @click.option(
-    "--radius", "-r", type=float, default=0.3, help="The radius in which intersections will be selected from each city"
+    "--radius",
+    "-r",
+    type=float,
+    default=0.3,
+    help="The radius in which intersections will be selected from each city",
 )
 def globetrotter(cities, coords, output, maps, radius):
     output_path = Path(output)
@@ -133,6 +143,7 @@ def globetrotter(cities, coords, output, maps, radius):
 
     map_provider = select_osm_map_provider(radius, Path(maps))
     globetrotter_pipeline = create_globetrotter_pipeline(radius, map_provider)
+    globetrotter_pipeline.map(pipeline_add_metadata_to_scenario)
     globetrotter_pipeline.map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
     inputs = None
     if coords is not None:

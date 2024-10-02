@@ -33,14 +33,14 @@ class TestPipeline:
         pipeline = Pipeline()
         ctx = PipelineContext(Path("."))
         with pytest.raises(RuntimeError):
-            pipeline.execute([1, 2, 3, 4, 5], ctx, num_threads=1, num_processes=1)
+            pipeline.execute([1, 2, 3, 4, 5], ctx, num_threads=None, num_processes=None)
 
     def test_correctly_executes_map(self):
         pipeline = Pipeline()
         pipeline.map(pipeline_simple_map)
         ctx = PipelineContext(Path("."))
         input_values = [1, 2, 3, 4, 5]
-        result = pipeline.execute(input_values, ctx, num_threads=1, num_processes=1)
+        result = pipeline.execute(input_values, ctx, num_threads=None, num_processes=None)
         assert len(result.errors) == 0
         assert len(result.values) == 5
         assert result.values != input_values
@@ -55,7 +55,7 @@ class TestPipeline:
 
         ctx = PipelineContext(Path("."))
         input_values = [1, 2, 3, 4, 5]
-        result = pipeline.execute(input_values, ctx, num_threads=1, num_processes=1)
+        result = pipeline.execute(input_values, ctx, num_threads=None, num_processes=None)
         assert len(result.errors) == 0
         assert len(result.values) == 2
 
@@ -63,7 +63,7 @@ class TestPipeline:
         pipeline = Pipeline()
         pipeline.fold(pipeline_simple_fold)
         ctx = PipelineContext(Path("."))
-        result = pipeline.execute([1, 2, 3, 4, 5], ctx, num_threads=1, num_processes=1)
+        result = pipeline.execute([1, 2, 3, 4, 5], ctx, num_threads=None, num_processes=None)
         assert len(result.errors) == 0
         assert len(result.values) == 1
         assert result.values[0] == 15
