@@ -2,8 +2,6 @@
 
 Things go wrong and there are certainly many bugs in the scenario factory. Therefore, it is important to be able to easily debug the different steps that are executed.
 
-
-
 ## Logging
 
 The logging in the scenario_factory follows the python standard. This means that each module uses an individual logger identified by the module path. E.g. the module `ego_vehicle_selection.filters` has the identifier `scenario_factory.ego_vehicle_selection.filters`.
@@ -28,3 +26,6 @@ logger.setLevel(logging.DEBUG)
 ```
 
 ## print
+!!! warning
+
+    Because the different projects from the CommonRoad contain many `print` debug statements even in their production releases, the pipeline will blackhole all calls to `print`. Therefore, you can also not use `print` inside your pipeline steps and instead you should resort to using descriptive log messages.

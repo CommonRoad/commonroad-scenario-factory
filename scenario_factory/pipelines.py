@@ -22,6 +22,9 @@ from scenario_factory.pipeline_steps import (
 
 
 def create_globetrotter_pipeline(radius: float, map_provider: MapProvider) -> Pipeline:
+    """
+    The basic globetrotter pipeline that takes Points of Interest as inputs and creates CommonRoad Scenarios for each intersection that was found.
+    """
     pipeline = Pipeline()
     (
         pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(map_provider, radius=radius)))
@@ -37,6 +40,9 @@ def create_scenario_generation_pipeline(
     ego_vehicle_selection_criterions: Iterable[EgoVehicleSelectionCriterion],
     ego_vehicle_filters: Iterable[EgoVehicleManeuverFilter],
 ) -> Pipeline:
+    """
+    The basic scenario generation pipeline that finds possible ego vehicles in the scenarios according to the given criterions and filter. It takes scenarios with traffic as inputs and outputs scenarios with planning problems as well as their solutions.
+    """
     pipeline = Pipeline()
 
     pipeline.map(pipeline_remove_colliding_dynamic_obstacles)

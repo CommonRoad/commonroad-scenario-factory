@@ -26,7 +26,7 @@ radius = 0.1
 seed = 100
 
 scenario_factory_config = ScenarioFactoryConfig(seed=seed, cr_scenario_time_steps=75)
-simulation_config = SimulationConfig(mode=SimulationMode.DEMAND_TRAFFIC_GENERATION, simulation_steps=1000)
+simulation_config = SimulationConfig(mode=SimulationMode.DEMAND_TRAFFIC_GENERATION, simulation_steps=600)
 
 with TemporaryDirectory() as temp_dir:
     ctx = PipelineContext(Path(temp_dir), scenario_factory_config)

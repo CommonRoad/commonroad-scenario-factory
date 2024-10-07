@@ -5,17 +5,23 @@ nav:
   - Guides:
     - guides/index.md
     - guides/generate_scenarios.md
+    - guides/globetrotter.md
+    - guides/custom_scenario_generation_pipeline.md
   - Tutorials:
-    - tutorials/pipeline.md
+    - tutorials/index.md
+    - tutorials/create_pipeline_step.md
     - tutorials/debug.md
   - Reference:
     - reference/cli.md
-    - reference/ots.md
+    - reference/simulation.md
     - reference/pipeline.md
     - reference/ego_vehicle_selection.md
     - Api:
       - reference/api/pipeline.md
+      - reference/api/pipelines.md
       - reference/api/pipeline_steps.md
+      - reference/api/simulation.md
+      - reference/api/globetrotter.md
 theme:
   name: material
   logo: img/commonroad_white150.png
@@ -33,6 +39,10 @@ plugins:
         options:
           docstring_style: "sphinx"
 markdown_extensions:
+  - attr_list
+  - md_in_html
+  - tables
+  - admonition
   - mkdocs-click
   - pymdownx.highlight:
       anchor_linenums: true
@@ -40,4 +50,8 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
+  - pymdownx.emoji:
+      # The values of the following tags appear to be invalid YAML, but are according to mkdocs spec: https://github.com/squidfunk/mkdocs-material/blob/master/docs/reference/icons-emojis.md
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.superfences

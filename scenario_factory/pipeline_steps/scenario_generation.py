@@ -40,7 +40,7 @@ _LOGGER = logging.getLogger(__name__)
 
 @dataclass
 class FindEgoVehicleManeuversArguments(PipelineStepArguments):
-    """Arguments for :py:meth:`pipeline_find_ego_vehicle_maneuvers`"""
+    """Arguments for `pipeline_find_ego_vehicle_maneuvers`"""
 
     criterions: Iterable[EgoVehicleSelectionCriterion]
 
@@ -54,7 +54,7 @@ def pipeline_find_ego_vehicle_maneuvers(
     """
     Find vehicles in the scenario that perform a maneuver that could qualify them as an ego vehicle.
 
-    :param args: :class:`FindEgoVehicleManeuversArguments` that specify the criterions according to which maneuvers will be determined
+    :param args: `FindEgoVehicleManeuversArguments` that specify the criterions according to which maneuvers will be determined
     :param ctx: The context for this pipeline execution
     :param scenario_container: The scenario in which maneuvers should be detected. Will not be modified.
     """

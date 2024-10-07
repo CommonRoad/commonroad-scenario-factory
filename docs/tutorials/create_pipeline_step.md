@@ -1,6 +1,7 @@
 # Develop a Custom Pipeline Step
 
-In this tutorial you will learn how to create your own pipeline steps and how to use them in a pipeline.
+!!! abstract
+    In this tutorial, you will learn how to create your own pipeline steps and how to use them in a pipeline.
 
 ## A Minimal Pipeline Step
 
@@ -69,7 +70,8 @@ $ poetry run python tutorial.py
 2024-10-02 14:32:25,530 | INFO | tutorial | Hello World
 ```
 
-> Note: You might see some warning messages regarding traffic signs, but you can safely ignore those
+!!! info
+    You might see some warning messages regarding traffic signs, but you can safely ignore those
 
 ## Process the Input Values
 
@@ -162,7 +164,8 @@ $ poetry run python tutorial.py
 2024-10-02 15:14:29,909 | INFO | tutorial | Processing CommonRoad Scenario BWA_Tlokweng-6 in 'pipeline_super_cool_functionality'
 ```
 
-> When you execute the pipeline, the order of the log message might be different! This is because the pipeline employs seamless concurrency, which means that each step is distributed on a worker pool and the execution order is not deterministic. The important part here is, that you see log messages from `pipeline_hello_world` and `pipeline_super_cool_functionality`, independent of how they are ordered. [Here](/references/pipeline/#pipeline-step-concurrency-and-parallelism-modes) you can read more about the concurrency behavior of the pipeline.
+!!! info
+    When you execute the pipeline, the order of the log message might be different! This is because the pipeline employs seamless concurrency, which means that each step is distributed on a worker pool and the execution order is not deterministic. The important part here is, that you see log messages from `pipeline_hello_world` and `pipeline_super_cool_functionality`, independent of how they are ordered. [Here](/references/pipeline/#pipeline-step-concurrency-and-parallelism-modes) you can read more about the concurrency behavior of the pipeline.
 
 In the above example, each step receives one input and returns one output value. Sometimes, a pipeline step can return multiple values (e.g. a list of scenarios). To handle such cases, the pipeline will automatically flatten the returned iterable.
 
@@ -280,15 +283,10 @@ $ poetry run python tutorial.py
 
 Filters are applied to each individual item in the pipeline. When multiple filters are used, they basically act as an `and` operation, because each filter must match, so that the item is processed further. Additionally, filters can only consider one element. For some applications it might be necessary, to implement `or` operations or to compare items to each other (e.g. select the 10 most interesting scenarios). While the first problem can be circumvented, by employing `map` steps, the later one cannot. For this purpose `fold` steps exist, which can process the entire pipeline stack at once, instead of each item individually.
 
-> Caution: Because fold/reduce steps receive the whole pipeline stack, they might introduce a major performance penalty! So use them, only if necessary!
+!!! warning
+    Because fold/reduce steps receive the whole pipeline stack, they might introduce a major performance penalty! So use them, only if necessary!
 
-```python
-
-@pipeline_fold()
-def pipeline_select_most_interesting_
-
-```
-
+A fold step always takes an iterable (the previous pipeline stack) and must also return an iterable.
 
 ## The Pipeline Context
 
@@ -298,7 +296,7 @@ Each pipeline step must take a `PipelineContext` as its first argument. This con
 
 The `PipelineContext` exposes the `ScenarioFactoryConfig` object, which can be accessed by pipeline steps to retrieve configuration values. This exists mostly due to legacy reasons, and if your step takes arguments you should prefer the `pipeline_<>_with_args` decorators.
 
-### Creating with Temporary Files
+### Create Temporary Files
 
 To correctly interact with some CommonRoad utilities or external projects, you might need to create extra files. For example, to simulate a scenario with SUMO the CommonRoad Scenario must be converted to SUMO first. To make sure that
 

@@ -7,6 +7,8 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        # The mkdocs.yaml contains a string that is not supported by check-yaml, but is according to spec
+        exclude: mkdocs.yaml
       - id: check-added-large-files
         exclude: tests/resources/
   - repo: https://github.com/psf/black
