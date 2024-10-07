@@ -2,6 +2,8 @@
 
 Things go wrong and there are certainly many bugs in the scenario factory. Therefore, it is important to be able to easily debug the different steps that are executed.
 
+
+
 ## Logging
 
 The logging in the scenario_factory follows the python standard. This means that each module uses an individual logger identified by the module path. E.g. the module `ego_vehicle_selection.filters` has the identifier `scenario_factory.ego_vehicle_selection.filters`.
@@ -24,3 +26,5 @@ logger = logging.getLogger("scenario_factory")
 logger.setLevel(logging.DEBUG)
 
 ```
+
+## print

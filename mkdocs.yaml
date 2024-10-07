@@ -1,0 +1,43 @@
+
+site_name: CommonRoad Scenario Factory
+nav:
+  - index.md
+  - Guides:
+    - guides/index.md
+    - guides/generate_scenarios.md
+  - Tutorials:
+    - tutorials/pipeline.md
+    - tutorials/debug.md
+  - Reference:
+    - reference/cli.md
+    - reference/ots.md
+    - reference/pipeline.md
+    - reference/ego_vehicle_selection.md
+    - Api:
+      - reference/api/pipeline.md
+      - reference/api/pipeline_steps.md
+theme:
+  name: material
+  logo: img/commonroad_white150.png
+  features:
+  - content.code.copy
+  - content.code.annotate
+plugins:
+- autorefs
+- search
+- mkdocstrings:
+    default_handler: python
+    handlers:
+      python:
+        paths: ["scenario_factory"]
+        options:
+          docstring_style: "sphinx"
+markdown_extensions:
+  - mkdocs-click
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences

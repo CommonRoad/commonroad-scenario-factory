@@ -1,9 +1,10 @@
 # Pipeline
 
 The Scenario Factory is centered around a data processing pipeline. This pipeline is composed of many different pipeline steps which mostly work with CommonRoad scenarios. The pipeline supports three different step types:
-* *map*: most basic step type, which receives one input (e.g. a scenario) and has one or a sequence of outputs (e.g. pipeline step to write scenarios to disk)
-* *fold*: receives the whole pipeline state as input, and is mostly used for reduce functionality, when one needs to consider all elements in the pipeline.
-* *filter*: receives one input and returns a boolean to indicate whether this element should be processed further
+
+* __map__: most basic step type, which receives one input (e.g. a scenario) and has one or a sequence of outputs (e.g. pipeline step to write scenarios to disk)
+* __fold__: receives the whole pipeline state as input, and is mostly used for reduce functionality, when one needs to consider all elements in the pipeline.
+* __filter__: receives one input and returns a boolean to indicate whether this element should be processed further
 
 ## Existing Pipeline Steps
 
@@ -51,20 +52,38 @@ Notation:
   - EnoughSurroundingVehiclesFilter
 * pipeline_generate_scenario_for_ego_vehicle_maneuver(ego_vehicle_maneuver) [map]: Create a new CommonRoad scenario that starts at the ego vehicle maneuver and has a planning problem for the selected ego vehicle from the maneuver
 
-## Develop custom pipeline steps
+### Pipeline Step Concurrency and Parallelism Modes
 
-It's easy to develop custom pipeline steps:
+The pipeline provides seamless concurrency and parallelism to all pipeline steps it executes. This means that
+Generally 3 modes are supported:
+
+* __Concurrent__: The preferred mode of execution for each pipeline step. This distributes all tasks on a thread pool and execute the steps in a semi-parallel manner.
+* __Parallel__: Real parallelism, which should be used for tasks that cannot be run concurrently or which are long running. This distributes the tasks on a process pool and executes the steps in a true-parallel manner.
+* __Sequential__: Runs the tasks on the main thread and does not allow any other tasks to be run at the same time.
+
+By default, each pipeline step is concurrent, but you can change this on a per step basis by setting the `mode` argument in the decorator:
 
 ```python
-from scenario_factory.pipeline import pipeline_map, PipelineContext
+from scenario_factory.pipeline import PipelineContext, PipelineStepMode, pipeline_map
 from scenario_factory.scenario_types import ScenarioContainer
 
-@pipeline_map()
-def pipeline_example(ctx: PipelineContext, scenario_container: ScenarioContainer) -> ScenarioContainer:
-  # Do something with the scenario
-  return scenario_container
+@pipeline_map(mode=PipelineStepMode.PARALLEL)
+def pipeline_foo(ctx: PipelineContext, scenario_container: ScenarioContainer) -> ScenarioContainer:...
 
 ```
+
+Generally, if you don't have any problems with running your step concurrently, there is no need to change it. But if e.g. you interface with a simulator that is executed in the current python process (e.g. SUMO with its libsumo), you must change its mode to parallel or sequential. Otherwise, your pipeline step will fail.
+
+Additionally, you can disable concurrency and parallelism for each execution:
+
+```python
+pipeline = Pipeline()
+...
+pipeline.execute(input_values, num_threads=None, num_processes=None)
+```
+
+This way, even steps that would otherwise be executed concurrently or in parallel will be executed sequentially on the main thread. This is also the default behavior for `fold` steps.
+
 
 ### Working with Scenarios
 

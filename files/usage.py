@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -15,13 +14,9 @@ from scenario_factory.pipeline_steps.simulation import SimulateScenarioArguments
 from scenario_factory.pipelines import create_globetrotter_pipeline, create_scenario_generation_pipeline
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
-from scenario_factory.utils import select_osm_map_provider
+from scenario_factory.utils import configure_root_logger, select_osm_map_provider
 
-root_logger = logging.getLogger("scenario_factory")
-root_logger.setLevel(logging.DEBUG)
-handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
-root_logger.addHandler(handler)
+configure_root_logger()
 
 output_path = Path("/tmp/scenario_factory")
 output_path.mkdir(exist_ok=True)

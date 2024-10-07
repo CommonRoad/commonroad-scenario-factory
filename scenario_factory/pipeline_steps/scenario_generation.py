@@ -28,22 +28,35 @@ from scenario_factory.pipeline import (
 from scenario_factory.scenario_generation import (
     generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_maneuver,
 )
-from scenario_factory.scenario_types import ScenarioContainer, ScenarioWithEgoVehicleManeuver, ScenarioWithSolution
+from scenario_factory.scenario_types import (
+    ScenarioContainer,
+    ScenarioWithEgoVehicleManeuver,
+    ScenarioWithSolution,
+    is_scenario_with_ego_vehicle_maneuver,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
 class FindEgoVehicleManeuversArguments(PipelineStepArguments):
+    """Arguments for :py:meth:`pipeline_find_ego_vehicle_maneuvers`"""
+
     criterions: Iterable[EgoVehicleSelectionCriterion]
 
 
 @pipeline_map_with_args()
 def pipeline_find_ego_vehicle_maneuvers(
-    args: FindEgoVehicleManeuversArguments, ctx: PipelineContext, scenario_container: ScenarioContainer
+    args: FindEgoVehicleManeuversArguments,
+    ctx: PipelineContext,
+    scenario_container: ScenarioContainer,
 ) -> List[ScenarioWithEgoVehicleManeuver]:
     """
-    Find maneuvers in the scenario that qualify as interesting according to the criterions.
+    Find vehicles in the scenario that perform a maneuver that could qualify them as an ego vehicle.
+
+    :param args: :class:`FindEgoVehicleManeuversArguments` that specify the criterions according to which maneuvers will be determined
+    :param ctx: The context for this pipeline execution
+    :param scenario_container: The scenario in which maneuvers should be detected. Will not be modified.
     """
     ego_vehicle_maneuvers = find_ego_vehicle_maneuvers_in_scenario(scenario_container.scenario, args.criterions)
     _LOGGER.debug(
@@ -59,8 +72,28 @@ def pipeline_find_ego_vehicle_maneuvers(
 
 @pipeline_filter()
 def pipeline_filter_ego_vehicle_maneuver(
-    filter: EgoVehicleManeuverFilter, ctx: PipelineContext, scenario_container: ScenarioWithEgoVehicleManeuver
+    filter: EgoVehicleManeuverFilter,
+    ctx: PipelineContext,
+    scenario_container: ScenarioWithEgoVehicleManeuver,
 ) -> bool:
+    """
+    Only include ego vehicle maneuvers that match the given filter predicate.
+    Usually applied after `pipeline_find_ego_vehicle_maneuvers`, to filter maneuvers out, from which no interesting new scenario can be derived.
+
+    Usage:
+
+        pipeline.filter(pipeline_filter_ego_vehicle_maneuver(LongEnoughManeuverFilter()))
+
+    :param filter: The filter predicate that should be applied. Must be supplied
+    :param ctx: The context for this pipeline execution.
+    :param scenario_container: Scenario with an ego vehicle maneuver. Will not be modified.
+
+    :return: Whether the filter predicate matched.
+    """
+    if not is_scenario_with_ego_vehicle_maneuver(scenario_container):
+        raise ValueError(
+            f"Pipelinen step `pipeline_filter_ego_vehicle_maneuver` requires a scenario with an ego vehicle, but got {type(scenario_container)}"
+        )
     scenario_factory_config = ctx.get_scenario_factory_config()
     return filter.matches(
         scenario_container.scenario,
@@ -73,6 +106,11 @@ def pipeline_filter_ego_vehicle_maneuver(
 def pipeline_select_one_maneuver_per_ego_vehicle(
     ctx: PipelineContext, scenario_containers: Sequence[ScenarioWithEgoVehicleManeuver]
 ) -> Sequence[ScenarioWithEgoVehicleManeuver]:
+    """
+
+    :param ctx: The context for this pipeline execution
+    :param scenario_containers:
+    """
     scenario_factory_config = ctx.get_scenario_factory_config()
 
     ego_vehicle_maneuvers_sorted_by_scenario_id = defaultdict(list)
@@ -84,10 +122,15 @@ def pipeline_select_one_maneuver_per_ego_vehicle(
         scenario_id_map[scenario_container.scenario.scenario_id] = scenario_container.scenario
 
     results = []
-    for scenario_id, ego_vehicle_maneuvers in ego_vehicle_maneuvers_sorted_by_scenario_id.items():
+    for (
+        scenario_id,
+        ego_vehicle_maneuvers,
+    ) in ego_vehicle_maneuvers_sorted_by_scenario_id.items():
         commonroad_scenario = scenario_id_map[scenario_id]
         maneuvers = select_one_maneuver_per_ego_vehicle(
-            commonroad_scenario, ego_vehicle_maneuvers, scenario_factory_config.sensor_range
+            commonroad_scenario,
+            ego_vehicle_maneuvers,
+            scenario_factory_config.sensor_range,
         )
         for maneuver in maneuvers:
             results.append(ScenarioWithEgoVehicleManeuver(commonroad_scenario, maneuver))
