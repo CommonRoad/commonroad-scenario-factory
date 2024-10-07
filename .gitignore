@@ -4,9 +4,8 @@ output_*
 __pycache__
 dec23_data
 
-*.osm.pbf
-*.osm
-*.xml
+files/**/*.osm.pbf
+files/**/*.osm
 *.p
 *.cfg
 *.tar.gz
