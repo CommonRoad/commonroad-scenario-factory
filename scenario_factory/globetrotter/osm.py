@@ -86,7 +86,15 @@ def extract_bounding_box_from_osm_map(
 
     _LOGGER.debug(f"Extracting {bounding_box} from {map_file}")
 
-    cmd = ["osmium", "extract", "--bbox", str(bounding_box), "-o", str(output_file), str(map_file)]
+    cmd = [
+        "osmium",
+        "extract",
+        "--bbox",
+        str(bounding_box),
+        "-o",
+        str(output_file),
+        str(map_file),
+    ]
     if overwrite:
         cmd.append("--overwrite")
 
@@ -156,7 +164,10 @@ def verify_and_repair_commonroad_scenario(scenario: Scenario) -> int:
     Use the Map verification and repairing from the CommonRoad Scenario Designer to repair a CommonRoad scenario.
     """
 
-    map_verifier = MapVerifier(scenario.lanelet_network, MapVerParams(evaluation=EvaluationParams(partitioned=True)))
+    map_verifier = MapVerifier(
+        scenario.lanelet_network,
+        MapVerParams(evaluation=EvaluationParams(partitioned=True)),
+    )
     invalid_states = map_verifier.verify()
 
     if len(invalid_states) > 0:
@@ -173,13 +184,28 @@ def _redirect_all_undirected_log_messages(target_logger):
     def redirect(msg, *args, **kwargs):
         target_logger.debug(msg, *args, **kwargs)
 
-    info, debug, warning, error = logging.info, logging.debug, logging.warning, logging.error
-    logging.info, logging.debug, logging.warning, logging.error = redirect, redirect, redirect, redirect
+    info, debug, warning, error = (
+        logging.info,
+        logging.debug,
+        logging.warning,
+        logging.error,
+    )
+    logging.info, logging.debug, logging.warning, logging.error = (
+        redirect,
+        redirect,
+        redirect,
+        redirect,
+    )
 
     try:
         yield
     finally:
-        logging.info, logging.debug, logging.warning, logging.error = info, debug, warning, error
+        logging.info, logging.debug, logging.warning, logging.error = (
+            info,
+            debug,
+            warning,
+            error,
+        )
 
 
 def convert_osm_file_to_commonroad_scenario(osm_file: Path) -> Scenario:

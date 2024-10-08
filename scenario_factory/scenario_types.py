@@ -1,7 +1,7 @@
 import logging
 import xml.etree.ElementTree
 from pathlib import Path
-from typing import List, Sequence
+from typing import List, Sequence, Union
 
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.common.solution import PlanningProblemSolution, Solution
@@ -47,7 +47,10 @@ class ScenarioWithSolution(ScenarioWithPlanningProblemSet):
     """
 
     def __init__(
-        self, scenario: Scenario, planning_problem_set: PlanningProblemSet, solutions: Sequence[PlanningProblemSolution]
+        self,
+        scenario: Scenario,
+        planning_problem_set: PlanningProblemSet,
+        solutions: Sequence[PlanningProblemSolution],
     ) -> None:
         super().__init__(scenario, planning_problem_set)
         self._solutions = solutions
@@ -76,13 +79,22 @@ class ScenarioWithEgoVehicleManeuver(ScenarioContainer):
 
 def is_scenario_with_ego_vehicle_maneuver(
     scenario_container: ScenarioContainer,
-) -> TypeGuard[ScenarioWithPlanningProblemSet]:
+) -> TypeGuard[ScenarioWithEgoVehicleManeuver]:
     return isinstance(scenario_container, ScenarioWithEgoVehicleManeuver)
 
 
-def load_scenarios_from_folder(folder: Path) -> List[ScenarioContainer]:
+def load_scenarios_from_folder(
+    folder: Union[str, Path],
+) -> List[ScenarioContainer]:
+    if isinstance(folder, str):
+        folder_path = Path(folder)
+    elif isinstance(folder, Path):
+        folder_path = folder
+    else:
+        raise ValueError(f"Argument 'folder' must be either 'str' or 'Path', but instead is {type(folder)}")
+
     scenario_containers: List[ScenarioContainer] = []
-    for xml_file_path in folder.glob("*.xml"):
+    for xml_file_path in folder_path.glob("*.xml"):
         try:
             scenario, planning_problem_set = CommonRoadFileReader(xml_file_path).open()
         except xml.etree.ElementTree.ParseError as e:

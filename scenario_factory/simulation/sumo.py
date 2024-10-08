@@ -189,8 +189,14 @@ def _execute_sumo_simulation(scenario_wrapper: ScenarioWrapper, sumo_config: Sum
 
 
 def simulate_commonroad_scenario_with_sumo(
-    scenario: Scenario, simulation_config: SimulationConfig, working_directory: Path, seed: int
+    scenario: Scenario,
+    simulation_config: SimulationConfig,
+    working_directory: Path,
+    seed: int,
 ) -> Scenario:
+    """
+    Simulate a CommonRoad scenario with the micrsocopic simulator SUMO. Currently, only random traffic generation is supported.
+    """
     if simulation_config.mode != SimulationMode.RANDOM_TRAFFIC_GENERATION:
         raise ValueError(
             f"Unsupported simulation mode {simulation_config.mode} for SUMO! Currently only {SimulationMode.RANDOM_TRAFFIC_GENERATION} is supported."

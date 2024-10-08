@@ -4,6 +4,10 @@ from typing import Optional
 
 
 class SimulationMode(Enum):
+    """
+    Choose between the different simulation modes. Not all simulation modes might be supported by all simulators!
+    """
+
     RANDOM_TRAFFIC_GENERATION = auto()
     """Generate traffic on a lanelet network using the simulator."""
 
@@ -22,8 +26,13 @@ class SimulationMode(Enum):
 
 @dataclass
 class SimulationConfig:
+    """Generic config that can be used by every simulator."""
+
     mode: SimulationMode
+    """Configure the mode for the simulation"""
+
     simulation_steps: Optional[int] = None
+    """Limit the number of time steps that will be simulated. Must be set for the `SimulationMode.RANDOM_TRAFFIC_GENERATION`"""
 
     def _post_init__(self):
         if self.mode == SimulationMode.RANDOM_TRAFFIC_GENERATION and self.simulation_steps is None:
