@@ -44,7 +44,7 @@ main_testing:
         path: coverage.xml
 
 pages:
-  # push the latest documentation of the main branch to the Gitlab pages.
+  # push the latest documentation of the develop branch to the Gitlab pages.
   # available at https://cps.pages.gitlab.lrz.de/commonroad/scenario-factory
   stage: deploy
   only:
@@ -52,7 +52,9 @@ pages:
   publish: site
   before_script:
     - *default_before_script
-    - poetry install --only docs
+    # The GUI dependencies are also required for docs, because mkdocs will import all python modules.
+    - apt-get update && apt-get install libgl1 libegl1 libxkbcommon0 libdbus-1-3  -y
+    - poetry install --with docs
   script:
     - poetry run mkdocs build
   artifacts:
