@@ -30,7 +30,6 @@ eclipse-sumo = "^1.19"
 click = "^8.1"
 multiprocess = "^0.70"
 typing-extensions = "^4.12.2"
-mkdocs-click = "^0.8.1"
 
 
 [tool.poetry.group.tests]
@@ -48,7 +47,13 @@ mkdocs = "^1.6.0"
 mkdocstrings-python = "^1.10.3"
 mkdocs-autorefs = "^1.0.1"
 mkdocs-material = "^9.5.12"
+mkdocs-click = "^0.8.1"
 
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.7.1"
 
 [build-system]
 requires = ["poetry-core"]
