@@ -14,7 +14,10 @@ from scenario_factory.pipeline_steps.utils import (
     pipeline_assign_tags_to_scenario,
     pipeline_write_scenario_to_file,
 )
-from scenario_factory.pipelines import create_globetrotter_pipeline, create_scenario_generation_pipeline
+from scenario_factory.pipelines import (
+    create_globetrotter_pipeline,
+    create_scenario_generation_pipeline,
+)
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 from scenario_factory.utils import select_osm_map_provider
 
@@ -35,7 +38,9 @@ random.seed(seed)
 np.random.seed(seed)
 
 
-scenario_factory_config = ScenarioFactoryConfig(seed=seed, simulation_steps=600, cr_scenario_time_steps=75)
+scenario_factory_config = ScenarioFactoryConfig(
+    seed=seed, simulation_steps=600, cr_scenario_time_steps=75
+)
 
 with TemporaryDirectory() as temp_dir:
     ctx = PipelineContext(Path(temp_dir), scenario_factory_config)

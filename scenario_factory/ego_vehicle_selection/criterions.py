@@ -16,7 +16,10 @@ from commonroad.scenario.lanelet import Lanelet, LaneletNetwork
 from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
 
-from scenario_factory.ego_vehicle_selection.utils import threshold_and_lag_detection, threshold_and_max_detection
+from scenario_factory.ego_vehicle_selection.utils import (
+    threshold_and_lag_detection,
+    threshold_and_max_detection,
+)
 from scenario_factory.utils import (
     get_full_state_list_of_obstacle,
     is_state_list_with_acceleration,
@@ -106,7 +109,9 @@ class AccelerationCriterion(EgoVehicleSelectionCriterion):
             return False, -1
         time_step = matching_state.time_step
 
-        _LOGGER.debug(f"AccelerationCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}")
+        _LOGGER.debug(
+            f"AccelerationCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}"
+        )
 
         return True, time_step
 
@@ -144,7 +149,9 @@ class BrakingCriterion(EgoVehicleSelectionCriterion):
         accelerations = np.array([state.acceleration for state in state_list])
 
         found_match, state_index = threshold_and_max_detection(
-            accelerations, threshold=self._braking_detection_threshold, n_hold=self._braking_detection_threshold_hold
+            accelerations,
+            threshold=self._braking_detection_threshold,
+            n_hold=self._braking_detection_threshold_hold,
         )
         if not found_match:
             return False, -1
@@ -156,7 +163,9 @@ class BrakingCriterion(EgoVehicleSelectionCriterion):
             return False, -1
         time_step = matching_state.time_step
 
-        _LOGGER.debug(f"BrakingCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}")
+        _LOGGER.debug(
+            f"BrakingCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}"
+        )
 
         return True, time_step
 
@@ -207,7 +216,9 @@ class TurningCriterion(EgoVehicleSelectionCriterion):
             return False, -1
         time_step = matched_state.time_step
 
-        _LOGGER.debug(f"TurningCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}")
+        _LOGGER.debug(
+            f"TurningCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}"
+        )
 
         return True, time_step
 
@@ -234,7 +245,9 @@ def _changes_lanes(lanelet_network: LaneletNetwork, obstacle: DynamicObstacle) -
     position_list = [state.position for state in state_list]
     mapped_lanelets_list = lanelet_network.find_lanelet_by_position(position_list)
 
-    for state_index, (curr_lanelet_list, next_lanelet_list) in enumerate(_pairwise(mapped_lanelets_list)):
+    for state_index, (curr_lanelet_list, next_lanelet_list) in enumerate(
+        _pairwise(mapped_lanelets_list)
+    ):
         if curr_lanelet_list is None or next_lanelet_list is None:
             # If no lanelet could be mapped at this position, None is returned by find_lanelet_by_position...
             continue
@@ -270,7 +283,9 @@ class LaneChangeCriterion(EgoVehicleSelectionCriterion):
     :param lc_detection_start_time_offset: The start time offset for the resulting scenario
     """
 
-    def __init__(self, lc_detection_min_velocity: float = 10.0, lc_detection_start_time_offset: float = 0.5):
+    def __init__(
+        self, lc_detection_min_velocity: float = 10.0, lc_detection_start_time_offset: float = 0.5
+    ):
         super().__init__(lc_detection_start_time_offset)
         self._lc_detection_min_velocity = lc_detection_min_velocity
 
@@ -292,6 +307,8 @@ class LaneChangeCriterion(EgoVehicleSelectionCriterion):
         if matched_state.velocity <= self._lc_detection_min_velocity:
             return False, -1
 
-        _LOGGER.debug(f"LaneChangeCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}")
+        _LOGGER.debug(
+            f"LaneChangeCriterion matched obstacle {obstacle.obstacle_id} at time step {time_step}"
+        )
 
         return True, time_step

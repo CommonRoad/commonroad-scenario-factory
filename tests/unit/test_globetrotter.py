@@ -106,7 +106,10 @@ class TestRelevantTrafficSigns:
         ]
         traffic_signs = [
             TrafficSign(
-                traffic_sign_id=0, traffic_sign_elements=[], first_occurrence={0}, position=np.array([0.0, 0.0])
+                traffic_sign_id=0,
+                traffic_sign_elements=[],
+                first_occurrence={0},
+                position=np.array([0.0, 0.0]),
             )
         ]
 
@@ -132,10 +135,16 @@ class TestRelevantTrafficSigns:
         ]
         traffic_signs = [
             TrafficSign(
-                traffic_sign_id=0, traffic_sign_elements=[], first_occurrence={0}, position=np.array([0.0, 0.0])
+                traffic_sign_id=0,
+                traffic_sign_elements=[],
+                first_occurrence={0},
+                position=np.array([0.0, 0.0]),
             ),
             TrafficSign(
-                traffic_sign_id=1, traffic_sign_elements=[], first_occurrence={2}, position=np.array([0.0, 0.0])
+                traffic_sign_id=1,
+                traffic_sign_elements=[],
+                first_occurrence={2},
+                position=np.array([0.0, 0.0]),
             ),
         ]
         assert len(relevant_traffic_signs(traffic_signs, lanelets)) == 1
@@ -198,7 +207,8 @@ class TestRelevantIntersections:
     def test_empty_lanelets(self):
         intersections = [
             Intersection(
-                intersection_id=0, incomings=[IntersectionIncomingElement(incoming_id=1, incoming_lanelets={3})]
+                intersection_id=0,
+                incomings=[IntersectionIncomingElement(incoming_id=1, incoming_lanelets={3})],
             )
         ]
 
@@ -207,7 +217,8 @@ class TestRelevantIntersections:
     def test_referenced_lanelet(self):
         intersections = [
             Intersection(
-                intersection_id=0, incomings=[IntersectionIncomingElement(incoming_id=1, incoming_lanelets={0})]
+                intersection_id=0,
+                incomings=[IntersectionIncomingElement(incoming_id=1, incoming_lanelets={0})],
             )
         ]
 

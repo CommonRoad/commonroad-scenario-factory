@@ -31,8 +31,15 @@ from scenario_factory.pipeline import (
 from scenario_factory.scenario_generation import (
     generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_maneuver,
 )
-from scenario_factory.scenario_types import ScenarioContainer, ScenarioWithEgoVehicleManeuver, ScenarioWithSolution
-from scenario_factory.sumo import convert_commonroad_scenario_to_sumo_scenario, simulate_commonroad_scenario
+from scenario_factory.scenario_types import (
+    ScenarioContainer,
+    ScenarioWithEgoVehicleManeuver,
+    ScenarioWithSolution,
+)
+from scenario_factory.sumo import (
+    convert_commonroad_scenario_to_sumo_scenario,
+    simulate_commonroad_scenario,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -90,12 +97,16 @@ class FindEgoVehicleManeuversArguments(PipelineStepArguments):
 
 @pipeline_map_with_args()
 def pipeline_find_ego_vehicle_maneuvers(
-    args: FindEgoVehicleManeuversArguments, ctx: PipelineContext, scenario_container: ScenarioContainer
+    args: FindEgoVehicleManeuversArguments,
+    ctx: PipelineContext,
+    scenario_container: ScenarioContainer,
 ) -> List[ScenarioWithEgoVehicleManeuver]:
     """
     Find maneuvers in the scenario that qualify as interesting according to the criterions.
     """
-    ego_vehicle_maneuvers = find_ego_vehicle_maneuvers_in_scenario(scenario_container.scenario, args.criterions)
+    ego_vehicle_maneuvers = find_ego_vehicle_maneuvers_in_scenario(
+        scenario_container.scenario, args.criterions
+    )
     _LOGGER.debug(
         "Identified %s maneuvers in scenario %s that could qualify for an ego vehicle",
         len(ego_vehicle_maneuvers),
@@ -109,7 +120,9 @@ def pipeline_find_ego_vehicle_maneuvers(
 
 @pipeline_filter()
 def pipeline_filter_ego_vehicle_maneuver(
-    filter: EgoVehicleManeuverFilter, ctx: PipelineContext, scenario_container: ScenarioWithEgoVehicleManeuver
+    filter: EgoVehicleManeuverFilter,
+    ctx: PipelineContext,
+    scenario_container: ScenarioWithEgoVehicleManeuver,
 ) -> bool:
     scenario_factory_config = ctx.get_scenario_factory_config()
     return filter.matches(

@@ -44,7 +44,10 @@ class ScenarioWithSolution(ScenarioWithPlanningProblemSet):
     """
 
     def __init__(
-        self, scenario: Scenario, planning_problem_set: PlanningProblemSet, solutions: Sequence[PlanningProblemSolution]
+        self,
+        scenario: Scenario,
+        planning_problem_set: PlanningProblemSet,
+        solutions: Sequence[PlanningProblemSolution],
     ) -> None:
         super().__init__(scenario, planning_problem_set)
         self._solutions = solutions

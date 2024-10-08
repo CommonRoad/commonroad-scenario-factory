@@ -19,7 +19,11 @@ class TestDeleteCollidingObstaclesFromScenario:
         scenario = Scenario(dt=0.1)
         for obstacle_id in range(0, 4):
             obstacle = create_test_obstacle_with_trajectory(
-                [ExtendedPMState(time_step=0, position=np.array([0.0, 0.0]), velocity=1.0, acceleration=0.0)],
+                [
+                    ExtendedPMState(
+                        time_step=0, position=np.array([0.0, 0.0]), velocity=1.0, acceleration=0.0
+                    )
+                ],
                 obstacle_id=obstacle_id,
             )
             scenario.add_objects(obstacle)
@@ -36,11 +40,17 @@ class TestCreatePlanningProblemSetAndSolutionForEgoVehicle:
         ego_vehicle = create_test_obstacle_with_trajectory(
             [
                 ExtendedPMState(
-                    time_step=i, position=np.array([0.0, 0.0]), velocity=1.0, acceleration=0.0, orientation=0.0
+                    time_step=i,
+                    position=np.array([0.0, 0.0]),
+                    velocity=1.0,
+                    acceleration=0.0,
+                    orientation=0.0,
                 )
                 for i in range(0, 100)
             ]
         )
-        planning_problem_set, planning_problem_solution = create_planning_problem_set_and_solution_for_ego_vehicle(
-            scenario, ego_vehicle, planning_problem_with_lanelet=False
+        planning_problem_set, planning_problem_solution = (
+            create_planning_problem_set_and_solution_for_ego_vehicle(
+                scenario, ego_vehicle, planning_problem_with_lanelet=False
+            )
         )

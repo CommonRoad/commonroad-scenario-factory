@@ -37,7 +37,9 @@ def find_ego_vehicle_maneuvers_in_scenario(
             if not matches:
                 continue
             # Each criterion has a specific start time offset which must be used to shift the adsolute init time, so that scenarios start before a specific maneuver
-            adjusted_absolute_init_time = criterion.compute_adjusted_start_time(absolute_init_time, scenario.dt)
+            adjusted_absolute_init_time = criterion.compute_adjusted_start_time(
+                absolute_init_time, scenario.dt
+            )
             _LOGGER.debug(
                 f"Adjusted maneuver start time {absolute_init_time} of obstacle {obstacle.obstacle_id} to {adjusted_absolute_init_time}"
             )
@@ -75,7 +77,9 @@ def _select_most_interesting_maneuver(
     # TODO: This is a bit clunky as scenario and detection_range are also needed here. Maybe a better metric/approach can be found?
 
     if len(maneuvers) == 0:
-        raise ValueError("Cannot select the most interesting maneuver from an empty list of maneuvers!")
+        raise ValueError(
+            "Cannot select the most interesting maneuver from an empty list of maneuvers!"
+        )
 
     if len(maneuvers) == 1:
         return maneuvers[0]
@@ -93,7 +97,10 @@ def _select_most_interesting_maneuver(
             )
 
         num_vehicles = _get_number_of_vehicles_in_range(
-            ego_vehicle_state.position, maneuver.start_time, scenario.dynamic_obstacles, detection_range
+            ego_vehicle_state.position,
+            maneuver.start_time,
+            scenario.dynamic_obstacles,
+            detection_range,
         )
         if num_vehicles < max_num_vehicles:
             continue

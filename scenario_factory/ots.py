@@ -32,7 +32,9 @@ def _determine_obstacle_shape_for_obstacle_type(obstacle_type: ObstacleType) -> 
         raise ValueError(f"Unknown obstacle type {obstacle_type}")
 
 
-def _cut_trajectory_to_time_step(trajectory: Trajectory, max_time_step: int) -> Optional[Trajectory]:
+def _cut_trajectory_to_time_step(
+    trajectory: Trajectory, max_time_step: int
+) -> Optional[Trajectory]:
     """
     Cut the :param:`trajectory` so that no state's time step exceeds :param:`max_time_step`. \
 
@@ -52,17 +54,23 @@ def _cut_trajectory_to_time_step(trajectory: Trajectory, max_time_step: int) -> 
         # The trajectory starts only after the max time step, so we cannot cut a trajectory from this
         return None
 
-    new_state_list = list(filter(lambda state: state.time_step <= max_time_step, trajectory.state_list))
+    new_state_list = list(
+        filter(lambda state: state.time_step <= max_time_step, trajectory.state_list)
+    )
 
     trajectory_initial_state = new_state_list[0]
     assert is_state_with_discrete_time_step(
         trajectory_initial_state
     ), f"Cannot cut trajectory with initial state {trajectory_initial_state} because its time step is not a discrete value"
 
-    return Trajectory(initial_time_step=trajectory_initial_state.time_step, state_list=new_state_list)
+    return Trajectory(
+        initial_time_step=trajectory_initial_state.time_step, state_list=new_state_list
+    )
 
 
-def _correct_dynamic_obstacle(dynamic_obstacle: DynamicObstacle, max_time_step: int) -> DynamicObstacle:
+def _correct_dynamic_obstacle(
+    dynamic_obstacle: DynamicObstacle, max_time_step: int
+) -> DynamicObstacle:
     """ """
     if not isinstance(dynamic_obstacle.prediction, TrajectoryPrediction):
         raise RuntimeError(
@@ -73,7 +81,9 @@ def _correct_dynamic_obstacle(dynamic_obstacle: DynamicObstacle, max_time_step: 
 
     # Fallback prediction is None, for the case that no valid trajectory can be cut
     new_prediction = None
-    cut_trajectory = _cut_trajectory_to_time_step(dynamic_obstacle.prediction.trajectory, max_time_step)
+    cut_trajectory = _cut_trajectory_to_time_step(
+        dynamic_obstacle.prediction.trajectory, max_time_step
+    )
     # If the original trajectory starts after max_time_step, it cannot be cut and therefore cut_trajectory would be None
     if cut_trajectory is not None:
         new_prediction = TrajectoryPrediction(shape=new_obstacle_shape, trajectory=cut_trajectory)
@@ -211,11 +221,16 @@ def generate_random_traffic_with_ots(
                 try:
                     new_scenario, _, _, _, _ = executor.execute()
                 except Exception as e:
-                    _LOGGER.error("Error while simulating %s: %s", commonroad_scenario.scenario_id, e)
+                    _LOGGER.error(
+                        "Error while simulating %s: %s", commonroad_scenario.scenario_id, e
+                    )
                     return None
 
     max_time_step = max(
-        [obstacle.prediction.trajectory.final_state.time_step for obstacle in new_scenario.dynamic_obstacles]
+        [
+            obstacle.prediction.trajectory.final_state.time_step
+            for obstacle in new_scenario.dynamic_obstacles
+        ]
     )
     _LOGGER.debug(
         "Simulated scenario %s and created %s random obstacles for %s time steps",

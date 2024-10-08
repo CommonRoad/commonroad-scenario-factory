@@ -25,7 +25,18 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Callable, Generic, Iterable, List, Optional, Protocol, Sequence, Tuple, TypeAlias, TypeVar
+from typing import (
+    Callable,
+    Generic,
+    Iterable,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    TypeAlias,
+    TypeVar,
+)
 
 import multiprocess
 import numpy as np
@@ -51,12 +62,13 @@ def _get_function_name(func) -> str:
 
 
 # Upper Type bound for arguments to pipeline steps
-class PipelineStepArguments:
-    ...
+class PipelineStepArguments: ...
 
 
 # We want to use PipelineStepArguments as a type parameter in Callable, which requires covariant types
-_PipelineStepArgumentsTypeT = TypeVar("_PipelineStepArgumentsTypeT", bound=PipelineStepArguments, covariant=True)
+_PipelineStepArgumentsTypeT = TypeVar(
+    "_PipelineStepArgumentsTypeT", bound=PipelineStepArguments, covariant=True
+)
 _PipelineStepInputTypeT = TypeVar("_PipelineStepInputTypeT")
 _PipelineStepOutputTypeT = TypeVar("_PipelineStepOutputTypeT")
 
@@ -104,9 +116,12 @@ class PipelineContext:
 
 
 # Type aliases to make the function definitions more readable
-_PipelineMapFuncType: TypeAlias = Callable[[PipelineContext, _PipelineStepInputTypeT], _PipelineStepOutputTypeT]
+_PipelineMapFuncType: TypeAlias = Callable[
+    [PipelineContext, _PipelineStepInputTypeT], _PipelineStepOutputTypeT
+]
 _PipelineMapFuncWithArgsType: TypeAlias = Callable[
-    [_PipelineStepArgumentsTypeT, PipelineContext, _PipelineStepInputTypeT], _PipelineStepOutputTypeT
+    [_PipelineStepArgumentsTypeT, PipelineContext, _PipelineStepInputTypeT],
+    _PipelineStepOutputTypeT,
 ]
 
 _PipelineFoldFuncType: TypeAlias = Callable[
@@ -115,8 +130,7 @@ _PipelineFoldFuncType: TypeAlias = Callable[
 
 
 class PipelineFilterPredicate(Protocol):
-    def matches(self, *args, **kwargs) -> bool:
-        ...
+    def matches(self, *args, **kwargs) -> bool: ...
 
 
 _PipelineFilterPredicateT = TypeVar("_PipelineFilterPredicateT", bound=PipelineFilterPredicate)
@@ -139,7 +153,9 @@ class PipelineStepMode(Enum):
     SEQUENTIAL = auto()
 
 
-_AnyPipelineStep = TypeVar("_AnyPipelineStep", _PipelineMapFuncType, _PipelineFilterFuncType, _PipelineFoldFuncType)
+_AnyPipelineStep = TypeVar(
+    "_AnyPipelineStep", _PipelineMapFuncType, _PipelineFilterFuncType, _PipelineFoldFuncType
+)
 
 
 @dataclass
@@ -174,7 +190,10 @@ def pipeline_map(
 
 def pipeline_map_with_args(
     mode: PipelineStepMode = PipelineStepMode.CONCURRENT,
-) -> Callable[[_PipelineMapFuncWithArgsType], Callable[[PipelineStepArguments], PipelineStep[_PipelineMapFuncType]]]:
+) -> Callable[
+    [_PipelineMapFuncWithArgsType],
+    Callable[[PipelineStepArguments], PipelineStep[_PipelineMapFuncType]],
+]:
     """
     Decorate a function to indicate its use as a map function for the pipeline. This decorator will partially apply the function by setting the args parameter.
     """
@@ -186,7 +205,9 @@ def pipeline_map_with_args(
             args: PipelineStepArguments,
         ) -> PipelineStep[_PipelineMapFuncType]:
             step_func_with_args_applied = functools.partial(func, args)
-            return PipelineStep(step_func=step_func_with_args_applied, type=PipelineStepType.MAP, mode=mode)
+            return PipelineStep(
+                step_func=step_func_with_args_applied, type=PipelineStepType.MAP, mode=mode
+            )
 
         return inner_wrapper
 
@@ -217,7 +238,9 @@ def pipeline_filter(
             filter: PipelineFilterPredicate,
         ) -> PipelineStep[_PipelineFilterFuncType]:
             step_func_with_args_applied = functools.partial(func, filter)
-            return PipelineStep(step_func=step_func_with_args_applied, type=PipelineStepType.FILTER, mode=mode)
+            return PipelineStep(
+                step_func=step_func_with_args_applied, type=PipelineStepType.FILTER, mode=mode
+            )
 
         return inner_wrapper
 
@@ -254,8 +277,8 @@ def _wrap_pipeline_step(
             error = traceback.format_exc()
         end_time = time.time_ns()
 
-    result: PipelineStepResult[_PipelineStepInputTypeT, _PipelineStepOutputTypeT] = PipelineStepResult(
-        pipeline_step, input, value, error, end_time - start_time
+    result: PipelineStepResult[_PipelineStepInputTypeT, _PipelineStepOutputTypeT] = (
+        PipelineStepResult(pipeline_step, input, value, error, end_time - start_time)
     )
     return result
 
@@ -263,8 +286,8 @@ def _wrap_pipeline_step(
 def _execute_pipeline_step(
     ctx: PipelineContext, pipeline_step, step_index: int, input_value: _PipelineStepInputTypeT
 ) -> Tuple[int, PipelineStepResult[_PipelineStepInputTypeT, _PipelineStepOutputTypeT]]:
-    result: PipelineStepResult[_PipelineStepInputTypeT, _PipelineStepOutputTypeT] = _wrap_pipeline_step(
-        ctx, pipeline_step, input_value
+    result: PipelineStepResult[_PipelineStepInputTypeT, _PipelineStepOutputTypeT] = (
+        _wrap_pipeline_step(ctx, pipeline_step, input_value)
     )
     return step_index + 1, result
 
@@ -278,7 +301,9 @@ def _process_worker_init(seed: int) -> None:
 
 
 class PipelineExecutor:
-    def __init__(self, ctx: PipelineContext, steps: List[PipelineStep], num_threads: int, num_processes: int):
+    def __init__(
+        self, ctx: PipelineContext, steps: List[PipelineStep], num_threads: int, num_processes: int
+    ):
         self._ctx = ctx
         self._steps = steps
 
@@ -326,7 +351,9 @@ class PipelineExecutor:
         new_future.set_result(result)
         self._chain_next_step_from_previous_step_future(new_future)
 
-    def _chain_next_step_from_previous_step_future(self, future: Future[Tuple[int, PipelineStepResult]]) -> None:
+    def _chain_next_step_from_previous_step_future(
+        self, future: Future[Tuple[int, PipelineStepResult]]
+    ) -> None:
         # If this method is called, this means that a previous task has finished executing
         self._num_of_running_pipeline_steps -= 1
 
@@ -395,14 +422,18 @@ class PipelineExecutor:
 
     def _perform_fold_on_all_queued_values(self):
         if self._fold_step is None or self._fold_step_index is None:
-            raise RuntimeError("Tried performing a fold, but the fold step is not set! This is a bug!")
+            raise RuntimeError(
+                "Tried performing a fold, but the fold step is not set! This is a bug!"
+            )
 
         # The fold counts as one running pipeline step. This is important so that the executor
         # is not shutdown before all values have been processed.
         self._num_of_running_pipeline_steps = 1
         # The fold will be simply executed sequentially on the main thread in the main loop.
         # Although, it could be submitted to the worker pool, there does not seem to be any benefit from doing so
-        result = _execute_pipeline_step(self._ctx, self._fold_step, self._fold_step_index, self._values_queued_for_fold)
+        result = _execute_pipeline_step(
+            self._ctx, self._fold_step, self._fold_step_index, self._values_queued_for_fold
+        )
 
         # Reset the fold state, *before* the next tasks are scheduled.
         # This is done, so that no race-condition is encountered if the
@@ -469,7 +500,9 @@ class PipelineExecutionResult:
         for pipeline_step, cum_time_ns in cum_time_by_pipeline_step.items():
             print(
                 fmt_str.format(
-                    pipeline_step, round(cum_time_ns / 1000000000, 2), cum_elements_by_pipeline_step[pipeline_step]
+                    pipeline_step,
+                    round(cum_time_ns / 1000000000, 2),
+                    cum_elements_by_pipeline_step[pipeline_step],
                 )
             )
 
@@ -598,6 +631,8 @@ class Pipeline:
 
         final_values = self._get_final_values_from_results(results)
 
-        result = PipelineExecutionResult(values=final_values, results=results, exec_time_ns=end_time - start_time)
+        result = PipelineExecutionResult(
+            values=final_values, results=results, exec_time_ns=end_time - start_time
+        )
 
         return result
