@@ -20,7 +20,11 @@ class TestGetFullStateListOfObstacle:
         obstacle = create_test_obstacle_with_trajectory(
             [
                 ExtendedPMState(
-                    time_step=i, position=np.array([0.0, 0.0]), velocity=1.0, orientation=0.0, acceleration=0.0
+                    time_step=i,
+                    position=np.array([0.0, 0.0]),
+                    velocity=1.0,
+                    orientation=0.0,
+                    acceleration=0.0,
                 )
                 for i in range(0, 100)
             ]

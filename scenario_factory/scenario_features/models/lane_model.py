@@ -78,9 +78,13 @@ class LaneletSectionNetwork:
         lanelet_list = itertools.chain.from_iterable(
             [lanelet_section.lanelet_list for lanelet_section in lanelet_sections]
         )
-        self.lanelets: Dict[int, Lanelet] = {lanelet.lanelet_id: lanelet for lanelet in lanelet_list}
+        self.lanelets: Dict[int, Lanelet] = {
+            lanelet.lanelet_id: lanelet for lanelet in lanelet_list
+        }
         self._lanelet_sections = lanelet_sections
-        self._lanelet_sections_dict: Dict[SectionID, LaneletSection] = {ls.section_id: ls for ls in lanelet_sections}
+        self._lanelet_sections_dict: Dict[SectionID, LaneletSection] = {
+            ls.section_id: ls for ls in lanelet_sections
+        }
         self._section_ids: Set[SectionID] = {ls.section_id for ls in lanelet_sections}
         self._lanelet2section_id = self.create_lanelet2section_id(lanelet_sections)
         self._graph = nx.DiGraph()
@@ -91,19 +95,27 @@ class LaneletSectionNetwork:
     @lru_cache(maxsize=256)
     def get_coordinate_system_lanelet(self, lanelet_id: int):
         lanelet = self.lanelets[lanelet_id]
-        csys = CurvilinearCoordinateSystem(smoothen_polyline(lanelet.center_vertices, resampling_distance=0.5))
+        csys = CurvilinearCoordinateSystem(
+            smoothen_polyline(lanelet.center_vertices, resampling_distance=0.5)
+        )
         # point = csys.projection_domain()[0] * 0.5 + csys.projection_domain()[10] * 0.5
         try:
             self._s_interval[lanelet_id] = Interval(
-                csys.convert_to_curvilinear_coords(lanelet.center_vertices[0][0], lanelet.center_vertices[0][1])[0],
-                csys.convert_to_curvilinear_coords(lanelet.center_vertices[-1][0], lanelet.center_vertices[-1][1])[0],
+                csys.convert_to_curvilinear_coords(
+                    lanelet.center_vertices[0][0], lanelet.center_vertices[0][1]
+                )[0],
+                csys.convert_to_curvilinear_coords(
+                    lanelet.center_vertices[-1][0], lanelet.center_vertices[-1][1]
+                )[0],
             )
         except ValueError:
             print(lanelet.center_vertices)
             # print(csys.projection_domain())
             print(smoothen_polyline(lanelet.center_vertices, resampling_distance=0.5))
             self.debug_plot_curv_projection(
-                lanelet.center_vertices[0], csys, smoothen_polyline(lanelet.center_vertices, resampling_distance=0.5)
+                lanelet.center_vertices[0],
+                csys,
+                smoothen_polyline(lanelet.center_vertices, resampling_distance=0.5),
             )
         # #TODO delete
         # if not hasattr(self, 'DBG'):
@@ -117,7 +129,9 @@ class LaneletSectionNetwork:
 
     def get_curv_position_lanelet(self, position: np.ndarray, lanelet_id: int):
         """:returns curvilinear local coordinates of position for lanelet_id."""
-        pos_c = self.get_coordinate_system_lanelet(lanelet_id).convert_to_curvilinear_coords(position[0], position[1])
+        pos_c = self.get_coordinate_system_lanelet(lanelet_id).convert_to_curvilinear_coords(
+            position[0], position[1]
+        )
         pos_c[0] -= self._s_interval[lanelet_id].start
         return pos_c
 
@@ -129,8 +143,13 @@ class LaneletSectionNetwork:
             )
         except ValueError:
             print("section", section_id)
-            print("ref_lanelet", self._lanelet_sections_dict[section_id].reference_lanelet().lanelet_id)
-            self.debug_plot_curv_projection(position, self.get_coordinate_system_section(section_id))
+            print(
+                "ref_lanelet",
+                self._lanelet_sections_dict[section_id].reference_lanelet().lanelet_id,
+            )
+            self.debug_plot_curv_projection(
+                position, self.get_coordinate_system_section(section_id)
+            )
             raise ProjectionError
         l_ref = self.get_ref_lanelet_by_section_id(section_id).lanelet_id
         pos_c[0] -= self._s_interval[l_ref].start
@@ -150,7 +169,12 @@ class LaneletSectionNetwork:
         raise NotImplementedError()
 
     def compute_longitudinal_distance(
-        self, long_0: float, long_1: float, section_0: SectionID, section_1: SectionID, distance_type: str = "min"
+        self,
+        long_0: float,
+        long_1: float,
+        section_0: SectionID,
+        section_1: SectionID,
+        distance_type: str = "min",
     ):
         """
         Computes longitudinal distance from long_0,section_0 to long_1,section_1.
@@ -162,16 +186,27 @@ class LaneletSectionNetwork:
         :return: longitudinal distance
         """
         if distance_type == "min":
-            section_route = nx.shortest_path(self.graph, source=section_0, target=section_1, weight="min_length")
+            section_route = nx.shortest_path(
+                self.graph, source=section_0, target=section_1, weight="min_length"
+            )
         elif distance_type == "max":
-            section_route = nx.shortest_path(self.graph, source=section_0, target=section_1, weight="max_length")
+            section_route = nx.shortest_path(
+                self.graph, source=section_0, target=section_1, weight="max_length"
+            )
         else:
             raise ValueError()
 
-        return self.get_distance_on_route(long_0, long_1, section_route, distance_type), section_route
+        return (
+            self.get_distance_on_route(long_0, long_1, section_route, distance_type),
+            section_route,
+        )
 
     def get_distance_on_route(
-        self, long_0: float, long_1: float, section_route: List[SectionID], distance_type: str = "min"
+        self,
+        long_0: float,
+        long_1: float,
+        section_route: List[SectionID],
+        distance_type: str = "min",
     ):
         """
         Computes longitudinal distance from long_0,section_0 to long_1,section_1.route
@@ -189,7 +224,9 @@ class LaneletSectionNetwork:
             raise ValueError()
 
         # remaining distance of first lanelet + distance of second lanelet
-        distance = getattr(self._lanelet_sections_dict[section_route[0]], dist_fun)() - long_0 + long_1
+        distance = (
+            getattr(self._lanelet_sections_dict[section_route[0]], dist_fun)() - long_0 + long_1
+        )
         if len(section_route) > 2:
             for s_id in section_route[1:-1]:
                 distance += getattr(self._lanelet_sections_dict[s_id], dist_fun)()
@@ -203,7 +240,9 @@ class LaneletSectionNetwork:
         sid_start = self._lanelet2section_id[lanelet_id_start]
         sid_end = self._lanelet2section_id[lanelet_id_end]
         try:
-            return nx.shortest_path_length(self.graph, source=sid_start, target=sid_end, weight="min_length")
+            return nx.shortest_path_length(
+                self.graph, source=sid_start, target=sid_end, weight="min_length"
+            )
         except nx.NetworkXNoPath:
             return np.inf
 
@@ -222,7 +261,8 @@ class LaneletSectionNetwork:
     @property
     def graph(self) -> nx.DiGraph:
         """:returns graph with lanelets as nodes and successor/predecessor relations represented by edges.
-        The min/max_length of an edge from lanelet1 to lanelet2 is given by the lengths of lanelet 1."""
+        The min/max_length of an edge from lanelet1 to lanelet2 is given by the lengths of lanelet 1.
+        """
         return self._graph
 
     @graph.setter
@@ -271,7 +311,9 @@ class LaneletSectionNetwork:
         self.lanelet_sections.append(lanelet_section)
         self._lanelet_sections_dict[lanelet_section.section_id] = lanelet_section
         self._lanelet2section_id.update(self.create_lanelet2section_id([lanelet_section]))
-        self.lanelets.update({lanelet.lanelet_id: lanelet for lanelet in lanelet_section.lanelet_list})
+        self.lanelets.update(
+            {lanelet.lanelet_id: lanelet for lanelet in lanelet_section.lanelet_list}
+        )
         self.add_to_graph(lanelet_section)
 
     def _update_all_section_relations(self, lanelet_section: LaneletSection):
@@ -291,7 +333,10 @@ class LaneletSectionNetwork:
 
         for s in lanelet_section.succ_sections:
             self._graph.add_edge(
-                section_id, s, min_length=lanelet_section.min_length(), max_length=lanelet_section.max_length()
+                section_id,
+                s,
+                min_length=lanelet_section.min_length(),
+                max_length=lanelet_section.max_length(),
             )
 
     @classmethod
@@ -363,7 +408,9 @@ class LaneletSectionNetwork:
 
         lanelet_section.pred_sections = pred_sections
 
-    def debug_plot_curv_projection(self, position, cosy: CurvilinearCoordinateSystem, reference_path=None):
+    def debug_plot_curv_projection(
+        self, position, cosy: CurvilinearCoordinateSystem, reference_path=None
+    ):
         if self.debug_plots is False:
             return
         if reference_path is None:
@@ -390,7 +437,7 @@ class SectionRoute:
     """
 
     def __init__(self, lanelet_sections: List[LaneletSection]):
-        assert all([LaneletSection == type(ls) for ls in lanelet_sections])
+        assert all([LaneletSection is type(ls) for ls in lanelet_sections])
         # lateral and longitudinal index of each lanelet_id
         self.lateral_indices: Dict[int, int] = {}
         self.long_indices: Dict[int, int] = {}
@@ -405,7 +452,10 @@ class SectionRoute:
             connecting_lanelet = self.lanelet_sections[-1].lanelet_list[0]
             new_lanelets = [lanelet.lanelet_id for lanelet in new_section.lanelet_list]
             for lanelet in self.lanelet_sections[-1].lanelet_list:
-                if lanelet.successor is not None and len(set(lanelet.successor).intersection(new_lanelets)) > 0:
+                if (
+                    lanelet.successor is not None
+                    and len(set(lanelet.successor).intersection(new_lanelets)) > 0
+                ):
                     connected_lanelets = set(lanelet.successor).intersection(new_lanelets)
                     for connecting_index, connecting_lanelet in enumerate(new_section.lanelet_list):
                         if connecting_lanelet.lanelet_id in connected_lanelets:

@@ -19,7 +19,9 @@ def pipeline_simple_map(ctx: PipelineContext, value: int) -> int:
 
 
 @pipeline_filter()
-def pipeline_simple_filter(filter: PipelineFilterPredicate, ctx: PipelineContext, value: int) -> bool:
+def pipeline_simple_filter(
+    filter: PipelineFilterPredicate, ctx: PipelineContext, value: int
+) -> bool:
     return filter.matches(value)
 
 

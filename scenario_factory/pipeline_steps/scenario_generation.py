@@ -58,7 +58,9 @@ def pipeline_find_ego_vehicle_maneuvers(
     :param ctx: The context for this pipeline execution
     :param scenario_container: The scenario in which maneuvers should be detected. Will not be modified.
     """
-    ego_vehicle_maneuvers = find_ego_vehicle_maneuvers_in_scenario(scenario_container.scenario, args.criterions)
+    ego_vehicle_maneuvers = find_ego_vehicle_maneuvers_in_scenario(
+        scenario_container.scenario, args.criterions
+    )
     _LOGGER.debug(
         "Identified %s maneuvers in scenario %s that could qualify for an ego vehicle",
         len(ego_vehicle_maneuvers),

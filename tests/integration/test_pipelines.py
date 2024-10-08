@@ -10,7 +10,10 @@ from scenario_factory.pipeline_steps.globetrotter import (
     pipeline_extract_intersections,
     pipeline_verify_and_repair_commonroad_scenario,
 )
-from scenario_factory.pipeline_steps.simulation import SimulateScenarioArguments, pipeline_simulate_scenario_with_ots
+from scenario_factory.pipeline_steps.simulation import (
+    SimulateScenarioArguments,
+    pipeline_simulate_scenario_with_ots,
+)
 from scenario_factory.pipeline_steps.utils import (
     WriteScenarioToFileArguments,
     pipeline_add_metadata_to_scenario,
@@ -42,10 +45,16 @@ class TestGlobetrotterPipeline:
                 .map(pipeline_verify_and_repair_commonroad_scenario)
                 .map(pipeline_extract_intersections)
                 .map(pipeline_add_metadata_to_scenario)
-                .map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_folder=output_folder)))
+                .map(
+                    pipeline_write_scenario_to_file(
+                        WriteScenarioToFileArguments(output_folder=output_folder)
+                    )
+                )
             )
             ctx = PipelineContext(Path(tempdir))
-            execution_result = globetrotter_pipeline.execute(input_maps, ctx, num_threads=None, num_processes=None)
+            execution_result = globetrotter_pipeline.execute(
+                input_maps, ctx, num_threads=None, num_processes=None
+            )
             assert len(execution_result.errors) == 0
             assert len(execution_result.values) == 39
 
@@ -66,7 +75,9 @@ class TestScenarioGeneration:
 
             ctx = PipelineContext(output_path, scenario_factory_config)
 
-            result = scenario_generation_pipeline.execute([], ctx, num_threads=None, num_processes=None)
+            result = scenario_generation_pipeline.execute(
+                [], ctx, num_threads=None, num_processes=None
+            )
             assert len(result.errors) == 0
             assert len(result.values) == 0
 
@@ -88,7 +99,9 @@ class TestScenarioGeneration:
             )
 
             ctx = PipelineContext(Path(tempdir), scenario_factory_config)
-            result = scenario_generation_pipeline.execute(input_scenarios, ctx, num_threads=None, num_processes=None)
+            result = scenario_generation_pipeline.execute(
+                input_scenarios, ctx, num_threads=None, num_processes=None
+            )
             assert len(result.errors) == 0
             assert len(result.values) == 4
 
@@ -117,7 +130,11 @@ class TestSimulationWithSumo:
                     )
                 )
                 .map(pipeline_add_metadata_to_scenario)
-                .map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_folder=output_folder)))
+                .map(
+                    pipeline_write_scenario_to_file(
+                        WriteScenarioToFileArguments(output_folder=output_folder)
+                    )
+                )
             )
             ctx = PipelineContext(Path(tempdir))
 
@@ -153,7 +170,11 @@ class TestSimulationWithOts:
                     )
                 )
                 .map(pipeline_add_metadata_to_scenario)
-                .map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_folder=output_folder)))
+                .map(
+                    pipeline_write_scenario_to_file(
+                        WriteScenarioToFileArguments(output_folder=output_folder)
+                    )
+                )
             )
             ctx = PipelineContext(Path(tempdir))
 

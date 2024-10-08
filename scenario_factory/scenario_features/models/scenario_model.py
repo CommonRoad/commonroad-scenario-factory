@@ -35,9 +35,13 @@ class ScenarioModel:
             scenario.assign_obstacles_to_lanelets(use_center_only=True)
 
         # handling lane_section-based coordinate systems
-        self.lanelet_section_network = LaneletSectionNetwork.from_lanelet_network(self.lanelet_network)
+        self.lanelet_section_network = LaneletSectionNetwork.from_lanelet_network(
+            self.lanelet_network
+        )
         # stores longitudinal positions long_positions[lanelet_id[time_step[obstacle_id]]]
-        self.long_positions: Dict[int, Dict[int, Dict[int, np.ndarray]]] = defaultdict(lambda: defaultdict(dict))
+        self.long_positions: Dict[int, Dict[int, Dict[int, np.ndarray]]] = defaultdict(
+            lambda: defaultdict(dict)
+        )
 
     def assign_vehicles_at_time_step(self, time_step):
         """:returns if vehicles were already assigned to lanelets at this time step"""
@@ -56,7 +60,9 @@ class ScenarioModel:
                 time_steps=[time_step], obstacle_ids=obstacle_ids_to_assign, use_center_only=True
             )
 
-    def get_reachable_sections_front(self, position: np.ndarray, max_distance) -> List[SectionRoute]:
+    def get_reachable_sections_front(
+        self, position: np.ndarray, max_distance
+    ) -> List[SectionRoute]:
         """
         Get section_ids of all lanelets within lane-based max_distance.
         :param state: initial state
@@ -67,7 +73,10 @@ class ScenarioModel:
         # init paths with current section(s)
         new_paths: List[List[LaneletSection]] = [
             [ls]
-            for ls in {lsn._lanelet_sections_dict[lsn.lanelet2section_id[lanelet_id]] for lanelet_id in lanelet_ids}
+            for ls in {
+                lsn._lanelet_sections_dict[lsn.lanelet2section_id[lanelet_id]]
+                for lanelet_id in lanelet_ids
+            }
         ]
         new_lengths = [0 for p in new_paths]
 
@@ -86,7 +95,9 @@ class ScenarioModel:
 
         return reachable_paths
 
-    def get_obstacles_on_section(self, lanelet_section: LaneletSection, time_step: Interval) -> List[Obstacle]:
+    def get_obstacles_on_section(
+        self, lanelet_section: LaneletSection, time_step: Interval
+    ) -> List[Obstacle]:
         """:returns: all vehicles on this section"""
         self.assign_vehicles_at_time_step(time_step)
         obstacle_ids = set()
@@ -98,7 +109,9 @@ class ScenarioModel:
 
         return [self.scenario.obstacle_by_id(obs_id) for obs_id in obstacle_ids]
 
-    def _map_obstacles_to_local_coordinates(self, lanelets: Union[List[int], SectionID], time_step: int = 0):
+    def _map_obstacles_to_local_coordinates(
+        self, lanelets: Union[List[int], SectionID], time_step: int = 0
+    ):
         """"""
         self.assign_vehicles_at_time_step(time_step)
         if isinstance(lanelets, SectionID):
@@ -109,7 +122,9 @@ class ScenarioModel:
             s_id = self.lanelet_section_network.lanelet2section_id[l_id]
             obs_s = self.lanelet_network.find_lanelet_by_id(l_id).static_obstacles_on_lanelet
             obs_s = obs_s if obs_s is not None else set()
-            obs_d = self.lanelet_network.find_lanelet_by_id(l_id).dynamic_obstacle_by_time_step(time_step)
+            obs_d = self.lanelet_network.find_lanelet_by_id(l_id).dynamic_obstacle_by_time_step(
+                time_step
+            )
             for obs_id in obs_d | obs_s:
                 try:
                     self.long_positions[l_id][time_step][obs_id] = self.map_obstacle_to_section_sys(
@@ -119,7 +134,9 @@ class ScenarioModel:
                     continue
 
     @lru_cache(maxsize=1024)
-    def map_obstacle_to_lanelet_sys(self, obstacle: Union[Obstacle, int], lanelet: Union[Lanelet, int], time_step: int):
+    def map_obstacle_to_lanelet_sys(
+        self, obstacle: Union[Obstacle, int], lanelet: Union[Lanelet, int], time_step: int
+    ):
         """:returns local coordinates of obstacle on lanelet."""
         if isinstance(lanelet, Lanelet):
             lanelet = lanelet.lanelet_id
@@ -127,12 +144,16 @@ class ScenarioModel:
             obstacle = self.scenario.obstacle_by_id(obstacle)
 
         return self.lanelet_section_network.get_curv_position_lanelet(
-            position=obstacle.state_at_time(time_step=time_step).position, lanelet_id=lanelet.lanelet_id
+            position=obstacle.state_at_time(time_step=time_step).position,
+            lanelet_id=lanelet.lanelet_id,
         )
 
     @lru_cache(maxsize=1024)
     def map_obstacle_to_section_sys(
-        self, obstacle: Union[Obstacle, int], lanelet_section: Union[LaneletSection, SectionID], time_step: int
+        self,
+        obstacle: Union[Obstacle, int],
+        lanelet_section: Union[LaneletSection, SectionID],
+        time_step: int,
     ) -> np.ndarray:
         """:returns local coordinates of obstacle on lanelet."""
         if isinstance(lanelet_section, LaneletSection):
@@ -147,7 +168,8 @@ class ScenarioModel:
                 )
 
         return self.lanelet_section_network.get_curv_position_section(
-            position=obstacle.state_at_time(time_step=time_step).position, section_id=lanelet_section
+            position=obstacle.state_at_time(time_step=time_step).position,
+            section_id=lanelet_section,
         )
 
     def _get_long_slice(
@@ -198,7 +220,9 @@ class ScenarioModel:
             # print(time_step, [state.time_step for state in init_position.prediction.trajectory.state_list])
             init_position = init_position.state_at_time(time_step).position
 
-        reachable_routes = self.get_reachable_sections_front(init_position, max_distance=longitudinal_range.end)
+        reachable_routes = self.get_reachable_sections_front(
+            init_position, max_distance=longitudinal_range.end
+        )
         initial_lanelets = self.lanelet_network.find_lanelet_by_position([init_position])[0]
         obstacle_arrays = []
         for section_route in reachable_routes[:]:
@@ -219,7 +243,9 @@ class ScenarioModel:
             for section in section_route[:]:
                 self._map_obstacles_to_local_coordinates(section.section_id, time_step)
 
-            obstacle_ids, long_positions, lateral_indices = self._get_long_slice(section_route, time_step, exclude_id)
+            obstacle_ids, long_positions, lateral_indices = self._get_long_slice(
+                section_route, time_step, exclude_id
+            )
             if long_positions.size > 0:
                 long_positions -= s_init
 
@@ -268,7 +294,10 @@ class ScenarioModel:
             return position_dict
 
         obstacle_arrays = self.get_obstacles_array(
-            init_position, longitudinal_range, time_step=time_step, relative_lateral_indices=relative_lateral_indices
+            init_position,
+            longitudinal_range,
+            time_step=time_step,
+            relative_lateral_indices=relative_lateral_indices,
         )
         min_front = defaultdict(dict)
         min_behind = defaultdict(dict)

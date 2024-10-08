@@ -95,7 +95,9 @@ class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
         success = True
         try:
             # Capture stderr and include in output, so that we can analyze the warnings
-            netconvert_output = subprocess.check_output(command.split(), timeout=5.0, stderr=subprocess.STDOUT)
+            netconvert_output = subprocess.check_output(
+                command.split(), timeout=5.0, stderr=subprocess.STDOUT
+            )
 
             # All warnings produced by netconvert are considered debug messages,
             # because they are usuallay rather informative
@@ -129,7 +131,9 @@ class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
         return success
 
 
-def _get_new_sumo_config_for_scenario(scenario: Scenario, simulation_config: SimulationConfig, seed: int) -> SumoConfig:
+def _get_new_sumo_config_for_scenario(
+    scenario: Scenario, simulation_config: SimulationConfig, seed: int
+) -> SumoConfig:
     if simulation_config.simulation_steps is None:
         raise ValueError(
             "Invalid simulation config for SUMO: option 'simulation_time_steps' must be set, but is 'None'!"
@@ -163,7 +167,9 @@ def _convert_commonroad_scenario_to_sumo_scenario(
     conversion_possible = cr2sumo.create_sumo_files(str(output_folder))
 
     if not conversion_possible:
-        raise RuntimeError(f"Failed to convert CommonRoad scenario {commonroad_scenario.scenario_id} to SUMO")
+        raise RuntimeError(
+            f"Failed to convert CommonRoad scenario {commonroad_scenario.scenario_id} to SUMO"
+        )
 
     scenario_wrapper = ScenarioWrapper()
     scenario_wrapper.sumo_cfg_file = str(cr2sumo.sumo_cfg_file)
@@ -171,7 +177,9 @@ def _convert_commonroad_scenario_to_sumo_scenario(
     return scenario_wrapper
 
 
-def _execute_sumo_simulation(scenario_wrapper: ScenarioWrapper, sumo_config: SumoConfig) -> Scenario:
+def _execute_sumo_simulation(
+    scenario_wrapper: ScenarioWrapper, sumo_config: SumoConfig
+) -> Scenario:
     """
     Simulate a CommonRoad scenario
     """
@@ -204,7 +212,9 @@ def simulate_commonroad_scenario_with_sumo(
 
     sumo_config = _get_new_sumo_config_for_scenario(scenario, simulation_config, seed)
 
-    scenario_wrapper = _convert_commonroad_scenario_to_sumo_scenario(scenario, working_directory, sumo_config)
+    scenario_wrapper = _convert_commonroad_scenario_to_sumo_scenario(
+        scenario, working_directory, sumo_config
+    )
     new_scenario = _execute_sumo_simulation(scenario_wrapper, sumo_config)
 
     return new_scenario

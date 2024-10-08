@@ -31,7 +31,9 @@ def configure_root_logger(level: int = logging.INFO) -> logging.Logger:
     root_logger.setLevel(level)
 
     handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter(fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s"))
+    handler.setFormatter(
+        logging.Formatter(fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
+    )
     root_logger.addHandler(handler)
 
     return root_logger
@@ -70,7 +72,8 @@ class StreamToLogger:
 
 
 def select_osm_map_provider(radius: float, maps_path: Path) -> MapProvider:
-    # radius > 0.8 would result in an error in the OsmApiMapProvider, because the OSM API limits the amount of data we can download
+    # radius > 0.8 would result in an error in the OsmApiMapProvider,
+    # because the OSM API limits the amount of data we can download
     if radius > 0.8:
         return LocalFileMapProvider(maps_path)
     else:
@@ -80,10 +83,14 @@ def select_osm_map_provider(radius: float, maps_path: Path) -> MapProvider:
 _StateT = TypeVar("_StateT", bound=State)
 
 
-def convert_state_to_state_type(input_state: TraceState, target_state_type: Type[_StateT]) -> _StateT:
+def convert_state_to_state_type(
+    input_state: TraceState, target_state_type: Type[_StateT]
+) -> _StateT:
     """
-    Alternative to State.convert_state_to_state, which accepts type parameters instead of only instance parameters.
-    If :param:`input_state` is not already :param:`target_state_type`, a new state of type :param:`target_state_type` is created and all attributes, that both state types have in common, are copied from :param:`input_state` to the new state
+    Alternative to `State.convert_state_to_state`, which also accepts type parameters.
+    If :param:`input_state` is not already :param:`target_state_type`,
+    a new state of type :param:`target_state_type` is created and all attributes,
+    that both state types have in common, are copied from :param:`input_state` to the new state
     """
     if isinstance(input_state, target_state_type):
         return input_state
@@ -116,7 +123,8 @@ def get_full_state_list_of_obstacle(
     dynamic_obstacle: DynamicObstacle, target_state_type: Optional[Type[State]] = None
 ) -> Sequence[TraceState]:
     """
-    Get the state list of the :param:`dynamic_obstacle` including its initial state. Will harmonize all states to the same state type, which can be controlled through :param:`target_state_type`.
+    Get the state list of the :param:`dynamic_obstacle` including its initial state.
+    Will harmonize all states to the same state type, which can be controlled through :param:`target_state_type`.
 
     :param dynamic_obstacle: The obstacle from which the states should be extracted
     :param target_state_type: Provide an optional state type, to which all resulting states should be converted
@@ -135,22 +143,30 @@ def get_full_state_list_of_obstacle(
     if target_state_type is None:
         # Use the last state from the state_list as the reference state,
         # because for all cases this indicates the correct state type:
-        # * If state_list only contains the initial state, it is this state and this function keeps the state as InitialState
-        # * If state_list also contains the trajectory prediction, the reference state is the last state of this trajectory, and so the initial state will be converted to the same state type as all other states in the trajectory.
+        # * If state_list only contains the initial state, it is this state
+        #    and this function keeps the state as InitialState
+        # * If state_list also contains the trajectory prediction,
+        #    the reference state is the last state of this trajectory,
+        #    and so the initial state will be converted to the same state type
+        #    as all other states in the trajectory.
         reference_state = state_list[-1]
         if isinstance(reference_state, CustomState):
             # If the reference state is a custom state, it needs special treatment,
-            # because custom states do not have a pre-definied list of attributes that can be used in the conversion.
+            # because custom states do not have a pre-definied list of attributes
+            # that can be used in the conversion.
             # Instead the conversion needs to consider the reference state instance.
             return [convert_state_to_state(state, reference_state) for state in state_list]
         else:
             target_state_type = type(reference_state)
 
-    # Harmonizes the state types: If the caller wants to construct a trajectory from this state list, all states need to have the same attributes aka. the same state type.
+    # Harmonizes the state types: If the caller wants to construct a trajectory
+    # from this state list, all states need to have the same attributes aka. the same state type.
     return [convert_state_to_state_type(state, target_state_type) for state in state_list]
 
 
-StateWithAcceleration = Union[InitialState, ExtendedPMState, LongitudinalState, InputState, PMInputState]
+StateWithAcceleration = Union[
+    InitialState, ExtendedPMState, LongitudinalState, InputState, PMInputState
+]
 StateWithOrientation = Union[InitialState, ExtendedPMState, KSState, LateralState, MBState]
 StateWithPosition = Union[InitialState, PMState]
 StateWithVelocity = Union[InitialState, PMState, KSState, MBState, LongitudinalState]

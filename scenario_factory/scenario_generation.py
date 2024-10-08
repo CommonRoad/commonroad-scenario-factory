@@ -10,7 +10,13 @@ import math
 from typing import List, Optional, Set, Tuple, Type
 
 import numpy as np
-from commonroad.common.solution import CostFunction, KSState, PlanningProblemSolution, VehicleModel, VehicleType
+from commonroad.common.solution import (
+    CostFunction,
+    KSState,
+    PlanningProblemSolution,
+    VehicleModel,
+    VehicleType,
+)
 from commonroad.common.util import Interval
 from commonroad.geometry.shape import Rectangle, Shape
 from commonroad.planning.goal import GoalRegion
@@ -29,7 +35,9 @@ from scenario_factory.utils import get_full_state_list_of_obstacle
 _LOGGER = logging.getLogger(__name__)
 
 
-def _find_most_likely_lanelet_by_state(lanelet_network: LaneletNetwork, state: TraceState) -> Optional[int]:
+def _find_most_likely_lanelet_by_state(
+    lanelet_network: LaneletNetwork, state: TraceState
+) -> Optional[int]:
     if not isinstance(state.position, Shape):
         return None
 
@@ -100,14 +108,17 @@ def _create_new_obstacle_in_time_frame(
 
     if with_prediction:
         # The state_list creation is seperated in to two list comprehensions, so that mypy does not complain about possible None values...
-        state_list = [orig_obstacle.state_at_time(time_step) for time_step in range(start_time + 1, end_time)]
+        state_list = [
+            orig_obstacle.state_at_time(time_step) for time_step in range(start_time + 1, end_time)
+        ]
         state_list = [copy.deepcopy(state) for state in state_list if state is not None]
         if len(state_list) > 0:
             for i, state in enumerate(state_list):
                 state.time_step = i + 1
 
             new_obstacle.prediction = TrajectoryPrediction(
-                Trajectory(initial_time_step=1, state_list=state_list), shape=orig_obstacle.obstacle_shape
+                Trajectory(initial_time_step=1, state_list=state_list),
+                shape=orig_obstacle.obstacle_shape,
             )
 
     return new_obstacle
@@ -148,9 +159,9 @@ def _select_obstacles_in_sensor_range_of_ego_vehicle(
             if obstacle_state is None:
                 continue
 
-            if np.less_equal(np.abs(obstacle_state.position[0] - proj_pos[0]), sensor_range) and np.less_equal(
-                np.abs(obstacle_state.position[1] - proj_pos[1]), sensor_range
-            ):
+            if np.less_equal(
+                np.abs(obstacle_state.position[0] - proj_pos[0]), sensor_range
+            ) and np.less_equal(np.abs(obstacle_state.position[1] - proj_pos[1]), sensor_range):
                 relevant_obstacle_map[obstacle.obstacle_id] = obstacle
 
     return list(relevant_obstacle_map.values())
@@ -173,7 +184,9 @@ def _create_planning_problem_goal_state_for_ego_vehicle(
     """
     final_state_of_ego_vehicle = copy.deepcopy(ego_vehicle.prediction.trajectory.final_state)
     goal_state = PMState(
-        time_step=Interval(final_state_of_ego_vehicle.time_step - 1, final_state_of_ego_vehicle.time_step),
+        time_step=Interval(
+            final_state_of_ego_vehicle.time_step - 1, final_state_of_ego_vehicle.time_step
+        ),
         position=Rectangle(
             length=6,
             width=2,
@@ -204,7 +217,9 @@ def _create_planning_problem_for_ego_vehicle(
     goal_region_lanelet_mapping = None
     if planning_problem_with_lanelet is True:
         # We should create a planning problem goal region, that is associated with the lanelet on which the ego vehicle lands in its goal_state
-        lanelet_id_at_goal_state = _find_most_likely_lanelet_by_state(lanelet_network=lanelet_network, state=goal_state)
+        lanelet_id_at_goal_state = _find_most_likely_lanelet_by_state(
+            lanelet_network=lanelet_network, state=goal_state
+        )
         if lanelet_id_at_goal_state is None:
             raise ValueError(
                 f"Tried to match ego vehicle {ego_vehicle} to the lanelet in its goal state, but no lanelet could be found for state: {goal_state}"
@@ -251,7 +266,9 @@ def _create_planning_problem_solution_for_ego_vehicle(
     # Currently, this is not possible easily because their are some discrepencies between
     # the states used in trajectories and the state types for solutions.
     # See https://gitlab.lrz.de/cps/commonroad/commonroad-io/-/issues/131 for more infos.
-    trajectory = _create_trajectory_for_planning_problem_solution(ego_vehicle, target_state_type=KSState)
+    trajectory = _create_trajectory_for_planning_problem_solution(
+        ego_vehicle, target_state_type=KSState
+    )
     planning_problem_solution = PlanningProblemSolution(
         planning_problem_id=planning_problem.planning_problem_id,
         vehicle_model=VehicleModel.KS,
@@ -278,7 +295,9 @@ def create_planning_problem_set_and_solution_for_ego_vehicle(
         scenario.lanelet_network, ego_vehicle, planning_problem_with_lanelet
     )
     planning_problem_set = PlanningProblemSet([planning_problem])
-    planning_problem_solution = _create_planning_problem_solution_for_ego_vehicle(ego_vehicle, planning_problem)
+    planning_problem_solution = _create_planning_problem_solution_for_ego_vehicle(
+        ego_vehicle, planning_problem
+    )
     # The planning problem solution is not wrapped in its container object like the planning problem is wrapped in a planning problem set,
     # because the solution wrapper object requires a reference to the benchmark ID.
     # This benchmark ID might change throughout the different steps, so it is not a good idea
@@ -358,7 +377,9 @@ def generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_man
         commonroad_scenario.scenario_id,
     )
 
-    ego_scenario = create_scenario_for_ego_vehicle_maneuver(commonroad_scenario, scenario_config, ego_vehicle_maneuver)
+    ego_scenario = create_scenario_for_ego_vehicle_maneuver(
+        commonroad_scenario, scenario_config, ego_vehicle_maneuver
+    )
 
     # Make sure that the ego vehicle is also aligned to the start of the new scenario and not to the old scenario.
     # This is important, because the planning problem will be created from the trajectories start and end state.
@@ -375,7 +396,9 @@ def generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_man
 
     ego_scenario.scenario_id.prediction_id = ego_vehicle_maneuver.ego_vehicle.obstacle_id
 
-    planning_problem_set, planning_problem_solution = create_planning_problem_set_and_solution_for_ego_vehicle(
-        ego_scenario, aligned_ego_vehicle, scenario_config.planning_pro_with_lanelet
+    planning_problem_set, planning_problem_solution = (
+        create_planning_problem_set_and_solution_for_ego_vehicle(
+            ego_scenario, aligned_ego_vehicle, scenario_config.planning_pro_with_lanelet
+        )
     )
     return ego_scenario, planning_problem_set, planning_problem_solution

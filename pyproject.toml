@@ -54,12 +54,17 @@ mkdocs-material = "^9.5.12"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.black]
-line-length = 120
+[tool.ruff]
+line-length = 100
+indent-width = 4
+format.quote-style = "double"
+target-version = "py311"
 
-[tool.isort]
-profile = "black"
-line_length = 120
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402", "F401"]
 
 [tool.coverage.run]
 source = ["scenario_factory"]

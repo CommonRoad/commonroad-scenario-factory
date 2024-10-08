@@ -7,7 +7,12 @@ import logging
 from dataclasses import dataclass
 from typing import Optional
 
-from scenario_factory.pipeline import PipelineContext, PipelineStepArguments, PipelineStepMode, pipeline_map_with_args
+from scenario_factory.pipeline import (
+    PipelineContext,
+    PipelineStepArguments,
+    PipelineStepMode,
+    pipeline_map_with_args,
+)
 from scenario_factory.scenario_types import ScenarioContainer
 from scenario_factory.simulation.config import SimulationConfig
 from scenario_factory.simulation.ots import simulate_commonroad_scenario_with_ots
@@ -51,7 +56,9 @@ def pipeline_simulate_scenario_with_ots(
 ) -> Optional[ScenarioContainer]:
     commonroad_scenario = scenario_container.scenario
     seed = ctx.get_scenario_factory_config().seed
-    simulated_scenario = simulate_commonroad_scenario_with_ots(commonroad_scenario, args.config, seed)
+    simulated_scenario = simulate_commonroad_scenario_with_ots(
+        commonroad_scenario, args.config, seed
+    )
     if simulated_scenario is None:
         return None
 

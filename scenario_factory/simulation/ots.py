@@ -33,7 +33,9 @@ def _determine_obstacle_shape_for_obstacle_type(obstacle_type: ObstacleType) -> 
         raise ValueError(f"Unknown obstacle type {obstacle_type}")
 
 
-def _cut_trajectory_to_time_step(trajectory: Trajectory, max_time_step: int) -> Optional[Trajectory]:
+def _cut_trajectory_to_time_step(
+    trajectory: Trajectory, max_time_step: int
+) -> Optional[Trajectory]:
     """
     Cut the :param:`trajectory` so that no state's time step exceeds :param:`max_time_step`. \
 
@@ -53,14 +55,18 @@ def _cut_trajectory_to_time_step(trajectory: Trajectory, max_time_step: int) -> 
         # The trajectory starts only after the max time step, so we cannot cut a trajectory from this
         return None
 
-    new_state_list = list(filter(lambda state: state.time_step <= max_time_step, trajectory.state_list))
+    new_state_list = list(
+        filter(lambda state: state.time_step <= max_time_step, trajectory.state_list)
+    )
 
     trajectory_initial_state = new_state_list[0]
     assert is_state_with_discrete_time_step(
         trajectory_initial_state
     ), f"Cannot cut trajectory with initial state {trajectory_initial_state} because its time step is not a discrete value"
 
-    return Trajectory(initial_time_step=trajectory_initial_state.time_step, state_list=new_state_list)
+    return Trajectory(
+        initial_time_step=trajectory_initial_state.time_step, state_list=new_state_list
+    )
 
 
 def _correct_dynamic_obstacle(
@@ -78,10 +84,14 @@ def _correct_dynamic_obstacle(
     if max_time_step is not None:
         # Fallback prediction is None, for the case that no valid trajectory can be cut
         new_prediction = None
-        cut_trajectory = _cut_trajectory_to_time_step(dynamic_obstacle.prediction.trajectory, max_time_step)
+        cut_trajectory = _cut_trajectory_to_time_step(
+            dynamic_obstacle.prediction.trajectory, max_time_step
+        )
         # If the original trajectory starts after max_time_step, it cannot be cut and therefore cut_trajectory would be None
         if cut_trajectory is not None:
-            new_prediction = TrajectoryPrediction(shape=new_obstacle_shape, trajectory=cut_trajectory)
+            new_prediction = TrajectoryPrediction(
+                shape=new_obstacle_shape, trajectory=cut_trajectory
+            )
     else:
         # Got no information about the desired trajectory length, so we just copy the trajectory over
         new_prediction = dynamic_obstacle.prediction
@@ -192,7 +202,9 @@ def _suppress_java_stdout_and_stderr():
         System.setErr(java_original_err)
 
 
-def _simulation_mode_to_crots_abstraction_level(simulation_mode: SimulationMode) -> AbstractionLevel:
+def _simulation_mode_to_crots_abstraction_level(
+    simulation_mode: SimulationMode,
+) -> AbstractionLevel:
     if simulation_mode == SimulationMode.RANDOM_TRAFFIC_GENERATION:
         return AbstractionLevel.RANDOM
     elif simulation_mode == SimulationMode.RESIMULATION:
@@ -211,7 +223,10 @@ def _simulation_mode_to_crots_abstraction_level(simulation_mode: SimulationMode)
 
 
 def _execute_ots_simulation(
-    input_scenario: Scenario, simulation_mode: SimulationMode, seed: int, simulation_length: Optional[int] = None
+    input_scenario: Scenario,
+    simulation_mode: SimulationMode,
+    seed: int,
+    simulation_length: Optional[int] = None,
 ) -> Optional[Scenario]:
     """
     Simulate :param:`input_scenario` in OTS with :param:`simulation_mode`.
@@ -252,7 +267,13 @@ def _execute_ots_simulation(
         with redirect_stderr(stream):  # type: ignore
             with _suppress_java_stdout_and_stderr():
                 try:
-                    new_scenario, conversion_time_sec, simulation_time_sec, retransfer_time_sec, _ = executor.execute()
+                    (
+                        new_scenario,
+                        conversion_time_sec,
+                        simulation_time_sec,
+                        retransfer_time_sec,
+                        _,
+                    ) = executor.execute()
                     _LOGGER.debug(
                         "Successfully simulated scenario %s with OTS. Simulation time: %ss, Conversion time: %ss, Retransfer time: %ss",
                         input_scenario.scenario_id,
@@ -266,7 +287,9 @@ def _execute_ots_simulation(
                     raise e
 
 
-def _can_simulate_scenario_with_simulation_config(scenario: Scenario, simulation_config: SimulationConfig) -> bool:
+def _can_simulate_scenario_with_simulation_config(
+    scenario: Scenario, simulation_config: SimulationConfig
+) -> bool:
     """
     Check whether the :param:`scenario` has properties that could lead to exceptions in cr-ots-interface when simulated with :param:`simulation_config`.
     """
@@ -316,8 +339,12 @@ def simulate_commonroad_scenario_with_ots(
     max_time_step = 0
     if len(new_scenario.dynamic_obstacles) > 0:
         max_time_step = max(
-            [obstacle.prediction.trajectory.final_state.time_step for obstacle in new_scenario.dynamic_obstacles]
+            [
+                obstacle.prediction.trajectory.final_state.time_step
+                for obstacle in new_scenario.dynamic_obstacles
+            ]
         )
+
     _LOGGER.debug(
         "Simulated scenario %s and created %s random obstacles for %s time steps",
         str(new_scenario.scenario_id),
@@ -328,6 +355,8 @@ def simulate_commonroad_scenario_with_ots(
     if simulation_config.mode == SimulationMode.RANDOM_TRAFFIC_GENERATION:
         # The random traffic generation does not produce fully usable scenarios (e.g. obstacle shapes are missing).
         # Therefore, the results are post processed to make the scenario usable.
-        _post_process_scenario_simulated_with_random_mode(new_scenario, simulation_config.simulation_steps)
+        _post_process_scenario_simulated_with_random_mode(
+            new_scenario, simulation_config.simulation_steps
+        )
 
     return new_scenario

@@ -55,7 +55,9 @@ def pipeline_extract_osm_map(
 
 
 @pipeline_map()
-def pipeline_convert_osm_map_to_commonroad_scenario(ctx: PipelineContext, osm_file: Path) -> ScenarioContainer:
+def pipeline_convert_osm_map_to_commonroad_scenario(
+    ctx: PipelineContext, osm_file: Path
+) -> ScenarioContainer:
     """
     Convert an OpenStreetMap file to a CommonRoad Scenario.
 

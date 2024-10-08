@@ -22,7 +22,9 @@ from crdesigner.map_conversion.osm2cr.converter_modules.cr_operations.export imp
     create_scenario_intermediate,
     sanitize,
 )
-from crdesigner.map_conversion.osm2cr.converter_modules.osm_operations.downloader import download_map
+from crdesigner.map_conversion.osm2cr.converter_modules.osm_operations.downloader import (
+    download_map,
+)
 from crdesigner.verification_repairing.config import EvaluationParams, MapVerParams
 from crdesigner.verification_repairing.repairing.map_repairer import MapRepairer
 from crdesigner.verification_repairing.verification.map_verifier import MapVerifier
@@ -102,20 +104,23 @@ def extract_bounding_box_from_osm_map(
     proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if proc.returncode > 1 or output_file.stat().st_size <= 200:
         _LOGGER.debug(proc.stdout)
-        raise RuntimeError(f"Failed to extract bounding box {bounding_box} from {map_file} using osmium")
+        raise RuntimeError(
+            f"Failed to extract bounding box {bounding_box} from {map_file} using osmium"
+        )
 
 
 class MapProvider(ABC):
     """A MapProvider is used to obtain OpenStreetMaps for a specific location as an OSM XML file"""
 
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     def _filename_for_region(self, region: RegionMetadata) -> str:
         return f"{region.country_code}_{region.region_name}.osm"
 
     @abstractmethod
-    def get_map(self, region: RegionMetadata, bounding_box: BoundingBox, output_folder: Path) -> Path:
+    def get_map(
+        self, region: RegionMetadata, bounding_box: BoundingBox, output_folder: Path
+    ) -> Path:
         return output_folder.joinpath(self._filename_for_region(region))
 
 
@@ -124,7 +129,9 @@ class LocalFileMapProvider(MapProvider):
         super().__init__()
         self._maps_folder = map_folder
 
-    def get_map(self, region: RegionMetadata, bounding_box: BoundingBox, output_folder: Path) -> Path:
+    def get_map(
+        self, region: RegionMetadata, bounding_box: BoundingBox, output_folder: Path
+    ) -> Path:
         target_file = super().get_map(region, bounding_box, output_folder)
         map_file = _find_osm_file_for_region(self._maps_folder, region)
         if map_file is None:
@@ -136,7 +143,9 @@ class LocalFileMapProvider(MapProvider):
 class OsmApiMapProvider(MapProvider):
     """The OsmApiMapProvider provides"""
 
-    def get_map(self, region: RegionMetadata, bounding_box: BoundingBox, output_folder: Path) -> Path:
+    def get_map(
+        self, region: RegionMetadata, bounding_box: BoundingBox, output_folder: Path
+    ) -> Path:
         target_file = super().get_map(region, bounding_box, output_folder)
         download_map(
             str(target_file),
