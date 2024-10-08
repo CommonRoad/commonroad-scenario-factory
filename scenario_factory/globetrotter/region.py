@@ -6,6 +6,7 @@ __all__ = [
 
 import csv
 import math
+import warnings
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -14,8 +15,12 @@ from typing import Iterator, Optional, Tuple
 import iso3166
 import numpy as np
 from commonroad.scenario.scenario import Location, ScenarioID
-from crdesigner.map_conversion.osm2cr.converter_modules.utility.geonamesID import find_nearest_neighbor
-from crdesigner.map_conversion.osm2cr.converter_modules.utility.labeling_create_tree import create_tree_from_file
+from crdesigner.map_conversion.osm2cr.converter_modules.utility.geonamesID import (
+    find_nearest_neighbor,
+)
+from crdesigner.map_conversion.osm2cr.converter_modules.utility.labeling_create_tree import (
+    create_tree_from_file,
+)
 
 RADIUS_EARTH: float = 6.371 * 1e3
 
@@ -23,7 +28,8 @@ RADIUS_EARTH: float = 6.371 * 1e3
 # Cache the geonames database so it is only loaded once
 @lru_cache
 def _get_geonames_tree():
-    return create_tree_from_file()
+    with warnings.catch_warnings():
+        return create_tree_from_file()
 
 
 @dataclass
@@ -92,7 +98,10 @@ class RegionMetadata:
 
     @classmethod
     def from_coordinates(
-        cls, coordinates: Coordinates, country_code: Optional[str] = None, region_name: Optional[str] = None
+        cls,
+        coordinates: Coordinates,
+        country_code: Optional[str] = None,
+        region_name: Optional[str] = None,
     ) -> "RegionMetadata":
         """
         Construct a :class:`RegionMetadata` from coordinates. Optionally, fetches geonames metadata from a local geonames database. The whole database will be loaded into memory and processed. Therefore, the use of this function might introduce a high runtime penality.
@@ -120,7 +129,9 @@ class RegionMetadata:
 
     def as_commonroad_scenario_location(self) -> Location:
         return Location(
-            gps_latitude=self.coordinates.lat, gps_longitude=self.coordinates.lon, geo_name_id=self.geoname_id
+            gps_latitude=self.coordinates.lat,
+            gps_longitude=self.coordinates.lon,
+            geo_name_id=self.geoname_id,
         )
 
     def as_commonroad_scenario_id(self) -> ScenarioID:
@@ -130,7 +141,9 @@ class RegionMetadata:
         return f"{self.country_code}_{self.region_name} {self.coordinates}"
 
 
-def _compute_bounding_box_coordinates(lat: float, lon: float, radius: float) -> Tuple[float, float, float, float]:
+def _compute_bounding_box_coordinates(
+    lat: float, lon: float, radius: float
+) -> Tuple[float, float, float, float]:
     """
     Compute the bounding box coordinates for a given latitude, longitude and radius.
 
@@ -161,7 +174,9 @@ class BoundingBox:
 
     @classmethod
     def from_coordinates(cls, coordinates: Coordinates, radius: float) -> "BoundingBox":
-        west, south, east, north = _compute_bounding_box_coordinates(*coordinates.as_tuple(), radius=radius)
+        west, south, east, north = _compute_bounding_box_coordinates(
+            *coordinates.as_tuple(), radius=radius
+        )
         return cls(west, south, east, north)
 
 
@@ -173,6 +188,10 @@ def load_regions_from_csv(regions_file: Path) -> Iterator[RegionMetadata]:
         cities_reader = csv.DictReader(csvfile)
         for region in cities_reader:
             coordinates = Coordinates(float(region["Lat"]), float(region["Lon"]))
-            region_name = region["Region"] if "Region" in region and len(region["Region"]) > 0 else None
+            region_name = (
+                region["Region"] if "Region" in region and len(region["Region"]) > 0 else None
+            )
             country_code = region["Country"] if len(region["Country"]) > 0 else None
-            yield RegionMetadata.from_coordinates(coordinates, country_code=country_code, region_name=region_name)
+            yield RegionMetadata.from_coordinates(
+                coordinates, country_code=country_code, region_name=region_name
+            )

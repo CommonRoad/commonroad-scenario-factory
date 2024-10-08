@@ -12,9 +12,11 @@ from commonroad_labeling.road_configuration.scenario.scenario_lanelet_layout imp
     LaneletLayoutRoundabout,
     LaneletLayoutSingleLane,
 )
-from commonroad_labeling.road_configuration.scenario.scenario_traffic_sign import TrafficSignSpeedLimit
+from commonroad_labeling.road_configuration.scenario.scenario_traffic_sign import (
+    TrafficSignSpeedLimit,
+)
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 _SCENARIO_CRITERIONS: Sequence[type[ScenarioTag]] = [
     LaneletLayoutSingleLane,
@@ -51,12 +53,12 @@ def find_applicable_tags_for_scenario(scenario: Scenario) -> Set[Tag]:
 
         commonroad_tag = _convert_auto_labeling_tag_to_commonroad_tag(matched_tag)
         if commonroad_tag is None:
-            logger.debug(
+            _LOGGER.debug(
                 f"Found tag {matched_tag} for scenario {scenario.scenario_id}, but no corresponding CommonRoad tag exists"
             )
             continue
 
         tags.add(commonroad_tag)
 
-    logger.debug(f"Found new tags {tags} for scenario {scenario.scenario_id}")
+    _LOGGER.debug(f"Found new tags {tags} for scenario {scenario.scenario_id}")
     return tags

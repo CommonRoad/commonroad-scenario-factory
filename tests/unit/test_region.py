@@ -52,7 +52,9 @@ class TestCoordinates:
 class TestRegionMetadata:
     def test_from_coordinates_sets_optional_metadata(self):
         coordinates = Coordinates(lat=42.1294, lon=105.3030)
-        region = RegionMetadata.from_coordinates(coordinates, country_code="DEU", region_name="Somewhere")
+        region = RegionMetadata.from_coordinates(
+            coordinates, country_code="DEU", region_name="Somewhere"
+        )
         assert region.coordinates.lat == coordinates.lat
         assert region.coordinates.lon == coordinates.lon
         assert region.country_code == "DEU"

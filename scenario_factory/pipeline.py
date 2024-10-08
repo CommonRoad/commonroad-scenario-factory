@@ -1,23 +1,52 @@
+__all__ = [
+    "Pipeline",
+    "PipelineStepArguments",
+    "PipelineContext",
+    "PipelineStepResult",
+    "PipelineStepType",
+    "PipelineStepMode",
+    "pipeline_map",
+    "pipeline_map_with_args",
+    "pipeline_filter",
+    "pipeline_fold",
+    "PipelineExecutionResult",
+]
+
+import collections.abc
 import functools
-import io
-import itertools
 import logging
+import random
+import signal
 import time
 import traceback
-from contextlib import redirect_stderr, redirect_stdout
-from copy import deepcopy
-from cProfile import Profile
+import uuid
+import warnings
+from collections import defaultdict
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
+from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Callable, Generic, Iterable, Iterator, List, Optional, TypeAlias, TypeVar
+from tempfile import TemporaryDirectory
+from typing import (
+    Callable,
+    Generic,
+    Iterable,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    TypeAlias,
+    TypeVar,
+)
 
-from commonroad.scenario.scenario import Scenario
-from crdesigner.map_conversion.sumo_map.config import SumoConfig
-from multiprocess import Pool
+import multiprocess
+import numpy as np
 
 from scenario_factory.scenario_config import ScenarioFactoryConfig
+from scenario_factory.utils import suppress_all_calls_to_print
 
-_logger = logging.getLogger("scenario_factory")
+_LOGGER = logging.getLogger(__name__)
 
 
 def _get_function_name(func) -> str:
@@ -26,33 +55,22 @@ def _get_function_name(func) -> str:
     """
     if isinstance(func, functools.partial) or isinstance(func, functools.partialmethod):
         return func.func.__name__
-    else:
+    if hasattr(func, "__name__"):
         return func.__name__
+    else:
+        return str(func)
 
 
 # Upper Type bound for arguments to pipeline steps
-class PipelineStepArguments:
-    ...
+class PipelineStepArguments: ...
 
 
 # We want to use PipelineStepArguments as a type parameter in Callable, which requires covariant types
-_PipelineStepArgumentsType = TypeVar("_PipelineStepArgumentsType", bound=PipelineStepArguments, covariant=True)
-_PipelineStepInputType = TypeVar("_PipelineStepInputType")
-_PipelineStepOutputType = TypeVar("_PipelineStepOutputType")
-
-
-@dataclass
-class PipelineStepResult(Generic[_PipelineStepInputType, _PipelineStepOutputType]):
-    """
-    Result of the successfull or failed execution of a pipeline step.
-    """
-
-    step: str
-    input: _PipelineStepInputType
-    output: Optional[_PipelineStepOutputType]
-    error: Optional[str]
-    log: io.StringIO
-    exec_time: int
+_PipelineStepArgumentsTypeT = TypeVar(
+    "_PipelineStepArgumentsTypeT", bound=PipelineStepArguments, covariant=True
+)
+_PipelineStepInputTypeT = TypeVar("_PipelineStepInputTypeT")
+_PipelineStepOutputTypeT = TypeVar("_PipelineStepOutputTypeT")
 
 
 class PipelineContext:
@@ -60,21 +78,19 @@ class PipelineContext:
 
     def __init__(
         self,
-        base_temp_path: Path,
-        scenario_config: Optional[ScenarioFactoryConfig] = None,
-        sumo_config: Optional[SumoConfig] = None,
+        base_temp_path: Optional[Path] = None,
+        scenario_factory_config: Optional[ScenarioFactoryConfig] = None,
     ):
-        self._base_temp_path = base_temp_path
-
-        if scenario_config is None:
-            self._scenario_config = ScenarioFactoryConfig()
+        if base_temp_path is None:
+            self._temp_dir_ref = TemporaryDirectory()
+            self._base_temp_path = Path(self._temp_dir_ref.name)
         else:
-            self._scenario_config = scenario_config
+            self._base_temp_path = base_temp_path
 
-        if sumo_config is None:
-            self._sumo_config = SumoConfig()
+        if scenario_factory_config is None:
+            self._scenario_factory_config = ScenarioFactoryConfig()
         else:
-            self._sumo_config = sumo_config
+            self._scenario_factory_config = scenario_factory_config
 
     def get_temporary_folder(self, folder_name: str) -> Path:
         """
@@ -84,235 +100,626 @@ class PipelineContext:
         temp_folder.mkdir(parents=True, exist_ok=True)
         return temp_folder
 
-    def get_sumo_config_for_scenario(self, scenario: Scenario) -> SumoConfig:
-        """
-        Derive a new SumoConfig from the internal base SumoConfig for the given scenario.
-        """
-        new_sumo_config = deepcopy(self._sumo_config)
-
-        new_sumo_config.scenario_name = str(scenario.scenario_id)
-        new_sumo_config.dt = scenario.dt
-
-        return new_sumo_config
-
-    def get_scenario_config(self) -> ScenarioFactoryConfig:
-        return self._scenario_config
+    def get_scenario_factory_config(self) -> ScenarioFactoryConfig:
+        return self._scenario_factory_config
 
 
 # Type aliases to make the function definitions more readable
-_PipelineMapType: TypeAlias = Callable[[PipelineContext, _PipelineStepInputType], _PipelineStepOutputType]
-_PipelineMapWithArgsType: TypeAlias = Callable[
-    [_PipelineStepArgumentsType, PipelineContext, _PipelineStepInputType], _PipelineStepOutputType
+_PipelineMapFuncType: TypeAlias = Callable[
+    [PipelineContext, _PipelineStepInputTypeT], _PipelineStepOutputTypeT
+]
+_PipelineMapFuncWithArgsType: TypeAlias = Callable[
+    [_PipelineStepArgumentsTypeT, PipelineContext, _PipelineStepInputTypeT],
+    _PipelineStepOutputTypeT,
 ]
 
-_PipelinePopulateType: TypeAlias = Callable[[PipelineContext], Iterable[_PipelineStepOutputType]]
-_PipelinePopulateWithArgsType: TypeAlias = Callable[
-    [_PipelineStepArgumentsType, PipelineContext], Iterator[_PipelineStepOutputType]
+_PipelineFoldFuncType: TypeAlias = Callable[
+    [PipelineContext, Sequence[_PipelineStepInputTypeT]],
+    Sequence[_PipelineStepOutputTypeT],
 ]
 
 
-def pipeline_populate(func: _PipelinePopulateType) -> _PipelinePopulateType:
+class PipelineFilterPredicate(Protocol):
+    def matches(self, *args, **kwargs) -> bool: ...
+
+
+_PipelineFilterPredicateT = TypeVar("_PipelineFilterPredicateT", bound=PipelineFilterPredicate)
+
+_PipelineFilterFuncType: TypeAlias = Callable[[PipelineContext, _PipelineStepInputTypeT], bool]
+_PipelineFilterFuncWithPredicateType: TypeAlias = Callable[
+    [_PipelineFilterPredicateT, PipelineContext, _PipelineStepInputTypeT], bool
+]
+
+
+class PipelineStepType(Enum):
+    MAP = auto()
+    FILTER = auto()
+    FOLD = auto()
+
+
+class PipelineStepMode(Enum):
+    CONCURRENT = auto()
+    """Run the step in a semi-parellel manner, by distributing the indidivual tasks to different threads"""
+
+    PARALLEL = auto()
+    """Run this step in a true parallel manner, by distributing the individual tasks to different processes"""
+
+    SEQUENTIAL = auto()
+    """Run this step sequentially on the main thread"""
+
+
+_AnyPipelineStep = TypeVar(
+    "_AnyPipelineStep",
+    _PipelineMapFuncType,
+    _PipelineFilterFuncType,
+    _PipelineFoldFuncType,
+)
+
+
+class PipelineStep(Generic[_AnyPipelineStep]):
+    def __init__(
+        self,
+        step_func: _AnyPipelineStep,
+        type: PipelineStepType,
+        mode: PipelineStepMode = PipelineStepMode.CONCURRENT,
+    ):
+        self._step_func: _AnyPipelineStep = step_func
+        self._type = type
+        self._mode = mode
+
+        self._name = _get_function_name(self._step_func)
+        # The id is used to compare pipeline steps to each other.
+        # The name cannot be used for this, because multiple pipeline steps with the same name might be used in one pipeline.
+        # Additionally, instance checks also don't work because the step objects might be moved around between different processes, resulting in different instances.
+        self._id = uuid.uuid4()
+
+    @property
+    def type(self):
+        return self._type
+
+    @property
+    def mode(self):
+        return self._mode
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def identifier(self):
+        return self._id
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, PipelineStep):
+            return False
+
+        return self.identifier == other.identifier
+
+    def __call__(self, *args, **kwargs):
+        return self._step_func(*args, **kwargs)
+
+    def __hash__(self) -> int:
+        # bind the hash dunder to the identifier, so it can be used reliably as dict keys
+        return self._id.int
+
+    def __str__(self) -> str:
+        return f"{self._name} ({self._id})"
+
+
+def pipeline_map(
+    mode: PipelineStepMode = PipelineStepMode.CONCURRENT,
+) -> Callable[[_PipelineMapFuncType], PipelineStep[_PipelineMapFuncType]]:
     """
-    Decorate a function to indicate that is used as a populate function for the pipeline.
+    Decorate a function to indicate that is used as a map function for the pipeline.
     """
-    return func
 
+    def decorator(func: _PipelineMapFuncType) -> PipelineStep[_PipelineMapFuncType]:
+        return PipelineStep(step_func=func, type=PipelineStepType.MAP, mode=mode)
 
-def pipeline_populate_with_args(func: _PipelinePopulateWithArgsType):
-    """Decorate a function to indicate its use as a populate function for the pipeline. This decorator will partically apply the function by setting the args parameter."""
-
-    def inner_wrapper(
-        args: PipelineStepArguments,
-    ) -> _PipelinePopulateType:
-        # This allows us to write: pipeline.pupulate(example_populate(ExamplePopulateArguments(foo=1))) i.e. partially apply the populate function with the args, while preserving type safety
-        return functools.partial(func, args)
-
-    return inner_wrapper
+    return decorator
 
 
 def pipeline_map_with_args(
-    func: _PipelineMapWithArgsType,
-) -> Callable[[PipelineStepArguments], _PipelineMapType]:
+    mode: PipelineStepMode = PipelineStepMode.CONCURRENT,
+) -> Callable[
+    [_PipelineMapFuncWithArgsType],
+    Callable[[PipelineStepArguments], PipelineStep[_PipelineMapFuncType]],
+]:
     """
     Decorate a function to indicate its use as a map function for the pipeline. This decorator will partially apply the function by setting the args parameter.
     """
 
-    def inner_wrapper(
-        args: PipelineStepArguments,
-    ) -> _PipelineMapType:
-        return functools.partial(func, args)
+    def decorator(
+        func: _PipelineMapFuncWithArgsType,
+    ) -> Callable[[PipelineStepArguments], PipelineStep[_PipelineMapFuncType]]:
+        def inner_wrapper(
+            args: PipelineStepArguments,
+        ) -> PipelineStep[_PipelineMapFuncType]:
+            step_func_with_args_applied = functools.partial(func, args)
+            return PipelineStep(
+                step_func=step_func_with_args_applied,
+                type=PipelineStepType.MAP,
+                mode=mode,
+            )
 
-    return inner_wrapper
+        return inner_wrapper
+
+    return decorator
 
 
-def pipeline_map(func: _PipelineMapType) -> _PipelineMapType:
+def pipeline_fold(mode: PipelineStepMode = PipelineStepMode.SEQUENTIAL):
+    def decorator(func: _PipelineFoldFuncType) -> PipelineStep[_PipelineFoldFuncType]:
+        return PipelineStep(step_func=func, type=PipelineStepType.FOLD, mode=mode)
+
+    return decorator
+
+
+def pipeline_filter(
+    mode: PipelineStepMode = PipelineStepMode.CONCURRENT,
+) -> Callable[
+    [_PipelineFilterFuncWithPredicateType],
+    Callable[[PipelineFilterPredicate], PipelineStep[_PipelineFilterFuncType]],
+]:
     """
-    Decorate a function to indicate that is used as a map function for the pipeline.
+    Decorate a function to indicate that is used as a filter function for the pipeline.
     """
-    return func
+
+    def decorator(
+        func: _PipelineFilterFuncWithPredicateType,
+    ) -> Callable[[PipelineFilterPredicate], PipelineStep[_PipelineFilterFuncType]]:
+        def inner_wrapper(
+            filter: PipelineFilterPredicate,
+        ) -> PipelineStep[_PipelineFilterFuncType]:
+            step_func_with_args_applied = functools.partial(func, filter)
+            return PipelineStep(
+                step_func=step_func_with_args_applied,
+                type=PipelineStepType.FILTER,
+                mode=mode,
+            )
+
+        return inner_wrapper
+
+    return decorator
 
 
-def _execute_pipeline_function(
-    ctx: PipelineContext, func: _PipelineMapType, input: _PipelineStepInputType, profile: bool = False
-) -> PipelineStepResult[_PipelineStepInputType, _PipelineStepOutputType]:
+@dataclass
+class PipelineStepResult(Generic[_PipelineStepInputTypeT, _PipelineStepOutputTypeT]):
+    """
+    Result of the successfull or failed execution of a pipeline step.
+    """
+
+    step: PipelineStep
+    input: _PipelineStepInputTypeT
+    output: Optional[_PipelineStepOutputTypeT]
+    error: Optional[str]
+    exec_time: int
+
+
+def _wrap_pipeline_step(
+    ctx: PipelineContext,
+    pipeline_step: PipelineStep,
+    input: _PipelineStepInputTypeT,
+) -> PipelineStepResult[_PipelineStepInputTypeT, _PipelineStepOutputTypeT]:
     """
     Helper function to execute a pipeline function on an arbirtary input. Will capture all output and errors.
     """
-    stream = io.StringIO()
     value, error = None, None
-    if profile:
-        profiler = Profile()
-        profiler.enable()
-    with redirect_stdout(stream):
-        with redirect_stderr(stream):
-            start_time = time.time_ns()
-            try:
-                value = func(ctx, input)
-            except Exception:
-                error = traceback.format_exc()
-            end_time = time.time_ns()
+    with warnings.catch_warnings():
+        start_time = time.time_ns()
+        try:
+            value = pipeline_step(ctx, input)
+        except Exception:
+            error = traceback.format_exc()
+        end_time = time.time_ns()
 
-    if profile:
-        profiler.disable()
-        profiler.print_stats(sort="cumtime")
-    result: PipelineStepResult[_PipelineStepInputType, _PipelineStepOutputType] = PipelineStepResult(
-        _get_function_name(func), input, value, error, stream, end_time - start_time
+    result: PipelineStepResult[_PipelineStepInputTypeT, _PipelineStepOutputTypeT] = (
+        PipelineStepResult(pipeline_step, input, value, error, end_time - start_time)
     )
     return result
 
 
-class EmptyPipelineError(Exception):
-    """
-    Error that is produced if a function is performed on a pipeline that does not contain any internal state.
+def _execute_pipeline_step(
+    ctx: PipelineContext,
+    pipeline_step,
+    step_index: int,
+    input_value: _PipelineStepInputTypeT,
+) -> Tuple[int, PipelineStepResult[_PipelineStepInputTypeT, _PipelineStepOutputTypeT]]:
+    result: PipelineStepResult[_PipelineStepInputTypeT, _PipelineStepOutputTypeT] = (
+        _wrap_pipeline_step(ctx, pipeline_step, input_value)
+    )
+    return step_index + 1, result
+
+
+def _process_worker_init(seed: int) -> None:
+    # Ignore KeyboardInterrupts in the worker processes, so we can orchestrate a clean shutdown.
+    # If this is not ignored, all processes will react to the KeyboardInterrupt and spam output to the console.
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    random.seed(seed)
+    np.random.seed(seed)
+
+
+class PipelineExecutor:
+    """Execute the steps in a pipeline
+
+    :param ctx:
+    :param steps: The list of pipeline steps that should be executed. Order dependent.
+    :param num_threads: If provided, enables the concurrent execution of pipeline steps on a thread pool with :param:`num_threads` worker threads
+    :param num_processes: If provided, enables the parallel execution of pipeline steps on a process pool with :param:`num_processes` worker processes
     """
 
-    def __init__(self, method: str):
-        super().__init__(f"Cannot perform {method} on an empty pipeline!")
+    def __init__(
+        self,
+        ctx: PipelineContext,
+        steps: List[PipelineStep],
+        num_threads: Optional[int] = None,
+        num_processes: Optional[int] = None,
+    ) -> None:
+        self._ctx = ctx
+        self._steps = steps
+
+        self._num_of_running_pipeline_steps = 0
+
+        self._pipeline_step_results: List[PipelineStepResult] = []
+
+        seed = ctx.get_scenario_factory_config().seed
+        random.seed(seed)
+        np.random.seed(seed)
+
+        if num_processes is None:
+            self._parallism_enabled = False
+        else:
+            self._process_pool = multiprocess.Pool(
+                processes=num_processes,
+                initializer=_process_worker_init,
+                initargs=(seed,),
+            )
+            self._parallism_enabled = True
+
+        if num_threads is None:
+            self._concurrency_enabled = False
+        else:
+            self._thread_executor = ThreadPoolExecutor(max_workers=num_threads)
+            self._concurrency_enabled = True
+
+        # By default, no tasks may be scheduled on the worker pools
+        self._scheduling_enabled = False
+
+        self._reset_fold_state()
+
+    def _is_last_step(self, step_index: int) -> bool:
+        return step_index + 1 > len(self._steps)
+
+    def _submit_step_for_execution(self, step: PipelineStep, step_index: int, input_value) -> None:
+        if not self._scheduling_enabled:
+            return
+        self._num_of_running_pipeline_steps += 1
+
+        # To execute a fold step, the executor has to collect all values until the fold step first.
+        # This is done by suspending the execution of each specific value,
+        # and notifying the executor. The fold operation will then be performed
+        # in the main loop on the main thread once all values have been yield.
+        if step.type == PipelineStepType.FOLD:
+            return self._yield_for_fold(step, step_index, input_value)
+
+        if step.mode == PipelineStepMode.CONCURRENT and self._concurrency_enabled:
+            # Steps that can be executed concurrently, are submitted to the thread pool
+            new_f: Future[Tuple[int, PipelineStepResult]] = self._thread_executor.submit(
+                _execute_pipeline_step, self._ctx, step, step_index, input_value
+            )
+            new_f.add_done_callback(self._chain_next_step_from_previous_step_future)
+        elif step.mode == PipelineStepMode.PARALLEL and self._parallism_enabled:
+            # Steps that must be executed in parallel, are submitted to the process pool to ensure true parallelism
+            self._process_pool.apply_async(
+                _execute_pipeline_step,
+                (self._ctx, step, step_index, input_value),
+                callback=self._chain_next_step_from_previous_step_callback,
+            )
+        else:
+            # Either the step's mode is `PipelineStepMode.SEQUENTIAL` or it is one of
+            # the other modes, but the mode is disabled for the executor.
+            result: Tuple[int, PipelineStepResult] = _execute_pipeline_step(
+                self._ctx, step, step_index, input_value
+            )
+            self._chain_next_step_from_previous_step_callback(result)
+
+    def _chain_next_step_from_previous_step_callback(
+        self, result: Tuple[int, PipelineStepResult]
+    ) -> None:
+        """
+        Create a future from the result of a pipeline step execution and chain the execution of the consecutive pipeline step.
+        """
+        new_future: Future[Tuple[int, PipelineStepResult]] = Future()
+        new_future.set_result(result)
+        self._chain_next_step_from_previous_step_future(new_future)
+
+    def _chain_next_step_from_previous_step_future(
+        self, future: Future[Tuple[int, PipelineStepResult]]
+    ) -> None:
+        """
+        Handles the result of a pipeline step execution and executes the consecutive pipeline step, if applicable.
+        """
+        # If this method is called, this means that a previous task has finished executing
+        self._num_of_running_pipeline_steps -= 1
+
+        current_step_index, result_of_previous_step = future.result()
+        # Always record the result object, so that we can extract statistics later
+        self._pipeline_step_results.append(result_of_previous_step)
+
+        if result_of_previous_step.error is not None:
+            logging.error(
+                "Encountered an error in step %s while processing %s: %s",
+                result_of_previous_step.step.name,
+                result_of_previous_step.input,
+                result_of_previous_step.error,
+            )
+            # If the previous step encountered an error, the element should not be processed any further
+            return
+
+        if self._is_last_step(current_step_index):
+            # If the previous step was the last step in the pipeline, no next
+            # steps need to be executed. Therefore, we can simply finish here.
+            return
+
+        return_value_of_previous_step = result_of_previous_step.output
+        # Steps might return None, if the input value could not be processed.
+        # If this is the case, the element should not be processed any further.
+        if return_value_of_previous_step is None:
+            return
+
+        # Filter pipeline steps are special, because they do not return the input value
+        # that is needed for the next step. Instead they return a bool.
+        # So, we must first get the 'real' input value for the next step,
+        # which is the input value for the filter step.
+        if result_of_previous_step.step.type == PipelineStepType.FILTER:
+            if not return_value_of_previous_step:
+                # If the filter function returned False for the input value
+                # it should be discarded. This is done by not scheduling any more tasks
+                # for this element.
+                return
+            # If the filter function returned True, replace the return value with the input value of this step
+            return_value_of_previous_step = result_of_previous_step.input
+
+        step = self._steps[current_step_index]
+
+        if isinstance(return_value_of_previous_step, collections.abc.Iterable):
+            # Pipeline steps might return lists as values, which get transparently flattened
+            for input_value in return_value_of_previous_step:
+                self._submit_step_for_execution(step, current_step_index, input_value)
+        else:
+            self._submit_step_for_execution(step, current_step_index, return_value_of_previous_step)
+
+    def _reset_fold_state(self):
+        self._num_of_values_queued_for_fold = 0
+        self._values_queued_for_fold = []
+        self._fold_step = None
+        self._fold_step_index = None
+
+    def _yield_for_fold(self, step: PipelineStep, step_index: int, input_value) -> None:
+        """
+        Suspend the execution of the fold :param:`step` until all other elements have reached the fold step.
+        """
+        self._num_of_values_queued_for_fold += 1
+        self._values_queued_for_fold.append(input_value)
+        if self._fold_step is None:
+            self._fold_step = step
+            self._fold_step_index = step_index
+
+    def _perform_fold_on_all_queued_values(self):
+        if self._fold_step is None or self._fold_step_index is None:
+            raise RuntimeError(
+                "Tried performing a fold, but the fold step is not set! This is a bug!"
+            )
+
+        # The fold counts as one running pipeline step. This is important so that the executor
+        # is not shutdown before all values have been processed.
+        self._num_of_running_pipeline_steps = 1
+        # The fold will be simply executed sequentially on the main thread in the main loop.
+        # Although, it could be submitted to the worker pool, there does not seem to be any benefit from doing so
+        result = _execute_pipeline_step(
+            self._ctx,
+            self._fold_step,
+            self._fold_step_index,
+            self._values_queued_for_fold,
+        )
+
+        # Reset the fold state, *before* the next tasks are scheduled.
+        # This is done, so that no race-condition is encountered if the
+        self._reset_fold_state()
+
+        # Just chain using the standard callback. This might be inefficient,
+        # when multiple folds are executed after each other. But normally.
+        # folds are rather the exception and so overall this should still be quite efficient.
+        self._chain_next_step_from_previous_step_callback(result)
+
+    def _all_steps_ready_for_fold(self) -> bool:
+        return self._num_of_running_pipeline_steps == self._num_of_values_queued_for_fold
+
+    def run(self, input_values: Iterable):
+        # Allow tasks to be scheduled on our worker pools
+        self._scheduling_enabled = True
+        try:
+            # Functions across the CommonRoad ecosystem use debug print statements in
+            # the offical released version. When processing large numbers of elements,
+            # this results in a ton of unecessary console output. To circumvent this,
+            # the whole print function is replaced for the pipeline execution.
+            # Generally, all functions should make use of the logging module...
+            with suppress_all_calls_to_print():
+                for elem in input_values:
+                    self._submit_step_for_execution(self._steps[0], 0, elem)
+
+                while self._num_of_running_pipeline_steps > 0:
+                    if self._all_steps_ready_for_fold():
+                        self._perform_fold_on_all_queued_values()
+                    time.sleep(1)
+        except KeyboardInterrupt:
+            _LOGGER.info("Received shutdown signal, terminating all remaining tasks...")
+        finally:
+            # make sure that no new tasks will be scheduled during shutdown
+            self._scheduling_enabled = False
+            if self._concurrency_enabled:
+                self._thread_executor.shutdown()
+            if self._parallism_enabled:
+                self._process_pool.terminate()
+                self._process_pool.close()
+
+        return self._pipeline_step_results
+
+
+@dataclass
+class PipelineExecutionResult:
+    values: Sequence
+    results: Sequence[PipelineStepResult]
+    exec_time_ns: int
+
+    @property
+    def errors(self):
+        return [result for result in self.results if result.error is not None]
+
+    def print_cum_time_per_step(self):
+        cum_time_by_pipeline_step = defaultdict(lambda: 0)
+        for result in self.results:
+            cum_time_by_pipeline_step[result.step.name] += result.exec_time
+
+        cum_elements_by_pipeline_step = defaultdict(lambda: 0)
+        for result in self.results:
+            cum_elements_by_pipeline_step[result.step.name] += 1
+
+        fmt_str = "{:<100} {:>10} {:>10}"
+        fmt_str.format("Pipeline Step", "Total Execution Time (s)", "Num.")
+        for pipeline_step, cum_time_ns in cum_time_by_pipeline_step.items():
+            print(
+                fmt_str.format(
+                    pipeline_step,
+                    round(cum_time_ns / 1000000000, 2),
+                    cum_elements_by_pipeline_step[pipeline_step],
+                )
+            )
 
 
 class Pipeline:
     """
-    Generic pipeline that can apply map or reduce functions on an internal state. This pipeline enables easier orchestration of functions, by centralizing the executing of individual steps and following a functional paradigm.
+    A pipeline defines the sequential execution of map, filter and fold steps.
     """
 
-    _state: Iterable
-
-    def __init__(self, ctx: PipelineContext):
-        self._ctx = ctx
-        self._results: Iterable[PipelineStepResult] = []
-
-        self._populated = False
-
-    @staticmethod
-    def _guard_against_unpopulated(guarded_method):
-        """
-        Only execute the guarded method if the internal state was populated and the _populated flag was set. Otherwise an EmptyPipelineError is raised.
-        """
-
-        def wrapper(self, *args, **kwargs):
-            if not self._populated:
-                raise EmptyPipelineError(_get_function_name(guarded_method))
-
-            guarded_method(self, *args, **kwargs)
-
-        return wrapper
-
-    def populate(
-        self,
-        populate_func: _PipelinePopulateType,
-    ):
-        """
-        Populates the internal state with the result from the populate_func.
-        """
-        new_state = None
-        stream = io.StringIO()
-        try:
-            with redirect_stderr(stream):
-                with redirect_stdout(stream):
-                    new_state = populate_func(self._ctx)
-        except Exception as e:
-            print(stream.getvalue(), end=None)
-            raise e
-
-        if new_state is None:
-            print(stream.getvalue())
-            raise RuntimeError(
-                f"Could not populate pipeline: The populate function {populate_func.__name__} did not produce a value."
-            )
-
-        self._state = new_state
-        self._populated = True
-
-    @_guard_against_unpopulated
-    def map(self, map_func: _PipelineMapType, num_processes: Optional[int] = None, profile: bool = False) -> None:
-        """
-        Apply :param:`map_func` individually on every element of the internal state. The results of each map_func invocation are gathered and set as the new internal state of the pipeline.
-
-        :param map_func: The function that will be mapped on the internal pipeline state.
-        :param num_processes: If given, enables multi processing with :param:`num_processes` processes
-        :param profile: Whether the :param:`map_func` should be profiled using the python profiler
-        """
-        _logger.debug(f"Mapping '{_get_function_name(map_func)}' on '{self._state}'")
-        # TODO: correct type annotations for results
-        results: Any = []
-        if num_processes is None:
-            results = map(lambda elem: _execute_pipeline_function(self._ctx, map_func, elem, profile), self._state)
+    def __init__(self, steps: Optional[List[PipelineStep]] = None):
+        if steps is None:
+            self._steps: List[PipelineStep] = []
         else:
-            pool = Pool(
-                processes=num_processes,
-            )
-            input = [(self._ctx, map_func, stack_elem, profile) for stack_elem in self._state]
-            results = pool.starmap(_execute_pipeline_function, input)
+            self._steps = steps
 
-        results_iter, state_iter = itertools.tee(results)
-        self._results = itertools.chain(self._results, results_iter)
-        self._state = map(lambda result: result.output, filter(lambda result: result.output is not None, state_iter))
-
-    @_guard_against_unpopulated
-    def reduce(
+    def map(
         self,
-        reduce_func: Callable[[PipelineContext, Iterable[_PipelineStepInputType]], Iterable[_PipelineStepOutputType]],
-    ):
+        map_step: PipelineStep[_PipelineMapFuncType],
+    ) -> "Pipeline":
         """
-        Apply reduce_func on the whole internal state and set its result as the new internal state.
+        Insert a map step.
         """
-        _logger.debug(f"Using '{_get_function_name(reduce_func)}' to reduce '{self._state}'")
-        self._state = reduce_func(self._ctx, self._state)
+        self._steps.append(map_step)
+        return self
 
-    def report_results(self):
-        for result in self.results:
-            if result.error is not None:
-                print(f"Failed to process '{result.input}' in step '{result.step}' with traceback:")
-                print(result.error)
+    def fold(self, fold_step: PipelineStep[_PipelineFoldFuncType]) -> "Pipeline":
+        """
+        Insert a fold step.
+        """
+        self._steps.append(fold_step)
+        return self
 
-    @property
-    def results(self) -> List[PipelineStepResult]:
-        if not isinstance(self._results, list):
-            self._results = list(self._results)
-        return self._results
+    def filter(
+        self,
+        filter_step: PipelineStep[_PipelineFilterFuncType],
+    ) -> "Pipeline":
+        """
+        Insert a filter step.
+        """
+        self._steps.append(filter_step)
+        return self
 
-    @property
-    def errors(self) -> List[PipelineStepResult]:
-        return [result for result in self.results if result.error is not None]
+    def chain(self, other: "Pipeline") -> "Pipeline":
+        """
+        Create a new pipeline by appending all steps from :param:`other` to the steps of this pipeline.
+        """
+        new_pipeline = Pipeline(self._steps + other._steps)
+        return new_pipeline
 
-    @property
-    def state(self):
-        if not isinstance(self._state, list):
-            self._state = list(self._state)
-        return self._state
+    def _get_final_values_from_results(self, results: Iterable[PipelineStepResult]) -> Sequence:
+        """
+        Get the output values of a pipeline execution.
+        """
+        final_step = self._steps[-1]
+        final_step_results = [result for result in results if result.step == final_step]
+        if len(final_step_results) == 0:
+            # empty final_step_results are valid, e.g. if the the pre-final step is a filter and
+            # it filtered out all values. Then the final step will never be called, and therefore
+            # the final_step_results will also be empty
+            return []
 
-    @_guard_against_unpopulated
-    def evaluate(self):
-        self._state = list(self._state)
+        if final_step.type == PipelineStepType.MAP:
+            # If the last step is no filter, the final values are simply the output values of the last step
+            return [result.output for result in final_step_results]
+        elif final_step.type == PipelineStepType.FILTER:
+            # If the last step is a filter step, than its outputs are boolean values, while the final values are the inputs for the filter step
+            return [result.input for result in final_step_results if result.output is True]
+        elif self._steps[-1].type == PipelineStepType.FOLD:
+            # If the last step was a fold, its output represents the whole new state of the pipeline. Therefore, the final values are simply its output
+            if len(final_step_results) != 1:
+                raise RuntimeError(
+                    f"Multiple results ({len(final_step_results)} for final fold step {final_step} exist! This is a Bug!"
+                )
 
+            return final_step_results[0].output  # type: ignore
+        else:
+            raise NotImplementedError()
 
-__all__ = [
-    "Pipeline",
-    "PipelineStepArguments",
-    "PipelineContext",
-    "PipelineStepResult",
-    "EmptyPipelineError",
-    "pipeline_map",
-    "pipeline_map_with_args",
-    "pipeline_populate_with_args",
-]
+    def is_valid(self) -> bool:
+        return len(self._steps) == len(set(self._steps))
+
+    def execute(
+        self,
+        input_values: Iterable,
+        ctx: Optional[PipelineContext] = None,
+        num_threads: Optional[int] = multiprocess.cpu_count(),
+        num_processes: Optional[int] = multiprocess.cpu_count(),
+    ) -> PipelineExecutionResult:
+        """
+        Execute the pipeline on the :param:`input_values` with :param:`ctx`.
+
+        :param input_values: An iterable containing the input values for the first step in the pipeline
+        :param ctx: The pipeline context for this specific execution
+        :param num_threads: Configure the number of threads in the worker pool. If None is provided, multithreading will be disabled.
+        :param num_processes: Configure the number of processes in the worker pool. If None is provided, multiprocessing will be disabled.
+
+        :returns: The result of the execution
+        """
+        if len(self._steps) < 1:
+            raise RuntimeError(
+                f"Cannot execute pipeline: pipeline has {len(self._steps)} steps, but at least 1 step is required."
+            )
+
+        if len(self._steps) > len(set(self._steps)):
+            raise RuntimeError(
+                "Cannot execute pipeline: pipeline has duplicated steps! Each pipeline step might only occur once in a single pipeline!"
+            )
+
+        if num_threads is not None and num_threads < 1:
+            raise ValueError("Number of threads for pipeline execution must be at least 1")
+
+        if num_processes is not None and num_processes < 1:
+            raise ValueError("Number of processes for pipeline execution must be at least 1")
+
+        if ctx is None:
+            ctx = PipelineContext()
+
+        start_time = time.time_ns()
+
+        executor = PipelineExecutor(ctx, self._steps, num_threads, num_processes)
+        results = executor.run(input_values)
+
+        end_time = time.time_ns()
+
+        final_values = self._get_final_values_from_results(results)
+
+        result = PipelineExecutionResult(
+            values=final_values, results=results, exec_time_ns=end_time - start_time
+        )
+
+        return result

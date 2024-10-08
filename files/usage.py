@@ -3,58 +3,67 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import numpy as np
-from crdesigner.map_conversion.sumo_map.config import SumoConfig
 
-from scenario_factory.globetrotter.osm import LocalFileMapProvider
-from scenario_factory.pipeline import Pipeline, PipelineContext
+from scenario_factory.globetrotter.region import load_regions_from_csv
+from scenario_factory.pipeline import PipelineContext
 from scenario_factory.pipeline_steps import (
-    ExtractOsmMapArguments,
-    GenerateCommonRoadScenariosArguments,
-    LoadRegionsFromCsvArguments,
-    pipeline_convert_osm_map_to_commonroad_scenario,
-    pipeline_create_sumo_configuration_for_commonroad_scenario,
-    pipeline_extract_intersections,
-    pipeline_extract_osm_map,
-    pipeline_flatten,
-    pipeline_generate_ego_scenarios,
-    pipeline_load_regions_from_csv,
-    pipeline_simulate_scenario,
+    SimulateScenarioArguments,
+    WriteScenarioToFileArguments,
+    pipeline_add_metadata_to_scenario,
+    pipeline_assign_tags_to_scenario,
+    pipeline_simulate_scenario_with_ots,
+    pipeline_write_scenario_to_file,
 )
-from scenario_factory.pipeline_steps.utils import WriteScenarioToFileArguments, pipeline_write_scenario_to_file
+from scenario_factory.pipelines import (
+    create_globetrotter_pipeline,
+    create_scenario_generation_pipeline,
+)
+from scenario_factory.scenario_config import ScenarioFactoryConfig
+from scenario_factory.simulation.config import SimulationConfig, SimulationMode
+from scenario_factory.utils import configure_root_logger, select_osm_map_provider
 
-output_path = Path(".")
-cities_file = Path("cities_selected.csv")
+configure_root_logger()
+
+output_path = Path("/tmp/scenario_factory")
+output_path.mkdir(exist_ok=True)
+cities_file = Path("./files/cities_selected.csv")
 input_maps_folder = Path("input_maps")
-radius = 0.3
-seed = 10
+radius = 0.1
+seed = 100
 
-sumo_config = SumoConfig()
-sumo_config.simulation_steps = 600
-sumo_config.random_seed = seed
-sumo_config.random_seed_trip_generation = seed
+scenario_factory_config = ScenarioFactoryConfig(seed=seed, cr_scenario_time_steps=75)
+simulation_config = SimulationConfig(
+    mode=SimulationMode.DEMAND_TRAFFIC_GENERATION, simulation_steps=600
+)
+
 random.seed(seed)
 np.random.seed(seed)
 
+
 with TemporaryDirectory() as temp_dir:
-    ctx = PipelineContext(Path(temp_dir), sumo_config=sumo_config)
-    pipeline = Pipeline(ctx)
+    ctx = PipelineContext(Path(temp_dir), scenario_factory_config)
 
-    local_map_provider = LocalFileMapProvider(Path(input_maps_folder))
+    map_provider = select_osm_map_provider(radius, input_maps_folder)
 
-    pipeline.populate(pipeline_load_regions_from_csv(LoadRegionsFromCsvArguments(Path(cities_file))))
-    pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(local_map_provider, radius=radius)))
-    pipeline.map(pipeline_convert_osm_map_to_commonroad_scenario)
-    pipeline.map(pipeline_extract_intersections)
-    pipeline.reduce(pipeline_flatten)
-    pipeline.map(pipeline_create_sumo_configuration_for_commonroad_scenario)
-    pipeline.reduce(pipeline_flatten)
-    pipeline.map(pipeline_simulate_scenario)
-    pipeline.map(
-        pipeline_generate_ego_scenarios(
-            GenerateCommonRoadScenariosArguments(create_noninteractive=True, create_interactive=True)
-        ),
-        num_processes=4,
+    base_pipeline = (
+        create_globetrotter_pipeline(radius, map_provider)
+        .map(pipeline_add_metadata_to_scenario)
+        .map(
+            pipeline_simulate_scenario_with_ots(SimulateScenarioArguments(config=simulation_config))
+        )
     )
-    pipeline.reduce(pipeline_flatten)
-    pipeline.map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
-    pipeline.report_results()
+
+    scenario_generation_pipeline = create_scenario_generation_pipeline(
+        scenario_factory_config.criterions, scenario_factory_config.filters
+    )
+
+    pipeline = (
+        base_pipeline.chain(scenario_generation_pipeline)
+        .map(pipeline_assign_tags_to_scenario)
+        .map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
+    )
+
+    inputs = load_regions_from_csv(cities_file)
+    result = pipeline.execute(inputs, ctx)
+    result.print_cum_time_per_step()
+    print(result.values)

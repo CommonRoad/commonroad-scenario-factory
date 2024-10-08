@@ -1,214 +1,112 @@
-from __future__ import annotations
-
 import logging
-from dataclasses import dataclass
+import xml.etree.ElementTree
 from pathlib import Path
-from typing import Dict, Optional
-from xml.etree import cElementTree as ET
+from typing import List, Sequence, Union
 
-from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
+from commonroad.common.file_reader import CommonRoadFileReader
+from commonroad.common.solution import PlanningProblemSolution, Solution
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
-from crdesigner.map_conversion.sumo_map.cr2sumo.converter import SumoConfig
-from sumocr.helpers import shutil
-from sumocr.interface.id_mapper import IdDomain
+from typing_extensions import TypeGuard
 
 from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 
-@dataclass
-class BaseScenario:
+class ScenarioContainer:
+    """
+    The ScenarioContainer is used to wrap a scenario, such that it is easy to associate extra data with a scenario. All pipeline steps should use the ScenarioContainer instead of a plain CommonRoad scenario as their input parameter and output values.
+
+    The pipeline steps in the scenario-factory are mostly concerned with handling CommonRoad scenarios. But often, additional data (like a planning problem set) is required or produced during a pipeline step. To ensure that each pipeline step can be applied generally, and does not rely on any specific order. For example, a pipeline step might produce a scenario with a planning problem set and another pipeline step might only require a CommonRoad scenario.
+    """
+
     scenario: Scenario
 
-
-@dataclass
-class SumoScenario(BaseScenario):
-    """
-    A CommonRoad scenario with additional SUMO configuration files.
-    """
-
-    sumo_cfg_file: Path
+    def __init__(self, scenario: Scenario):
+        self.scenario = scenario
 
 
-@dataclass
-class SimulatedScenario(SumoScenario):
-    sumo_config: SumoConfig
-
-    # The id_mapping is used to correlate CommonRoad obstacle IDs with SUMO vehicle IDs. This is used to patch the resulting SUMO files, when generating interactive scenarios.
-    # TODO: is there a cleaner approach, for retriving the IDs in interactive scenarios?
-    id_mapping: Dict[int, str]
-
-
-@dataclass
-class EgoScenario(SimulatedScenario):
-    """
-    A CommonRoad scenario, that is centered around a specific ego vehicle maneuver. It is used to encode a CommonRoad scenario that is aligned to the ego vehicle maneuver, instead of being just a general simulated scenario. This is important, because there is a logical difference between a 'normal'
-    """
-
-    # The original ego vehicle maneuver, from which this ego scenario was derived. The maneuver is *not* aligned.
-    ego_vehicle_maneuver: EgoVehicleManeuver
-
-    @classmethod
-    def from_simulated_scenario(
-        cls,
-        simulated_scenario: SimulatedScenario,
-        ego_vehicle_maneuver: EgoVehicleManeuver,
-        scenario: Optional[Scenario] = None,
-    ) -> "EgoScenario":
-        return EgoScenario(
-            scenario=scenario if scenario is not None else simulated_scenario.scenario,
-            sumo_cfg_file=simulated_scenario.sumo_cfg_file,
-            sumo_config=simulated_scenario.sumo_config,
-            id_mapping=simulated_scenario.id_mapping,
-            ego_vehicle_maneuver=ego_vehicle_maneuver,
-        )
-
-
-@dataclass
-class EgoScenarioWithPlanningProblemSet(EgoScenario):
-    """
-    A CommonRoad scenario, that is cenetered around a specific ego vehicle maneuver and has a corresponding planning problem set.
-    """
-
+class ScenarioWithPlanningProblemSet(ScenarioContainer):
     planning_problem_set: PlanningProblemSet
 
-    @classmethod
-    def from_ego_scenario(
-        cls,
-        ego_scenario: EgoScenario,
+    def __init__(self, scenario: Scenario, planning_problem_set: PlanningProblemSet):
+        super().__init__(scenario)
+        self.planning_problem_set = planning_problem_set
+
+
+def is_scenario_with_planning_problem_set(
+    scenario_container: ScenarioContainer,
+) -> TypeGuard[ScenarioWithPlanningProblemSet]:
+    return isinstance(scenario_container, ScenarioWithPlanningProblemSet)
+
+
+class ScenarioWithSolution(ScenarioWithPlanningProblemSet):
+    """
+    Container for a CommonRoad Scenario, PlanningProblemSet and its associated solutions.
+    """
+
+    def __init__(
+        self,
+        scenario: Scenario,
         planning_problem_set: PlanningProblemSet,
-        scenario: Optional[Scenario] = None,
-    ):
-        return cls(
-            scenario=scenario if scenario is not None else ego_scenario.scenario,
-            sumo_cfg_file=ego_scenario.sumo_cfg_file,
-            sumo_config=ego_scenario.sumo_config,
-            ego_vehicle_maneuver=ego_scenario.ego_vehicle_maneuver,
-            id_mapping=ego_scenario.id_mapping,
-            planning_problem_set=planning_problem_set,
+        solutions: Sequence[PlanningProblemSolution],
+    ) -> None:
+        super().__init__(scenario, planning_problem_set)
+        self._solutions = solutions
+
+    @property
+    def solution(self):
+        # Only construct the Solution object here, to include the 'final' scenario ID.
+        # This is required because the scenario ID might be manipulated in different places,
+        # and so it would be difficult to track the ID of the scenario and the solution indepdently.
+        return Solution(self.scenario.scenario_id, planning_problem_solutions=self._solutions)
+
+
+def is_scenario_with_solution(
+    scenario_container: ScenarioContainer,
+) -> TypeGuard[ScenarioWithSolution]:
+    return isinstance(scenario_container, ScenarioWithSolution)
+
+
+class ScenarioWithEgoVehicleManeuver(ScenarioContainer):
+    ego_vehicle_maneuver: EgoVehicleManeuver
+
+    def __init__(self, scenario: Scenario, ego_vehicle_maneuver: EgoVehicleManeuver) -> None:
+        super().__init__(scenario)
+        self.ego_vehicle_maneuver = ego_vehicle_maneuver
+
+
+def is_scenario_with_ego_vehicle_maneuver(
+    scenario_container: ScenarioContainer,
+) -> TypeGuard[ScenarioWithEgoVehicleManeuver]:
+    return isinstance(scenario_container, ScenarioWithEgoVehicleManeuver)
+
+
+def load_scenarios_from_folder(
+    folder: Union[str, Path],
+) -> List[ScenarioContainer]:
+    if isinstance(folder, str):
+        folder_path = Path(folder)
+    elif isinstance(folder, Path):
+        folder_path = folder
+    else:
+        raise ValueError(
+            f"Argument 'folder' must be either 'str' or 'Path', but instead is {type(folder)}"
         )
 
-    def write(self, output_path: Path) -> Path:
-        """
-        Write the CommonRoad scenario and its planning problem
-        """
-        file_path = output_path.joinpath(f"{self.scenario.scenario_id}.cr.xml")
+    scenario_containers: List[ScenarioContainer] = []
+    for xml_file_path in folder_path.glob("*.xml"):
+        try:
+            scenario, planning_problem_set = CommonRoadFileReader(xml_file_path).open()
+        except xml.etree.ElementTree.ParseError as e:
+            _LOGGER.warning("Failed to load CommonRoad scenario from file %s: %s", xml_file_path, e)
+            continue
 
-        # Metadata must be set on the scenario, otherwise we refuse to write
-        if self.scenario.author is None:
-            raise ValueError(
-                f"Cannot write scenario '{self.scenario.scenario_id}' to file, because metadata is missing: Author of scenario is not set"
+        if len(planning_problem_set.planning_problem_dict) > 0:
+            scenario_containers.append(
+                ScenarioWithPlanningProblemSet(scenario, planning_problem_set)
             )
-        if self.scenario.affiliation is None:
-            raise ValueError(
-                f"Cannot write scenario '{self.scenario.scenario_id}' to file, because metadata is missing: Affiliation for author of scenario is not set"
-            )
-        if self.scenario.source is None:
-            raise ValueError(
-                f"Cannot write scenario '{self.scenario.scenario_id}' to file, because metadata is missing: source of scenario is not set"
-            )
-        tags = set() if self.scenario.tags is None else self.scenario.tags
-
-        logger.debug(f"Writing scenario {self.scenario.scenario_id} with its planning problem set to {file_path}")
-
-        CommonRoadFileWriter(self.scenario, self.planning_problem_set, tags=tags).write_to_file(
-            str(file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS, check_validity=True
-        )
-        return file_path
-
-
-@dataclass
-class NonInteractiveEgoScenario(EgoScenarioWithPlanningProblemSet):
-    ...
-
-
-def _patch_vehicle_id_in_sumo_route_file(vehicle_id: str, sumo_route_file: Path) -> bool:
-    """
-    To support interactive scenarios in the sumo-interface, we must mark the ego vehicle as such in the SUMO files. This way, the sumo-interface knows which vehicle is the ego vehicle.
-
-    :param vehicle_id: The SUMO ID of the vehicle which should be marked as ego vehicle
-    :param sumo_route_file: Path to the SUMO route file that contains vehicles
-
-    :returns: Whether :param:`vehicle_id` was found and could be marked as an ego vehicle
-    """
-    root_element = ET.fromstring(sumo_route_file.read_text())
-
-    found_vehicle = False
-    vehicle_nodes = root_element.findall("vehicle")
-    for vehicle_node in vehicle_nodes:
-        if vehicle_node.get("id") == vehicle_id:
-            vehicle_node.set("id", IdDomain.EGO_VEHICLE.construct_sumo_id(vehicle_id))
-            found_vehicle = True
-            break
-
-    sumo_route_file.write_bytes(ET.tostring(root_element))
-    return found_vehicle
-
-
-def _patch_input_file_names_in_sumo_cfg_file(file_name_prefix: str, sumo_cfg_path: Path) -> None:
-    """
-    Patch all input file names found in the :param:`sumo_cfg_path` SUMO configuration file by replacing their file name with :param:`file_name_prefix` and preserving their suffixes
-
-    :param file_name_prefix: The string that will be used to replace all file names
-    :param sumo_cfg_path: Path to the SUMO configuration file
-
-    :raises ValueError: If :param:`sumo_cfg_path` is not a valid SUMO configuration file
-    """
-    root_element = ET.fromstring(sumo_cfg_path.read_text())
-
-    input_tag = root_element.find("input")
-    if input_tag is None:
-        raise ValueError(f"The SUMO configuration file at {sumo_cfg_path} is invalid: missing 'input' tag")
-
-    input_iterator = input_tag.iter()
-    # input_tag.iter() iterates over the tag itself and all child elements. As we only care about the child elements, we skip the first element of the iterator.
-    next(input_iterator)
-    for input_file_tag in input_iterator:
-        # The 'value' attribute contains the file name e.g. DEU_Bremen-19.net.xml. This filename must be replaced with the file_name_prefix, e.g. DEU_Bremen-19_I-1.net.xml
-        raw_input_file_name = input_file_tag.get("value")
-        if raw_input_file_name is None:
-            raise ValueError(
-                f"The SUMO configuration file at {sumo_cfg_path} is invalid: tag {input_file_tag} does not have the required attribute 'value'"
-            )
-        # Use pathlib.Path, so the rename operation is easier to perform
-        input_file_name = Path(raw_input_file_name)
-        # Replace the the file name, but keep all suffixes
-        new_input_file_name = file_name_prefix + "".join(input_file_name.suffixes)
-        input_file_tag.set("value", str(new_input_file_name))
-
-    sumo_cfg_path.write_bytes(ET.tostring(root_element))
-
-
-@dataclass
-class InteractiveEgoScenario(EgoScenarioWithPlanningProblemSet):
-    def write(self, output_path: Path) -> Path:
-        scenario_name = str(self.scenario.scenario_id)
-        scenario_path = output_path.joinpath(scenario_name)
-        scenario_path.mkdir()
-
-        super().write(scenario_path)
-
-        # We include all relevant SUMO configuration files in an interactice scenario. For this all SUMO files are copied into the new folder,
-        # and renamed according to the scenario name (see loop below). As the '.sumo.cfg' file references all those SUMO files, it is possible that the file names differ.
-        # This is possible, because one SUMO simulation might produce multiple scenarios.
-        # Therefore, we ensure here that the sumo cfg file references the correct files, i.e. all files must start with the scenario name.
-        _patch_input_file_names_in_sumo_cfg_file(scenario_name, self.sumo_cfg_file)
-
-        for file in self.sumo_cfg_file.parent.iterdir():
-            if file.suffix != ".xml" and file.suffix != ".cfg":
-                # Only copy files from SUMO
-                continue
-
-            target_file_name = f"{scenario_name}{''.join(file.suffixes)}"
-            target_path = scenario_path.joinpath(target_file_name)
-
-            shutil.copy(file, target_path)
-
-            if file.suffixes == [".rou" ".xml"]:
-                # Because the sumo-interface relys on a specific id for the ego_vehicles we have to patch the resulting sumo file here
-                sumo_ego_vehicle_id = self.id_mapping[self.ego_vehicle_maneuver.ego_vehicle.obstacle_id]
-                _patch_vehicle_id_in_sumo_route_file(sumo_ego_vehicle_id, target_path)
-
-        return scenario_path
+        else:
+            scenario_containers.append(ScenarioContainer(scenario))
+    return scenario_containers

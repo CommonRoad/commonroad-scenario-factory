@@ -2,7 +2,9 @@ from typing import List, Set
 
 from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
-from commonroad_dc.collision.collision_detection.pycrcc_collision_dispatch import create_collision_object
+from commonroad_dc.collision.collision_detection.pycrcc_collision_dispatch import (
+    create_collision_object,
+)
 from commonroad_dc.pycrcc import CollisionChecker
 
 
@@ -45,7 +47,8 @@ def get_colliding_dynamic_obstacles(
         if get_all is True:
             # Get the IDs of all dynamic obstacles that are colliding with the current object
             colliding_dynamic_obstacles = [
-                cc_objects_to_obstacle_id[o] for o in cc.find_all_colliding_objects(current_cc_object)
+                cc_objects_to_obstacle_id[o]
+                for o in cc.find_all_colliding_objects(current_cc_object)
             ]
             if len(colliding_dynamic_obstacles) > 0:
                 # If there is at least one collision, the current object must also be added to the results

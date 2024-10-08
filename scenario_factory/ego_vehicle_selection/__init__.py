@@ -1,19 +1,19 @@
 __all__ = [
-    "EgoVehicleSelectionCriterion",
-    "BrakingCriterion",
     "AccelerationCriterion",
-    "TurningCriterion",
+    "BrakingCriterion",
+    "EgoVehicleSelectionCriterion",
     "LaneChangeCriterion",
-    "MergingCriterion",
-    "threshold_and_lag_detection",
-    "threshold_and_max_detection",
-    "select_interesting_ego_vehicle_maneuvers_from_scenario",
-    "EgoVehicleManeuver",
+    "TurningCriterion",
     "EgoVehicleManeuverFilter",
     "EnoughSurroundingVehiclesFilter",
     "InterestingLaneletNetworkFilter",
-    "MinimumVelocityFilter",
     "LongEnoughManeuverFilter",
+    "MinimumVelocityFilter",
+    "EgoVehicleManeuver",
+    "find_ego_vehicle_maneuvers_in_scenario",
+    "select_one_maneuver_per_ego_vehicle",
+    "threshold_and_lag_detection",
+    "threshold_and_max_detection",
 ]
 
 from .criterions import (
@@ -21,7 +21,6 @@ from .criterions import (
     BrakingCriterion,
     EgoVehicleSelectionCriterion,
     LaneChangeCriterion,
-    MergingCriterion,
     TurningCriterion,
 )
 from .filters import (
@@ -32,5 +31,7 @@ from .filters import (
     MinimumVelocityFilter,
 )
 from .maneuver import EgoVehicleManeuver
-from .selection import select_interesting_ego_vehicle_maneuvers_from_scenario
+from .selection import find_ego_vehicle_maneuvers_in_scenario, select_one_maneuver_per_ego_vehicle
+
+# Also export the utils, because they can be usefull if users want to create their own criterions or fitlers
 from .utils import threshold_and_lag_detection, threshold_and_max_detection
