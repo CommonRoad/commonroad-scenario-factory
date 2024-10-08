@@ -49,6 +49,11 @@ mkdocstrings-python = "^1.10.3"
 mkdocs-autorefs = "^1.0.1"
 mkdocs-material = "^9.5.12"
 
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.7.1"
 
 [build-system]
 requires = ["poetry-core"]
