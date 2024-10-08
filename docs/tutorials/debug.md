@@ -24,3 +24,8 @@ logger = logging.getLogger("scenario_factory")
 logger.setLevel(logging.DEBUG)
 
 ```
+
+## print
+!!! warning
+
+    Because the different projects from the CommonRoad contain many `print` debug statements even in their production releases, the pipeline will blackhole all calls to `print`. Therefore, you can also not use `print` inside your pipeline steps and instead you should resort to using descriptive log messages.

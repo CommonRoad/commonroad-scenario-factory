@@ -26,6 +26,19 @@ from typing_extensions import TypeGuard
 from scenario_factory.globetrotter.osm import LocalFileMapProvider, MapProvider, OsmApiMapProvider
 
 
+def configure_root_logger(level: int = logging.INFO) -> logging.Logger:
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(
+        logging.Formatter(fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
+    )
+    root_logger.addHandler(handler)
+
+    return root_logger
+
+
 @contextmanager
 def suppress_all_calls_to_print():
     """
@@ -197,7 +210,9 @@ def is_state_list_with_position(
     return all(is_state_with_position(state) for state in state_list)
 
 
-def is_state_with_discrete_time_step(state: TraceState) -> TypeGuard[StateWithDiscreteTimeStep]:
+def is_state_with_discrete_time_step(
+    state: TraceState,
+) -> TypeGuard[StateWithDiscreteTimeStep]:
     return isinstance(state.time_step, int)
 
 

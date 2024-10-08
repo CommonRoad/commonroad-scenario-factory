@@ -13,9 +13,11 @@ __all__ = [
     "pipeline_extract_intersections",
     "pipeline_verify_and_repair_commonroad_scenario",
     "pipeline_filter_lanelet_network",
-    # Ego Scenario Generation
+    # Simulation
+    "SimulateScenarioArguments",
     "pipeline_simulate_scenario_with_sumo",
     "pipeline_simulate_scenario_with_ots",
+    # Ego Scenario Generation
     "pipeline_find_ego_vehicle_maneuvers",
     "pipeline_filter_ego_vehicle_maneuver",
     "pipeline_select_one_maneuver_per_ego_vehicle",
@@ -37,6 +39,9 @@ from .scenario_generation import (
     pipeline_find_ego_vehicle_maneuvers,
     pipeline_generate_scenario_for_ego_vehicle_maneuver,
     pipeline_select_one_maneuver_per_ego_vehicle,
+)
+from .simulation import (
+    SimulateScenarioArguments,
     pipeline_simulate_scenario_with_ots,
     pipeline_simulate_scenario_with_sumo,
 )

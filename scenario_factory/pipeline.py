@@ -19,12 +19,14 @@ import random
 import signal
 import time
 import traceback
+import uuid
 import warnings
 from collections import defaultdict
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import (
     Callable,
     Generic,
@@ -40,8 +42,6 @@ from typing import (
 
 import multiprocess
 import numpy as np
-from commonroad.scenario.scenario import Scenario
-from crdesigner.map_conversion.sumo_map.config import SumoConfig
 
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 from scenario_factory.utils import suppress_all_calls_to_print
@@ -78,10 +78,14 @@ class PipelineContext:
 
     def __init__(
         self,
-        base_temp_path: Path,
+        base_temp_path: Optional[Path] = None,
         scenario_factory_config: Optional[ScenarioFactoryConfig] = None,
     ):
-        self._base_temp_path = base_temp_path
+        if base_temp_path is None:
+            self._temp_dir_ref = TemporaryDirectory()
+            self._base_temp_path = Path(self._temp_dir_ref.name)
+        else:
+            self._base_temp_path = base_temp_path
 
         if scenario_factory_config is None:
             self._scenario_factory_config = ScenarioFactoryConfig()
@@ -95,21 +99,6 @@ class PipelineContext:
         temp_folder = self._base_temp_path.joinpath(folder_name)
         temp_folder.mkdir(parents=True, exist_ok=True)
         return temp_folder
-
-    # TODO: This represents are tight coupling of the pipeline with SUMO, which should be removed in the future.
-    def get_sumo_config_for_scenario(self, scenario: Scenario) -> SumoConfig:
-        """
-        Derive a new SumoConfig from the internal base SumoConfig for the given scenario.
-        """
-        new_sumo_config = SumoConfig()
-
-        new_sumo_config.random_seed = self._scenario_factory_config.seed
-        new_sumo_config.random_seed_trip_generation = self._scenario_factory_config.seed
-        new_sumo_config.simulation_steps = self._scenario_factory_config.simulation_steps
-        new_sumo_config.scenario_name = str(scenario.scenario_id)
-        new_sumo_config.dt = scenario.dt
-
-        return new_sumo_config
 
     def get_scenario_factory_config(self) -> ScenarioFactoryConfig:
         return self._scenario_factory_config
@@ -125,7 +114,8 @@ _PipelineMapFuncWithArgsType: TypeAlias = Callable[
 ]
 
 _PipelineFoldFuncType: TypeAlias = Callable[
-    [PipelineContext, Sequence[_PipelineStepInputTypeT]], Sequence[_PipelineStepOutputTypeT]
+    [PipelineContext, Sequence[_PipelineStepInputTypeT]],
+    Sequence[_PipelineStepOutputTypeT],
 ]
 
 
@@ -149,30 +139,71 @@ class PipelineStepType(Enum):
 
 class PipelineStepMode(Enum):
     CONCURRENT = auto()
+    """Run the step in a semi-parellel manner, by distributing the indidivual tasks to different threads"""
+
     PARALLEL = auto()
+    """Run this step in a true parallel manner, by distributing the individual tasks to different processes"""
+
     SEQUENTIAL = auto()
+    """Run this step sequentially on the main thread"""
 
 
 _AnyPipelineStep = TypeVar(
-    "_AnyPipelineStep", _PipelineMapFuncType, _PipelineFilterFuncType, _PipelineFoldFuncType
+    "_AnyPipelineStep",
+    _PipelineMapFuncType,
+    _PipelineFilterFuncType,
+    _PipelineFoldFuncType,
 )
 
 
-@dataclass
 class PipelineStep(Generic[_AnyPipelineStep]):
-    step_func: _AnyPipelineStep
-    type: PipelineStepType
-    mode: PipelineStepMode = PipelineStepMode.CONCURRENT
+    def __init__(
+        self,
+        step_func: _AnyPipelineStep,
+        type: PipelineStepType,
+        mode: PipelineStepMode = PipelineStepMode.CONCURRENT,
+    ):
+        self._step_func: _AnyPipelineStep = step_func
+        self._type = type
+        self._mode = mode
+
+        self._name = _get_function_name(self._step_func)
+        # The id is used to compare pipeline steps to each other.
+        # The name cannot be used for this, because multiple pipeline steps with the same name might be used in one pipeline.
+        # Additionally, instance checks also don't work because the step objects might be moved around between different processes, resulting in different instances.
+        self._id = uuid.uuid4()
+
+    @property
+    def type(self):
+        return self._type
+
+    @property
+    def mode(self):
+        return self._mode
 
     @property
     def name(self):
-        return _get_function_name(self.step_func)
+        return self._name
+
+    @property
+    def identifier(self):
+        return self._id
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, PipelineStep):
+            return False
+
+        return self.identifier == other.identifier
 
     def __call__(self, *args, **kwargs):
-        return self.step_func(*args, **kwargs)
+        return self._step_func(*args, **kwargs)
 
     def __hash__(self) -> int:
-        return hash(self.name)
+        # bind the hash dunder to the identifier, so it can be used reliably as dict keys
+        return self._id.int
+
+    def __str__(self) -> str:
+        return f"{self._name} ({self._id})"
 
 
 def pipeline_map(
@@ -206,7 +237,9 @@ def pipeline_map_with_args(
         ) -> PipelineStep[_PipelineMapFuncType]:
             step_func_with_args_applied = functools.partial(func, args)
             return PipelineStep(
-                step_func=step_func_with_args_applied, type=PipelineStepType.MAP, mode=mode
+                step_func=step_func_with_args_applied,
+                type=PipelineStepType.MAP,
+                mode=mode,
             )
 
         return inner_wrapper
@@ -239,7 +272,9 @@ def pipeline_filter(
         ) -> PipelineStep[_PipelineFilterFuncType]:
             step_func_with_args_applied = functools.partial(func, filter)
             return PipelineStep(
-                step_func=step_func_with_args_applied, type=PipelineStepType.FILTER, mode=mode
+                step_func=step_func_with_args_applied,
+                type=PipelineStepType.FILTER,
+                mode=mode,
             )
 
         return inner_wrapper
@@ -284,7 +319,10 @@ def _wrap_pipeline_step(
 
 
 def _execute_pipeline_step(
-    ctx: PipelineContext, pipeline_step, step_index: int, input_value: _PipelineStepInputTypeT
+    ctx: PipelineContext,
+    pipeline_step,
+    step_index: int,
+    input_value: _PipelineStepInputTypeT,
 ) -> Tuple[int, PipelineStepResult[_PipelineStepInputTypeT, _PipelineStepOutputTypeT]]:
     result: PipelineStepResult[_PipelineStepInputTypeT, _PipelineStepOutputTypeT] = (
         _wrap_pipeline_step(ctx, pipeline_step, input_value)
@@ -301,9 +339,21 @@ def _process_worker_init(seed: int) -> None:
 
 
 class PipelineExecutor:
+    """Execute the steps in a pipeline
+
+    :param ctx:
+    :param steps: The list of pipeline steps that should be executed. Order dependent.
+    :param num_threads: If provided, enables the concurrent execution of pipeline steps on a thread pool with :param:`num_threads` worker threads
+    :param num_processes: If provided, enables the parallel execution of pipeline steps on a process pool with :param:`num_processes` worker processes
+    """
+
     def __init__(
-        self, ctx: PipelineContext, steps: List[PipelineStep], num_threads: int, num_processes: int
-    ):
+        self,
+        ctx: PipelineContext,
+        steps: List[PipelineStep],
+        num_threads: Optional[int] = None,
+        num_processes: Optional[int] = None,
+    ) -> None:
         self._ctx = ctx
         self._steps = steps
 
@@ -312,11 +362,25 @@ class PipelineExecutor:
         self._pipeline_step_results: List[PipelineStepResult] = []
 
         seed = ctx.get_scenario_factory_config().seed
+        random.seed(seed)
+        np.random.seed(seed)
 
-        self._process_pool = multiprocess.Pool(
-            processes=num_processes, initializer=_process_worker_init, initargs=(seed,)
-        )
-        self._thread_executor = ThreadPoolExecutor(max_workers=num_threads)
+        if num_processes is None:
+            self._parallism_enabled = False
+        else:
+            self._process_pool = multiprocess.Pool(
+                processes=num_processes,
+                initializer=_process_worker_init,
+                initargs=(seed,),
+            )
+            self._parallism_enabled = True
+
+        if num_threads is None:
+            self._concurrency_enabled = False
+        else:
+            self._thread_executor = ThreadPoolExecutor(max_workers=num_threads)
+            self._concurrency_enabled = True
+
         # By default, no tasks may be scheduled on the worker pools
         self._scheduling_enabled = False
 
@@ -329,24 +393,41 @@ class PipelineExecutor:
         if not self._scheduling_enabled:
             return
         self._num_of_running_pipeline_steps += 1
+
+        # To execute a fold step, the executor has to collect all values until the fold step first.
+        # This is done by suspending the execution of each specific value,
+        # and notifying the executor. The fold operation will then be performed
+        # in the main loop on the main thread once all values have been yield.
         if step.type == PipelineStepType.FOLD:
             return self._yield_for_fold(step, step_index, input_value)
 
-        if step.mode == PipelineStepMode.CONCURRENT:
+        if step.mode == PipelineStepMode.CONCURRENT and self._concurrency_enabled:
+            # Steps that can be executed concurrently, are submitted to the thread pool
             new_f: Future[Tuple[int, PipelineStepResult]] = self._thread_executor.submit(
                 _execute_pipeline_step, self._ctx, step, step_index, input_value
             )
             new_f.add_done_callback(self._chain_next_step_from_previous_step_future)
-        elif step.mode == PipelineStepMode.PARALLEL:
+        elif step.mode == PipelineStepMode.PARALLEL and self._parallism_enabled:
+            # Steps that must be executed in parallel, are submitted to the process pool to ensure true parallelism
             self._process_pool.apply_async(
                 _execute_pipeline_step,
                 (self._ctx, step, step_index, input_value),
                 callback=self._chain_next_step_from_previous_step_callback,
             )
         else:
-            raise NotImplementedError()
+            # Either the step's mode is `PipelineStepMode.SEQUENTIAL` or it is one of
+            # the other modes, but the mode is disabled for the executor.
+            result: Tuple[int, PipelineStepResult] = _execute_pipeline_step(
+                self._ctx, step, step_index, input_value
+            )
+            self._chain_next_step_from_previous_step_callback(result)
 
-    def _chain_next_step_from_previous_step_callback(self, result: Tuple[int, PipelineStepResult]):
+    def _chain_next_step_from_previous_step_callback(
+        self, result: Tuple[int, PipelineStepResult]
+    ) -> None:
+        """
+        Create a future from the result of a pipeline step execution and chain the execution of the consecutive pipeline step.
+        """
         new_future: Future[Tuple[int, PipelineStepResult]] = Future()
         new_future.set_result(result)
         self._chain_next_step_from_previous_step_future(new_future)
@@ -354,6 +435,9 @@ class PipelineExecutor:
     def _chain_next_step_from_previous_step_future(
         self, future: Future[Tuple[int, PipelineStepResult]]
     ) -> None:
+        """
+        Handles the result of a pipeline step execution and executes the consecutive pipeline step, if applicable.
+        """
         # If this method is called, this means that a previous task has finished executing
         self._num_of_running_pipeline_steps -= 1
 
@@ -432,7 +516,10 @@ class PipelineExecutor:
         # The fold will be simply executed sequentially on the main thread in the main loop.
         # Although, it could be submitted to the worker pool, there does not seem to be any benefit from doing so
         result = _execute_pipeline_step(
-            self._ctx, self._fold_step, self._fold_step_index, self._values_queued_for_fold
+            self._ctx,
+            self._fold_step,
+            self._fold_step_index,
+            self._values_queued_for_fold,
         )
 
         # Reset the fold state, *before* the next tasks are scheduled.
@@ -469,9 +556,11 @@ class PipelineExecutor:
         finally:
             # make sure that no new tasks will be scheduled during shutdown
             self._scheduling_enabled = False
-            self._thread_executor.shutdown()
-            self._process_pool.terminate()
-            self._process_pool.close()
+            if self._concurrency_enabled:
+                self._thread_executor.shutdown()
+            if self._parallism_enabled:
+                self._process_pool.terminate()
+                self._process_pool.close()
 
         return self._pipeline_step_results
 
@@ -587,17 +676,17 @@ class Pipeline:
     def execute(
         self,
         input_values: Iterable,
-        ctx: PipelineContext,
-        num_threads: Optional[int] = None,
-        num_processes: Optional[int] = None,
+        ctx: Optional[PipelineContext] = None,
+        num_threads: Optional[int] = multiprocess.cpu_count(),
+        num_processes: Optional[int] = multiprocess.cpu_count(),
     ) -> PipelineExecutionResult:
         """
         Execute the pipeline on the :param:`input_values` with :param:`ctx`.
 
         :param input_values: An iterable containing the input values for the first step in the pipeline
         :param ctx: The pipeline context for this specific execution
-        :param num_threads: Configure the number of threads in the worker pool
-        :param num_processes: Configure the number of processes in the worker pool
+        :param num_threads: Configure the number of threads in the worker pool. If None is provided, multithreading will be disabled.
+        :param num_processes: Configure the number of processes in the worker pool. If None is provided, multiprocessing will be disabled.
 
         :returns: The result of the execution
         """
@@ -610,17 +699,15 @@ class Pipeline:
             raise RuntimeError(
                 "Cannot execute pipeline: pipeline has duplicated steps! Each pipeline step might only occur once in a single pipeline!"
             )
-        if num_threads is None:
-            num_threads = multiprocess.cpu_count()
 
-        if num_processes is None:
-            num_processes = multiprocess.cpu_count()
-
-        if num_threads < 1:
+        if num_threads is not None and num_threads < 1:
             raise ValueError("Number of threads for pipeline execution must be at least 1")
 
-        if num_processes < 1:
+        if num_processes is not None and num_processes < 1:
             raise ValueError("Number of processes for pipeline execution must be at least 1")
+
+        if ctx is None:
+            ctx = PipelineContext()
 
         start_time = time.time_ns()
 

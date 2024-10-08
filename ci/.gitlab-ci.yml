@@ -1,6 +1,7 @@
 stages:
   - linting
   - testing
+  - deploy
 
 before_script:
   - echo $SUMO_HOME
@@ -23,7 +24,25 @@ main_testing:
   stage: testing
   image: gitlab.lrz.de:5005/cps/commonroad/scenario-factory
   script:
+    - apt-get install openjdk-17-jre-headless -y
     - poetry run coverage run -m pytest
     - poetry run coverage report -m || true
   coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
   needs: []
+
+pages:
+  # push the latest documentation of the main branch to the Gitlab pages.
+  # available at https://cps.pages.gitlab.lrz.de/commonroad/scenario-factory
+  stage: deploy
+  only:
+    - develop
+  publish: site
+  script:
+    - poetry install --with docs
+    - mkdocs build
+  artifacts:
+    paths:
+      - site
+  environment:
+    name: Gitlab Pages
+    url: https://cps.pages.gitlab.lrz.de/commonroad/scenario-factory

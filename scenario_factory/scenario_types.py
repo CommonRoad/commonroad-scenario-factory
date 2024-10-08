@@ -1,6 +1,9 @@
 import logging
-from typing import Sequence
+import xml.etree.ElementTree
+from pathlib import Path
+from typing import List, Sequence, Union
 
+from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.common.solution import PlanningProblemSolution, Solution
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
@@ -76,5 +79,34 @@ class ScenarioWithEgoVehicleManeuver(ScenarioContainer):
 
 def is_scenario_with_ego_vehicle_maneuver(
     scenario_container: ScenarioContainer,
-) -> TypeGuard[ScenarioWithPlanningProblemSet]:
+) -> TypeGuard[ScenarioWithEgoVehicleManeuver]:
     return isinstance(scenario_container, ScenarioWithEgoVehicleManeuver)
+
+
+def load_scenarios_from_folder(
+    folder: Union[str, Path],
+) -> List[ScenarioContainer]:
+    if isinstance(folder, str):
+        folder_path = Path(folder)
+    elif isinstance(folder, Path):
+        folder_path = folder
+    else:
+        raise ValueError(
+            f"Argument 'folder' must be either 'str' or 'Path', but instead is {type(folder)}"
+        )
+
+    scenario_containers: List[ScenarioContainer] = []
+    for xml_file_path in folder_path.glob("*.xml"):
+        try:
+            scenario, planning_problem_set = CommonRoadFileReader(xml_file_path).open()
+        except xml.etree.ElementTree.ParseError as e:
+            _LOGGER.warning("Failed to load CommonRoad scenario from file %s: %s", xml_file_path, e)
+            continue
+
+        if len(planning_problem_set.planning_problem_dict) > 0:
+            scenario_containers.append(
+                ScenarioWithPlanningProblemSet(scenario, planning_problem_set)
+            )
+        else:
+            scenario_containers.append(ScenarioContainer(scenario))
+    return scenario_containers

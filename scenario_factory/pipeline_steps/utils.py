@@ -33,7 +33,7 @@ _LOGGER = logging.getLogger(__name__)
 
 @dataclass
 class WriteScenarioToFileArguments(PipelineStepArguments):
-    """Arguments for the step `pipeline_write_scenario_to_file`"""
+    """Arguments for the step `pipeline_write_scenario_to_file` to specify the output folder."""
 
     output_folder: Path
 

@@ -14,6 +14,8 @@ from crdesigner.map_conversion.sumo_map.util import update_edge_lengths
 from sumocr.interface.sumo_simulation import SumoSimulation
 from sumocr.scenario.scenario_wrapper import ScenarioWrapper
 
+from scenario_factory.simulation.config import SimulationConfig, SimulationMode
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -129,7 +131,26 @@ class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
         return success
 
 
-def convert_commonroad_scenario_to_sumo_scenario(
+def _get_new_sumo_config_for_scenario(
+    scenario: Scenario, simulation_config: SimulationConfig, seed: int
+) -> SumoConfig:
+    if simulation_config.simulation_steps is None:
+        raise ValueError(
+            "Invalid simulation config for SUMO: option 'simulation_time_steps' must be set, but is 'None'!"
+        )
+
+    new_sumo_config = SumoConfig()
+
+    new_sumo_config.random_seed = seed
+    new_sumo_config.random_seed_trip_generation = seed
+    new_sumo_config.simulation_steps = simulation_config.simulation_steps
+    new_sumo_config.scenario_name = str(scenario.scenario_id)
+    new_sumo_config.dt = scenario.dt
+
+    return new_sumo_config
+
+
+def _convert_commonroad_scenario_to_sumo_scenario(
     commonroad_scenario: Scenario, output_folder: Path, sumo_config: SumoConfig
 ) -> ScenarioWrapper:
     """
@@ -156,7 +177,7 @@ def convert_commonroad_scenario_to_sumo_scenario(
     return scenario_wrapper
 
 
-def simulate_commonroad_scenario(
+def _execute_sumo_simulation(
     scenario_wrapper: ScenarioWrapper, sumo_config: SumoConfig
 ) -> Scenario:
     """
@@ -173,3 +194,27 @@ def simulate_commonroad_scenario(
 
     scenario = sumo_sim.commonroad_scenarios_all_time_steps()
     return scenario
+
+
+def simulate_commonroad_scenario_with_sumo(
+    scenario: Scenario,
+    simulation_config: SimulationConfig,
+    working_directory: Path,
+    seed: int,
+) -> Scenario:
+    """
+    Simulate a CommonRoad scenario with the micrsocopic simulator SUMO. Currently, only random traffic generation is supported.
+    """
+    if simulation_config.mode != SimulationMode.RANDOM_TRAFFIC_GENERATION:
+        raise ValueError(
+            f"Unsupported simulation mode {simulation_config.mode} for SUMO! Currently only {SimulationMode.RANDOM_TRAFFIC_GENERATION} is supported."
+        )
+
+    sumo_config = _get_new_sumo_config_for_scenario(scenario, simulation_config, seed)
+
+    scenario_wrapper = _convert_commonroad_scenario_to_sumo_scenario(
+        scenario, working_directory, sumo_config
+    )
+    new_scenario = _execute_sumo_simulation(scenario_wrapper, sumo_config)
+
+    return new_scenario

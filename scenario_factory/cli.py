@@ -8,6 +8,7 @@ import click
 from scenario_factory.globetrotter.region import Coordinates, RegionMetadata, load_regions_from_csv
 from scenario_factory.pipeline import PipelineContext
 from scenario_factory.pipeline_steps import (
+    SimulateScenarioArguments,
     WriteScenarioToFileArguments,
     pipeline_add_metadata_to_scenario,
     pipeline_assign_tags_to_scenario,
@@ -19,6 +20,7 @@ from scenario_factory.pipelines import (
     create_scenario_generation_pipeline,
 )
 from scenario_factory.scenario_config import ScenarioFactoryConfig
+from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 from scenario_factory.utils import select_osm_map_provider
 
 
@@ -59,22 +61,27 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
         output_path.mkdir(parents=True)
 
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
+    root_logger.setLevel(logging.DEBUG)
     handler = logging.StreamHandler()
     handler.setFormatter(
         logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s")
     )
     root_logger.addHandler(handler)
 
-    scenario_config = ScenarioFactoryConfig(
-        seed=seed, cr_scenario_time_steps=75, simulation_steps=600
-    )
+    scenario_config = ScenarioFactoryConfig(seed=seed, cr_scenario_time_steps=75)
     map_provider = select_osm_map_provider(radius, Path(maps))
+    simulation_config = SimulationConfig(
+        mode=SimulationMode.RANDOM_TRAFFIC_GENERATION, simulation_steps=150
+    )
 
     base_pipeline = (
         create_globetrotter_pipeline(radius, map_provider)
         .map(pipeline_add_metadata_to_scenario)
-        .map(pipeline_simulate_scenario_with_sumo)
+        .map(
+            pipeline_simulate_scenario_with_sumo(
+                SimulateScenarioArguments(config=simulation_config)
+            )
+        )
     )
 
     scenario_generation_pipeline = create_scenario_generation_pipeline(
@@ -149,6 +156,7 @@ def globetrotter(cities, coords, output, maps, radius):
 
     map_provider = select_osm_map_provider(radius, Path(maps))
     globetrotter_pipeline = create_globetrotter_pipeline(radius, map_provider)
+    globetrotter_pipeline.map(pipeline_add_metadata_to_scenario)
     globetrotter_pipeline.map(
         pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path))
     )
