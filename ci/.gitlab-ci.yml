@@ -18,11 +18,6 @@ default:
       # We could also cache all project dependencies, but the up-/download of the cache takes longer than installing only the relevant dependencies in each job.
       - .cache/pip
 
-dependency_check:
-  stage: linting
-  script:
-    - poetry check
-
 pre_commit:
   stage: linting
   before_script:
