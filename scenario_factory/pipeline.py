@@ -26,6 +26,7 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Callable, Generic, Iterable, List, Optional, Protocol, Sequence, Tuple, TypeAlias, TypeVar
 
 import multiprocess
@@ -65,10 +66,14 @@ class PipelineContext:
 
     def __init__(
         self,
-        base_temp_path: Path,
+        base_temp_path: Optional[Path] = None,
         scenario_factory_config: Optional[ScenarioFactoryConfig] = None,
     ):
-        self._base_temp_path = base_temp_path
+        if base_temp_path is None:
+            self._temp_dir_ref = TemporaryDirectory()
+            self._base_temp_path = Path(self._temp_dir_ref.name)
+        else:
+            self._base_temp_path = base_temp_path
 
         if scenario_factory_config is None:
             self._scenario_factory_config = ScenarioFactoryConfig()
@@ -647,7 +652,7 @@ class Pipeline:
     def execute(
         self,
         input_values: Iterable,
-        ctx: PipelineContext,
+        ctx: Optional[PipelineContext] = None,
         num_threads: Optional[int] = multiprocess.cpu_count(),
         num_processes: Optional[int] = multiprocess.cpu_count(),
     ) -> PipelineExecutionResult:
@@ -676,6 +681,9 @@ class Pipeline:
 
         if num_processes is not None and num_processes < 1:
             raise ValueError("Number of processes for pipeline execution must be at least 1")
+
+        if ctx is None:
+            ctx = PipelineContext()
 
         start_time = time.time_ns()
 
