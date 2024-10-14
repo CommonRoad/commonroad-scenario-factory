@@ -19,3 +19,12 @@ class NoTrafficLightsFilter(LaneletNetworkFilter):
 
     def matches(self, lanelet_network: LaneletNetwork) -> bool:
         return len(lanelet_network.traffic_lights) == 0
+
+
+class HasTrafficLightsFilter(LaneletNetworkFilter):
+    """
+    Only select a `LaneletNetwork`, if it does contain at least one traffic light.
+    """
+
+    def matches(self, lanelet_network: LaneletNetwork) -> bool:
+        return len(lanelet_network.traffic_lights) > 0

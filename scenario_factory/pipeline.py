@@ -44,7 +44,8 @@ import multiprocess
 import numpy as np
 
 from scenario_factory.scenario_config import ScenarioFactoryConfig
-from scenario_factory.utils import suppress_all_calls_to_print
+from scenario_factory.scenario_types import ScenarioContainer
+from scenario_factory.utils import redirect_all_calls_to_print
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -534,7 +535,7 @@ class PipelineExecutor:
     def _all_steps_ready_for_fold(self) -> bool:
         return self._num_of_running_pipeline_steps == self._num_of_values_queued_for_fold
 
-    def run(self, input_values: Iterable):
+    def run(self, input_values: Iterable, suppress_print: bool = True):
         # Allow tasks to be scheduled on our worker pools
         self._scheduling_enabled = True
         try:
@@ -543,7 +544,8 @@ class PipelineExecutor:
             # this results in a ton of unecessary console output. To circumvent this,
             # the whole print function is replaced for the pipeline execution.
             # Generally, all functions should make use of the logging module...
-            with suppress_all_calls_to_print():
+            print_redirection_target = None if suppress_print else print
+            with redirect_all_calls_to_print(print_redirection_target):
                 for elem in input_values:
                     self._submit_step_for_execution(self._steps[0], 0, elem)
 
@@ -679,6 +681,7 @@ class Pipeline:
         ctx: Optional[PipelineContext] = None,
         num_threads: Optional[int] = multiprocess.cpu_count(),
         num_processes: Optional[int] = multiprocess.cpu_count(),
+        debug: bool = False,
     ) -> PipelineExecutionResult:
         """
         Execute the pipeline on the :param:`input_values` with :param:`ctx`.
@@ -706,13 +709,17 @@ class Pipeline:
         if num_processes is not None and num_processes < 1:
             raise ValueError("Number of processes for pipeline execution must be at least 1")
 
+        if debug:
+            num_threads = None
+            num_processes = None
+
         if ctx is None:
             ctx = PipelineContext()
 
         start_time = time.time_ns()
 
         executor = PipelineExecutor(ctx, self._steps, num_threads, num_processes)
-        results = executor.run(input_values)
+        results = executor.run(input_values, suppress_print=not debug)
 
         end_time = time.time_ns()
 

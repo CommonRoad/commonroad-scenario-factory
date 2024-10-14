@@ -1,9 +1,9 @@
 # CLI Reference
 
 ::: mkdocs-click
-    :module: scenario_factory.cli
+    :module: scripts.cli
     :command: generate
 
 ::: mkdocs-click
-    :module: scenario_factory.cli
+    :module: scripts.cli
     :command: globetrotter

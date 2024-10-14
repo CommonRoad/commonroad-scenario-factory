@@ -1,9 +1,9 @@
+from pathlib import Path
 from typing import Iterable
 
 from scenario_factory.ego_vehicle_selection.criterions import EgoVehicleSelectionCriterion
 from scenario_factory.ego_vehicle_selection.filters import EgoVehicleManeuverFilter
-from scenario_factory.globetrotter.filter import NoTrafficLightsFilter
-from scenario_factory.globetrotter.osm import MapProvider
+from scenario_factory.globetrotter import LocalFileMapProvider, MapProvider, OsmApiMapProvider
 from scenario_factory.pipeline import Pipeline
 from scenario_factory.pipeline_steps import (
     ExtractOsmMapArguments,
@@ -12,13 +12,21 @@ from scenario_factory.pipeline_steps import (
     pipeline_extract_intersections,
     pipeline_extract_osm_map,
     pipeline_filter_ego_vehicle_maneuver,
-    pipeline_filter_lanelet_network,
     pipeline_find_ego_vehicle_maneuvers,
     pipeline_generate_scenario_for_ego_vehicle_maneuver,
     pipeline_remove_colliding_dynamic_obstacles,
     pipeline_select_one_maneuver_per_ego_vehicle,
     pipeline_verify_and_repair_commonroad_scenario,
 )
+
+
+def select_osm_map_provider(radius: float, maps_path: Path) -> MapProvider:
+    # radius > 0.8 would result in an error in the OsmApiMapProvider,
+    # because the OSM API limits the amount of data we can download
+    if radius > 0.8:
+        return LocalFileMapProvider(maps_path)
+    else:
+        return OsmApiMapProvider()
 
 
 def create_globetrotter_pipeline(radius: float, map_provider: MapProvider) -> Pipeline:
@@ -31,7 +39,6 @@ def create_globetrotter_pipeline(radius: float, map_provider: MapProvider) -> Pi
         .map(pipeline_convert_osm_map_to_commonroad_scenario)
         .map(pipeline_verify_and_repair_commonroad_scenario)
         .map(pipeline_extract_intersections)
-        .filter(pipeline_filter_lanelet_network(NoTrafficLightsFilter()))
     )
     return pipeline
 
