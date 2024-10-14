@@ -11,11 +11,12 @@ import subprocess
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional
+from typing import Mapping, Optional
 
 import iso3166
 from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.scenario import Scenario
+from commonroad.scenario.traffic_light import TrafficLightState
 from crdesigner.common.config.osm_config import osm_config
 from crdesigner.map_conversion.osm2cr.converter_modules.converter import GraphScenario
 from crdesigner.map_conversion.osm2cr.converter_modules.cr_operations.export import (
@@ -33,13 +34,60 @@ from scenario_factory.globetrotter.region import BoundingBox, Coordinates, Regio
 
 _LOGGER = logging.getLogger(__name__)
 
-# Override the default traffic light cycles generated during the conversion from OSM to CommonRoad
-osm_config.TRAFFIC_LIGHT_CYCLE = {
-    "red_phase": 57 * 10,
-    "red_yellow_phase": 3 * 10,
-    "green_phase": 37 * 10,
-    "yellow_phase": 3 * 10,
-}
+# The default source that will be set for a scenario that was created from a OpenStreetMap
+DEFAULT_OSM_SOURCE = "OpenStreetMap (OSM)"
+
+
+def _set_osm_traffic_light_phase_length(phase: TrafficLightState, length: int) -> None:
+    phase_2_config_key_mapping = {
+        TrafficLightState.RED: "red_phase",
+        TrafficLightState.GREEN: "green_phase",
+        TrafficLightState.YELLOW: "yellow_phase",
+        TrafficLightState.RED_YELLOW: "red_yellow_phase",
+    }
+    if phase not in phase_2_config_key_mapping:
+        supported_phases = ",".join(str(key) for key in phase_2_config_key_mapping.keys())
+        raise ValueError(
+            f"Cannot set traffic light phase length: Phase {phase} is not supported. Supported phases are: {supported_phases}."
+        )
+
+    if length < 0:
+        raise ValueError(
+            f"Cannot set traffic light phase length: Phase length must be positive, but is {length}."
+        )
+
+    phase_config_key = phase_2_config_key_mapping[phase]
+    osm_config.TRAFFIC_LIGHT_CYCLE[phase_config_key] = length
+
+
+def configure_traffic_light_phase_lengths(phase_mapping: Mapping[TrafficLightState, int]) -> None:
+    """
+    Configure how long each traffic light phase (=color) lasts. This is a global option, and if the default values should be changed, this method must be called before performing any osm2cr conversions.
+
+    Example: Only modify the Red phase
+
+        phase_length_mapping = {
+            TrafficLightState.RED: 80
+        }
+        configure_traffic_light_phase_lengths(phase_mapping)
+        scenario = convert_osm_file_to_commonroad_scenario(<path to your map>)
+
+    Example: Update all phases
+
+        phase_length_mapping = {
+            TrafficLightState.RED: 40,
+            TrafficLightState.GREEN: 30,
+            TrafficLightState.YELLOW: 5,
+            TrafficLightState.RED_YELLOW: 7
+        }
+        configure_traffic_light_phase_lengths(phase_mapping)
+        scenario = convert_osm_file_to_commonroad_scenario(<path to your map>)
+
+    :param phase_mapping: A mapping of each traffic light state (=color) to its phase length. All `TrafficLightState`s are supported, except `TrafficLightState.INVALID`.
+
+    """
+    for phase, length in phase_mapping.items():
+        _set_osm_traffic_light_phase_length(phase, length)
 
 
 def _get_canonical_region_name(region_name: str) -> str:
@@ -229,6 +277,11 @@ def convert_osm_file_to_commonroad_scenario(osm_file: Path) -> Scenario:
 
     with _redirect_all_undirected_log_messages(_LOGGER):
         graph = GraphScenario(str(osm_file)).graph
+        # The CommonRoad Scenario Designer exposes a simple converison function, to
+        # convert an OpenStreetMap graph to a CommonRoad scenario. But, the function also
+        # creates the location by looking it up in the geonames database.
+        # Because, this process is currently broken, the location is looked up below
+        # and a custom conversion logic is implemented here.
         scenario, _ = create_scenario_intermediate(graph)
         sanitize(scenario)
 
@@ -236,6 +289,7 @@ def convert_osm_file_to_commonroad_scenario(osm_file: Path) -> Scenario:
     map_metadata = RegionMetadata.from_coordinates(coordinates)
     scenario.location = map_metadata.as_commonroad_scenario_location()
     scenario.scenario_id = map_metadata.as_commonroad_scenario_id()
+    scenario.source = DEFAULT_OSM_SOURCE
 
     _LOGGER.debug(f"Convertered OSM {osm_file} at {map_metadata} to CommonRoad Scenario")
     return scenario

@@ -1,14 +1,11 @@
 import numpy as np
-from commonroad.scenario.intersection import Intersection, IntersectionIncomingElement
 from commonroad.scenario.lanelet import Lanelet
-from commonroad.scenario.traffic_light import TrafficLight
-from commonroad.scenario.traffic_sign import TrafficSign
+from commonroad.scenario.traffic_sign import TrafficSignIDGermany
 
+from scenario_factory.builder import LaneletNetworkBuilder, ScenarioBuilder
 from scenario_factory.globetrotter.clustering import (
+    cut_intersection_from_scenario,
     extract_forking_points,
-    relevant_intersections,
-    relevant_traffic_lights,
-    relevant_traffic_signs,
 )
 
 
@@ -28,234 +25,148 @@ class TestExtractForkingPoints:
         assert len(extract_forking_points(lanelets)) == 0
 
     def test_returns_end_as_one_point_for_forking_lanelet(self):
-        lanelets = [
-            # The lanelet from which the forking point will be selected
-            Lanelet(
-                left_vertices=np.array([[0.0, 0.0], [0.0, 5.0]]),
-                center_vertices=np.array([[2.5, 0.0], [2.5, 5.0]]),
-                right_vertices=np.array([[5.0, 0.0], [5.0, 5.0]]),
-                lanelet_id=0,
-                successor=[1, 2],
-            ),
-            # The two successor lanelets. Their physical properties are unimportant
-            Lanelet(
-                left_vertices=np.array([[0.0, 5.0], [0.0, 10.0]]),
-                center_vertices=np.array([[2.5, 5.0], [2.5, 10.0]]),
-                right_vertices=np.array([[5.0, 0.0], [5.0, 10.0]]),
-                lanelet_id=1,
-                predecessor=[0],
-            ),
-            Lanelet(
-                left_vertices=np.array([[0.0, 5.0], [0.0, 10.0]]),
-                center_vertices=np.array([[2.5, 5.0], [2.5, 10.0]]),
-                right_vertices=np.array([[5.0, 0.0], [5.0, 10.0]]),
-                lanelet_id=2,
-                predecessor=[0],
-            ),
-        ]
-        forking_points = extract_forking_points(lanelets)
+        lanelet_network_builder = LaneletNetworkBuilder()
+        lanelet1 = lanelet_network_builder.add_lanelet(start=(0.0, 0.0), end=(0.0, 5.0))
+        lanelet2 = lanelet_network_builder.add_lanelet(start=(10.0, 10.0), end=(10.0, 20.0))
+        lanelet3 = lanelet_network_builder.add_lanelet(start=(-10.0, 10.0), end=(-10.0, 20.0))
+        lanelet_network_builder.create_straight_connecting_lanelet(lanelet1, lanelet2)
+        lanelet_network_builder.create_straight_connecting_lanelet(lanelet1, lanelet3)
+        lanelet_network = lanelet_network_builder.build()
+
+        forking_points = extract_forking_points(lanelet_network.lanelets)
         assert len(forking_points) == 1
         # The algorithm should select the end point
-        assert (forking_points[0] == np.array([2.5, 5.0])).all()
+        assert (forking_points[0] == np.array([0.0, 5.0])).all()
 
     def test_returns_start_as_one_point_for_combining_lanelet(self):
-        lanelets = [
-            # The lanelet from which the forking point will be selected
-            Lanelet(
-                left_vertices=np.array([[0.0, 5.0], [0.0, 10.0]]),
-                center_vertices=np.array([[2.5, 5.0], [2.5, 10.0]]),
-                right_vertices=np.array([[5.0, 0.0], [5.0, 10.0]]),
-                lanelet_id=0,
-                predecessor=[1, 2],
-            ),
-            # The two predecessor lanelets. Their physical properties are unimportant
-            Lanelet(
-                left_vertices=np.array([[0.0, 0.1], [0.0, 5.1]]),
-                center_vertices=np.array([[2.5, 0.1], [2.5, 5.2]]),
-                right_vertices=np.array([[5.0, 0.1], [5.0, 5.1]]),
-                lanelet_id=1,
-                successor=[0],
-            ),
-            Lanelet(
-                left_vertices=np.array([[0.1, -0.1], [0.1, 5.0]]),
-                center_vertices=np.array([[2.5, 0.1], [2.6, 5.1]]),
-                right_vertices=np.array([[5.1, -0.1], [5.1, 5.0]]),
-                lanelet_id=2,
-                successor=[0],
-            ),
-        ]
-        forking_points = extract_forking_points(lanelets)
+        lanelet_network_builder = LaneletNetworkBuilder()
+        lanelet1 = lanelet_network_builder.add_lanelet(start=(0.0, 20.0), end=(0.0, 30.0))
+        lanelet2 = lanelet_network_builder.add_lanelet(start=(10.0, 0.0), end=(10.0, 10.0))
+        lanelet3 = lanelet_network_builder.add_lanelet(start=(-10.0, 0.0), end=(-10.0, 10.0))
+        lanelet_network_builder.create_straight_connecting_lanelet(lanelet2, lanelet1)
+        lanelet_network_builder.create_straight_connecting_lanelet(lanelet3, lanelet1)
+        lanelet_network = lanelet_network_builder.build()
+
+        forking_points = extract_forking_points(lanelet_network.lanelets)
         assert len(forking_points) == 1
-        # The algorithm should select the end point
-        assert (forking_points[0] == np.array([2.5, 5.0])).all()
+        # The algorithm should select the start point
+        assert (forking_points[0] == np.array([0.0, 20.0])).all()
 
 
-class TestRelevantTrafficSigns:
-    def test_empty(self):
-        assert len(relevant_traffic_signs([], [])) == 0
+class TestCutIntersectionFromScenario:
+    def test_includes_only_lanelets_in_radius(self):
+        scenario_builder = ScenarioBuilder()
+        lanelet_network_builder = scenario_builder.create_lanelet_network()
+        # Lanelets crossing the center
+        lanelet1 = lanelet_network_builder.add_lanelet(start=(-50.0, -25.0), end=(50.0, 25.0))
+        lanelet2 = lanelet_network_builder.add_lanelet(start=(-50.0, 25.0), end=(50.0, -25.0))
+        lanelet3 = lanelet_network_builder.add_lanelet(start=(0.0, 50.0), end=(0.0, -50.0))
+        lanelet4 = lanelet_network_builder.add_lanelet(start=(-50.0, 0.0), end=(50.0, 0.0))
+        # Lanelets outside of the circle
+        lanelet5 = lanelet_network_builder.add_lanelet(start=(-50.0, 50.0), end=(50.0, 50.0))
+        lanelet6 = lanelet_network_builder.add_lanelet(start=(-50.0, 50.0), end=(50.0, 50.0))
+        lanelet7 = lanelet_network_builder.add_lanelet(start=(-50.0, 50.0), end=(-50.0, -50.0))
+        lanelet8 = lanelet_network_builder.add_lanelet(start=(-50.0, -50.0), end=(50.0, -50.0))
+        # Lanelets outside of the circle but connected to lanelets inside the circle
+        lanelet9 = lanelet_network_builder.add_lanelet(start=(0.0, 100.0), end=(0.0, 50.0))
+        lanelet_network_builder.connect(lanelet9, lanelet3)
+        lanelet10 = lanelet_network_builder.add_lanelet(start=(0.0, -50.0), end=(0.0, -100.0))
+        lanelet_network_builder.connect(lanelet10, lanelet3)
+        scenario = scenario_builder.build()
 
-    def test_no_referenced_traffic_signs(self):
-        lanelets = [
-            # The lanelet from which the forking point will be selected
-            Lanelet(
-                left_vertices=np.array([[0.0, 5.0], [0.0, 10.0]]),
-                center_vertices=np.array([[2.5, 5.0], [2.5, 10.0]]),
-                right_vertices=np.array([[5.0, 0.0], [5.0, 10.0]]),
-                lanelet_id=0,
-            )
-        ]
-        traffic_signs = [
-            TrafficSign(
-                traffic_sign_id=0,
-                traffic_sign_elements=[],
-                first_occurrence={0},
-                position=np.array([0.0, 0.0]),
-            )
-        ]
+        new_scenario = cut_intersection_from_scenario(
+            scenario, np.array([0.0, 0.0]), max_distance=20, intersection_cut_margin=5
+        )
+        for lanelet in [lanelet1, lanelet2, lanelet3, lanelet4]:
+            assert new_scenario.lanelet_network.find_lanelet_by_id(lanelet.lanelet_id) is not None
 
-        assert len(relevant_traffic_signs(traffic_signs, lanelets)) == 0
+        for lanelet in [lanelet5, lanelet6, lanelet7, lanelet8]:
+            assert new_scenario.lanelet_network.find_lanelet_by_id(lanelet.lanelet_id) is None
 
-    def test_referenced_traffic_sign(self):
-        lanelets = [
-            # The lanelet from which the forking point will be selected
-            Lanelet(
-                left_vertices=np.array([[0.0, 5.0], [0.0, 10.0]]),
-                center_vertices=np.array([[2.5, 5.0], [2.5, 10.0]]),
-                right_vertices=np.array([[5.0, 0.0], [5.0, 10.0]]),
-                lanelet_id=0,
-                traffic_signs={0},
-            ),
-            Lanelet(
-                left_vertices=np.array([[0.0, 5.0], [0.0, 10.0]]),
-                center_vertices=np.array([[2.5, 5.0], [2.5, 10.0]]),
-                right_vertices=np.array([[5.0, 0.0], [5.0, 10.0]]),
-                lanelet_id=1,
-                traffic_signs={0},
-            ),
-        ]
-        traffic_signs = [
-            TrafficSign(
-                traffic_sign_id=0,
-                traffic_sign_elements=[],
-                first_occurrence={0},
-                position=np.array([0.0, 0.0]),
-            ),
-            TrafficSign(
-                traffic_sign_id=1,
-                traffic_sign_elements=[],
-                first_occurrence={2},
-                position=np.array([0.0, 0.0]),
-            ),
-        ]
-        assert len(relevant_traffic_signs(traffic_signs, lanelets)) == 1
+    def test_includes_only_intersections_in_radius(self):
+        scenario_builder = ScenarioBuilder()
+        lanelet_network_builder = scenario_builder.create_lanelet_network()
+        lanelet1 = lanelet_network_builder.add_lanelet(start=(0.0, -20.0), end=(0.0, -10.0))
+        lanelet2 = lanelet_network_builder.add_lanelet(start=(0.0, 10.0), end=(0.0, 20.0))
+        connection1 = lanelet_network_builder.create_straight_connecting_lanelet(lanelet1, lanelet2)
+        lanelet3 = lanelet_network_builder.add_lanelet(start=(10.0, 0.0), end=(20.0, 0.0))
+        lanelet4 = lanelet_network_builder.add_lanelet(start=(30.0, 0.0), end=(40.0, 0.0))
+        lanelet5 = lanelet_network_builder.add_lanelet(start=(30.0, 10.0), end=(30.0, 20.0))
+        connection2 = lanelet_network_builder.create_curved_connecting_lanelet(lanelet1, lanelet3)
+        lanelet_network_builder.create_straight_connecting_lanelet(lanelet3, lanelet4)
+        lanelet_network_builder.create_curved_connecting_lanelet(lanelet3, lanelet5)
+        (
+            lanelet_network_builder.create_intersection()
+            .create_incoming()
+            .add_incoming_lanelet(lanelet1)
+            .connect_straight(lanelet2)
+            .connect_right(lanelet3)
+        )
+        (
+            lanelet_network_builder.create_intersection()
+            .create_incoming()
+            .add_incoming_lanelet(lanelet3)
+            .connect_straight(lanelet4)
+        )
+        scenario = scenario_builder.build()
+        new_scenario = cut_intersection_from_scenario(
+            scenario, np.array([0.0, 0.0]), max_distance=15, intersection_cut_margin=5
+        )
 
+        assert len(new_scenario.lanelet_network.intersections) == 1
+        kept_intersection = new_scenario.lanelet_network.intersections[0]
+        assert len(kept_intersection.incomings) == 1
+        assert lanelet1.lanelet_id in kept_intersection.incomings[0].incoming_lanelets
+        assert len(kept_intersection.incomings[0].successors_straight) == 1
+        assert connection1.lanelet_id in kept_intersection.incomings[0].successors_straight
+        assert len(kept_intersection.incomings[0].successors_right) == 1
+        assert connection2.lanelet_id in kept_intersection.incomings[0].successors_right
 
-class TestRelevantTrafficLights:
-    def test_empty(self):
-        assert len(relevant_traffic_lights([], [])) == 0
+    def test_only_includes_traffic_signs_in_radius(self):
+        scenario_builder = ScenarioBuilder()
+        lanelet_network_builder = scenario_builder.create_lanelet_network()
+        lanelet1 = lanelet_network_builder.add_lanelet(start=(0.0, 0.0), end=(0.0, 20.0))
+        (
+            lanelet_network_builder.create_traffic_sign()
+            .add_element(TrafficSignIDGermany.WARNING_SLIPPERY_ROAD)
+            .for_lanelet(lanelet1)
+        )
+        lanelet2 = lanelet_network_builder.add_lanelet(start=(0.0, 20.0), end=(0.0, 40.0))
+        (
+            lanelet_network_builder.create_traffic_sign()
+            .add_element(TrafficSignIDGermany.WARNING_STEEP_HILL_DOWNWARDS)
+            .for_lanelet(lanelet2)
+        )
+        scenario = scenario_builder.build()
+        new_scenario = cut_intersection_from_scenario(
+            scenario, np.array([0.0, 0.0]), max_distance=10, intersection_cut_margin=5
+        )
 
-    def test_no_referenced_traffic_lights(self):
-        lanelets = [
-            # The lanelet from which the forking point will be selected
-            Lanelet(
-                left_vertices=np.array([[0.0, 5.0], [0.0, 10.0]]),
-                center_vertices=np.array([[2.5, 5.0], [2.5, 10.0]]),
-                right_vertices=np.array([[5.0, 0.0], [5.0, 10.0]]),
-                lanelet_id=0,
-            )
-        ]
-        traffic_lights = [TrafficLight(traffic_light_id=0, position=np.array([0.0, 0.0]))]
+        assert len(new_scenario.lanelet_network.traffic_signs) == 1
+        assert (
+            len(new_scenario.lanelet_network.find_lanelet_by_id(lanelet1.lanelet_id).traffic_signs)
+            == 1
+        )
 
-        assert len(relevant_traffic_lights(traffic_lights, lanelets)) == 0
+    def test_only_includes_traffic_lights_in_radius(self):
+        scenario_builder = ScenarioBuilder()
+        lanelet_network_builder = scenario_builder.create_lanelet_network()
+        # The first traffic light (inside the radius)
+        lanelet1 = lanelet_network_builder.add_lanelet(start=(0.0, 0.0), end=(0.0, 20.0))
+        lanelet_network_builder.create_traffic_light().for_lanelet(lanelet1)
 
-    def test_referenced_traffic_lights_but_no_successor(self):
-        lanelets = [
-            # The lanelet from which the forking point will be selected
-            Lanelet(
-                left_vertices=np.array([[0.0, 5.0], [0.0, 10.0]]),
-                center_vertices=np.array([[2.5, 5.0], [2.5, 10.0]]),
-                right_vertices=np.array([[5.0, 0.0], [5.0, 10.0]]),
-                lanelet_id=0,
-                traffic_lights={0},
-            )
-        ]
-        traffic_lights = [TrafficLight(traffic_light_id=0, position=np.array([0.0, 0.0]))]
+        # The second traffic light (outside the radius)
+        lanelet2 = lanelet_network_builder.add_lanelet(start=(0.0, 20.0), end=(0.0, 40.0))
+        lanelet_network_builder.create_traffic_light().for_lanelet(lanelet2)
 
-        assert len(relevant_traffic_lights(traffic_lights, lanelets)) == 0
+        scenario = scenario_builder.build()
 
-    def test_referenced_traffic_lights_and_successor(self):
-        lanelets = [
-            # The lanelet from which the forking point will be selected
-            Lanelet(
-                left_vertices=np.array([[0.0, 5.0], [0.0, 10.0]]),
-                center_vertices=np.array([[2.5, 5.0], [2.5, 10.0]]),
-                right_vertices=np.array([[5.0, 0.0], [5.0, 10.0]]),
-                lanelet_id=0,
-                traffic_lights={0},
-                successor=[1],
-            )
-        ]
-        traffic_lights = [TrafficLight(traffic_light_id=0, position=np.array([0.0, 0.0]))]
+        new_scenario = cut_intersection_from_scenario(
+            scenario, np.array([0.0, 0.0]), max_distance=10, intersection_cut_margin=5
+        )
 
-        assert len(relevant_traffic_lights(traffic_lights, lanelets)) == 1
-
-
-class TestRelevantIntersections:
-    def test_empty(self):
-        assert len(relevant_intersections([], [])) == 0
-
-    def test_empty_lanelets(self):
-        intersections = [
-            Intersection(
-                intersection_id=0,
-                incomings=[IntersectionIncomingElement(incoming_id=1, incoming_lanelets={3})],
-            )
-        ]
-
-        assert len(relevant_intersections(intersections, [])) == 0
-
-    def test_referenced_lanelet(self):
-        intersections = [
-            Intersection(
-                intersection_id=0,
-                incomings=[IntersectionIncomingElement(incoming_id=1, incoming_lanelets={0})],
-            )
-        ]
-
-        lanelets = [
-            Lanelet(
-                left_vertices=np.array([[0.0, 5.0], [0.0, 10.0]]),
-                center_vertices=np.array([[2.5, 5.0], [2.5, 10.0]]),
-                right_vertices=np.array([[5.0, 0.0], [5.0, 10.0]]),
-                lanelet_id=0,
-            )
-        ]
-
-        assert len(relevant_intersections(intersections, lanelets)) == 1
-
-    def test_referenced_lanelet_in_second_incoming(self):
-        intersections = [
-            Intersection(
-                intersection_id=0,
-                incomings=[
-                    IntersectionIncomingElement(incoming_id=2, incoming_lanelets={1}),
-                ],
-            ),
-            Intersection(
-                intersection_id=1,
-                incomings=[
-                    IntersectionIncomingElement(incoming_id=1, incoming_lanelets={0}),
-                    IntersectionIncomingElement(incoming_id=2, incoming_lanelets={1}),
-                ],
-            ),
-        ]
-        lanelets = [
-            Lanelet(
-                left_vertices=np.array([[0.0, 5.0], [0.0, 10.0]]),
-                center_vertices=np.array([[2.5, 5.0], [2.5, 10.0]]),
-                right_vertices=np.array([[5.0, 0.0], [5.0, 10.0]]),
-                lanelet_id=1,
-            ),
-        ]
-        rel_intersections = relevant_intersections(intersections, lanelets)
-        assert len(rel_intersections) == 2
+        assert len(new_scenario.lanelet_network.traffic_lights) == 1
+        assert (
+            len(new_scenario.lanelet_network.find_lanelet_by_id(lanelet1.lanelet_id).traffic_lights)
+            == 1
+        )

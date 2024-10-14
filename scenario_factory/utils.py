@@ -1,12 +1,13 @@
 import builtins
+import copy
 import dataclasses
 import logging
 from contextlib import contextmanager
-from pathlib import Path
-from typing import AnyStr, Optional, Protocol, Sequence, Type, TypeVar, Union
+from typing import AnyStr, Callable, Optional, Protocol, Sequence, Type, TypeVar, Union
 
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import DynamicObstacle
+from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.state import (
     CustomState,
     ExtendedPMState,
@@ -23,10 +24,64 @@ from commonroad.scenario.state import (
 )
 from typing_extensions import TypeGuard
 
-from scenario_factory.globetrotter.osm import LocalFileMapProvider, MapProvider, OsmApiMapProvider
+
+def _create_new_scenario_with_metadata_from_old_scenario(scenario: Scenario) -> Scenario:
+    """
+    Create a new scenario from an old scenario and include all its metadata.
+
+    :param scenario: The old scenario, from which the metadata will be taken
+
+    :returns: The new scenario with all metadata, which is safe to modify.
+    """
+    new_scenario = Scenario(
+        dt=scenario.dt,
+        # The following metadata values are all objects. As they could be arbitrarily modified in-place they need to be copied.
+        scenario_id=copy.deepcopy(scenario.scenario_id),
+        location=copy.deepcopy(scenario.location),
+        tags=copy.deepcopy(scenario.tags),
+        # Author, afiiliation and source are plain strings and do not need to be copied
+        author=scenario.author,
+        affiliation=scenario.affiliation,
+        source=scenario.source,
+    )
+
+    return new_scenario
+
+
+def copy_scenario(
+    scenario: Scenario,
+    copy_lanelet_network: bool = False,
+    copy_dynamic_obstacles: bool = False,
+    copy_static_obstacles: bool = False,
+    copy_environment_obstacles: bool = False,
+) -> Scenario:
+    """
+    Helper to efficiently copy a CommonRoad Scenario. Should be prefered over a simple deepcopy of the scenario object, if not all elements of the input scenario are required in the end (e.g. the dynamic obstacles should not be included)
+    """
+    new_scenario = _create_new_scenario_with_metadata_from_old_scenario(scenario)
+
+    if copy_lanelet_network:
+        new_scenario.add_objects(copy.deepcopy(scenario.lanelet_network))
+
+    if copy_dynamic_obstacles:
+        for dynamic_obstacle in scenario.dynamic_obstacles:
+            new_scenario.add_objects(copy.deepcopy(dynamic_obstacle))
+
+    if copy_static_obstacles:
+        for static_obstacle in scenario.static_obstacles:
+            new_scenario.add_objects(copy.deepcopy(static_obstacle))
+
+    if copy_environment_obstacles:
+        for environment_obstacle in scenario.environment_obstacle:
+            new_scenario.add_objects(copy.deepcopy(environment_obstacle))
+
+    return new_scenario
 
 
 def configure_root_logger(level: int = logging.INFO) -> logging.Logger:
+    """
+    Configure the root logger to print messages to he console.
+    """
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
 
@@ -40,12 +95,15 @@ def configure_root_logger(level: int = logging.INFO) -> logging.Logger:
 
 
 @contextmanager
-def suppress_all_calls_to_print():
+def redirect_all_calls_to_print(target: Optional[Callable] = None):
     """
     Patch out the python builtin `print` function so that it becomes a nop.
     """
     backup_print = builtins.print
-    builtins.print = lambda *args, **kwargs: None
+    if target is None:
+        builtins.print = lambda *args, **kwargs: None
+    else:
+        builtins.print = target
     try:
         yield
     finally:
@@ -53,6 +111,10 @@ def suppress_all_calls_to_print():
 
 
 class StreamToLogger:
+    """
+    Generic Stream that can be used as a replacement for an StringIO to redirect stdout and stderr to a logger.
+    """
+
     def __init__(self, logger: logging.Logger) -> None:
         self._logger = logger
 
@@ -69,15 +131,6 @@ class StreamToLogger:
 
     def close(self):
         pass
-
-
-def select_osm_map_provider(radius: float, maps_path: Path) -> MapProvider:
-    # radius > 0.8 would result in an error in the OsmApiMapProvider,
-    # because the OSM API limits the amount of data we can download
-    if radius > 0.8:
-        return LocalFileMapProvider(maps_path)
-    else:
-        return OsmApiMapProvider()
 
 
 _StateT = TypeVar("_StateT", bound=State)

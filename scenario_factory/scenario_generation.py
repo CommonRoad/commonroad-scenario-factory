@@ -30,7 +30,7 @@ from commonroad.scenario.trajectory import Trajectory
 from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
 from scenario_factory.scenario_checker import get_colliding_dynamic_obstacles_in_scenario
 from scenario_factory.scenario_config import ScenarioFactoryConfig
-from scenario_factory.utils import get_full_state_list_of_obstacle
+from scenario_factory.utils import copy_scenario, get_full_state_list_of_obstacle
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,28 +49,6 @@ def _find_most_likely_lanelet_by_state(
         return lanelet_ids[0]
 
     return lanelet_ids[0]
-
-
-def _create_new_scenario_with_metadata_from_old_scenario(scenario: Scenario) -> Scenario:
-    """
-    Create a new scenario from an old scenario and include all its metadata.
-
-    :param scenario: The old scenario, from which the metadata will be taken
-
-    :returns: The new scenario with all metadata, which is safe to modify.
-    """
-    new_scenario = Scenario(dt=scenario.dt)
-    # The following metadata values are al.l objects. As they could be arbitrarily modified in-place they need to be copied.
-    new_scenario.scenario_id = copy.deepcopy(scenario.scenario_id)
-    new_scenario.scenario_id.obstacle_behavior = "T"
-    new_scenario.location = copy.deepcopy(scenario.location)
-    new_scenario.tags = copy.deepcopy(scenario.tags)
-    # Author, afiiliation and source are plain strings and do not need to be copied
-    new_scenario.author = scenario.author
-    new_scenario.affiliation = scenario.affiliation
-    new_scenario.source = scenario.source
-
-    return new_scenario
 
 
 def _create_new_obstacle_in_time_frame(
@@ -337,9 +315,8 @@ def create_scenario_for_ego_vehicle_maneuver(
         if new_obstacle is not None:
             new_obstacles.append(new_obstacle)
 
-    new_scenario = _create_new_scenario_with_metadata_from_old_scenario(scenario)
+    new_scenario = copy_scenario(scenario, copy_lanelet_network=True)
     new_scenario.add_objects(new_obstacles)
-    new_scenario.add_objects(scenario.lanelet_network)
 
     return new_scenario
 

@@ -26,6 +26,9 @@ class ScenarioContainer:
     def __init__(self, scenario: Scenario):
         self.scenario = scenario
 
+    def __str__(self) -> str:
+        return str(self.scenario.scenario_id)
+
 
 class ScenarioWithPlanningProblemSet(ScenarioContainer):
     planning_problem_set: PlanningProblemSet

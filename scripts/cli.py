@@ -5,8 +5,7 @@ from typing import Optional
 
 import click
 
-from scenario_factory.globetrotter.region import Coordinates, RegionMetadata, load_regions_from_csv
-from scenario_factory.pipeline import PipelineContext
+from scenario_factory.globetrotter import Coordinates, RegionMetadata, load_regions_from_csv
 from scenario_factory.pipeline_steps import (
     SimulateScenarioArguments,
     WriteScenarioToFileArguments,
@@ -20,8 +19,8 @@ from scenario_factory.pipelines import (
     create_scenario_generation_pipeline,
 )
 from scenario_factory.scenario_config import ScenarioFactoryConfig
-from scenario_factory.simulation.config import SimulationConfig, SimulationMode
-from scenario_factory.utils import select_osm_map_provider
+from scenario_factory.simulation import SimulationConfig, SimulationMode
+from scenario_factory.pipelines import select_osm_map_provider
 
 
 @click.command()
@@ -61,17 +60,17 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
         output_path.mkdir(parents=True)
 
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
+    root_logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
     handler.setFormatter(
         logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s")
     )
     root_logger.addHandler(handler)
 
-    scenario_config = ScenarioFactoryConfig(seed=seed, cr_scenario_time_steps=75)
+    scenario_config = ScenarioFactoryConfig(seed=seed, cr_scenario_time_steps=150)
     map_provider = select_osm_map_provider(radius, Path(maps))
     simulation_config = SimulationConfig(
-        mode=SimulationMode.RANDOM_TRAFFIC_GENERATION, simulation_steps=150
+        mode=SimulationMode.RANDOM_TRAFFIC_GENERATION, simulation_steps=600
     )
 
     base_pipeline = (

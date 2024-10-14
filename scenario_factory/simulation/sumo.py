@@ -74,13 +74,6 @@ class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
             f" --geometry.avoid-overlap=true"
             f" --geometry.remove.keep-edges.explicit=true"
             f" --geometry.remove.min-length=0.0"
-            f" --tls.guess-signals=true"
-            f" --tls.group-signals=true"
-            f" --tls.green.time={50}"
-            f" --tls.red.time={50}"
-            f" --tls.yellow.time={10}"
-            f" --tls.allred.time={50}"
-            f" --tls.left-green.time={50}"
             f" --tls.crossing-min.time={50}"
             f" --tls.crossing-clearance.time={50}"
             f" --offset.disable-normalization=true"
@@ -193,6 +186,8 @@ def _execute_sumo_simulation(
     sumo_sim.stop()
 
     scenario = sumo_sim.commonroad_scenarios_all_time_steps()
+    scenario.scenario_id.obstacle_behavior = "T"
+    scenario.scenario_id.prediction_id = 1
     return scenario
 
 
