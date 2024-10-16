@@ -6,6 +6,7 @@ from typing import Optional
 import click
 
 from scenario_factory.globetrotter import Coordinates, RegionMetadata, load_regions_from_csv
+from scenario_factory.pipeline import PipelineContext
 from scenario_factory.pipeline_steps import (
     SimulateScenarioArguments,
     WriteScenarioToFileArguments,
@@ -17,10 +18,11 @@ from scenario_factory.pipeline_steps import (
 from scenario_factory.pipelines import (
     create_globetrotter_pipeline,
     create_scenario_generation_pipeline,
+    select_osm_map_provider,
 )
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 from scenario_factory.simulation import SimulationConfig, SimulationMode
-from scenario_factory.pipelines import select_osm_map_provider
+from scenario_factory.utils import configure_root_logger
 
 
 @click.command()
@@ -59,13 +61,7 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
     if not output_path.exists():
         output_path.mkdir(parents=True)
 
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
-    handler = logging.StreamHandler()
-    handler.setFormatter(
-        logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s")
-    )
-    root_logger.addHandler(handler)
+    root_logger = configure_root_logger(logging.INFO)
 
     scenario_config = ScenarioFactoryConfig(seed=seed, cr_scenario_time_steps=150)
     map_provider = select_osm_map_provider(radius, Path(maps))
@@ -145,13 +141,7 @@ def globetrotter(cities, coords, output, maps, radius):
     if not output_path.exists():
         output_path.mkdir(parents=True)
 
-    root_logger = logging.getLogger("scenario_factory")
-    root_logger.setLevel(logging.INFO)
-    handler = logging.StreamHandler()
-    handler.setFormatter(
-        logging.Formatter(fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s")
-    )
-    root_logger.addHandler(handler)
+    root_logger = configure_root_logger(logging.INFO)
 
     map_provider = select_osm_map_provider(radius, Path(maps))
     globetrotter_pipeline = create_globetrotter_pipeline(radius, map_provider)
