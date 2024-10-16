@@ -5,7 +5,7 @@ import subprocess
 import warnings
 from pathlib import Path
 
-from commonroad.scenario.scenario import Scenario
+from commonroad.scenario.scenario import Scenario, Tag
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
 from crdesigner.map_conversion.sumo_map.cr2sumo.converter import CR2SumoMapConverter
 from crdesigner.map_conversion.sumo_map.errors import ScenarioException
@@ -74,8 +74,8 @@ class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
             f" --geometry.avoid-overlap=true"
             f" --geometry.remove.keep-edges.explicit=true"
             f" --geometry.remove.min-length=0.0"
-            f" --tls.crossing-min.time={50}"
-            f" --tls.crossing-clearance.time={50}"
+            f" --tls.crossing-min.time={10}"
+            f" --tls.crossing-clearance.time={10}"
             f" --offset.disable-normalization=true"
             f" --node-files={nodes_path}"
             f" --edge-files={edges_path}"
@@ -139,6 +139,8 @@ def _get_new_sumo_config_for_scenario(
     new_sumo_config.simulation_steps = simulation_config.simulation_steps
     new_sumo_config.scenario_name = str(scenario.scenario_id)
     new_sumo_config.dt = scenario.dt
+    # Disable highway mode so that intersections are not falsely identified as zipper junctions
+    new_sumo_config.highway_mode = False
 
     return new_sumo_config
 
@@ -174,7 +176,12 @@ def _execute_sumo_simulation(
     scenario_wrapper: ScenarioWrapper, sumo_config: SumoConfig
 ) -> Scenario:
     """
-    Simulate a CommonRoad scenario
+    Execute the concrete SUMO simulation.
+
+    :param scenario_wrapper: A wrapper around the converted scenario.
+    :param sumo_config: The configuration for the sumo simulation.
+
+    :returns: A new scenario with the trajectories of the simulated obstacles.
     """
     sumo_sim = SumoSimulation()
     sumo_sim.initialize(sumo_config, scenario_wrapper)
@@ -186,9 +193,27 @@ def _execute_sumo_simulation(
     sumo_sim.stop()
 
     scenario = sumo_sim.commonroad_scenarios_all_time_steps()
-    scenario.scenario_id.obstacle_behavior = "T"
-    scenario.scenario_id.prediction_id = 1
     return scenario
+
+
+def _patch_scenario_metadata_after_simulation(simulated_scenario: Scenario) -> None:
+    """
+    Make sure the metadata of `scenario` is updated accordingly after the simulation:
+    * Obstacle behavior is set to 'Trajectory'
+    * The scenario has a prediction ID (required if obstacle behavior is set)
+    * Set the 'simulated' tag
+    """
+    simulated_scenario.scenario_id.obstacle_behavior = "T"
+    if simulated_scenario.scenario_id.configuration_id is None:
+        simulated_scenario.scenario_id.configuration_id = 1
+
+    if simulated_scenario.scenario_id.prediction_id is None:
+        simulated_scenario.scenario_id.prediction_id = 1
+
+    if simulated_scenario.tags is None:
+        simulated_scenario.tags = set()
+
+    simulated_scenario.tags.add(Tag.SIMULATED)
 
 
 def simulate_commonroad_scenario_with_sumo(
@@ -199,6 +224,15 @@ def simulate_commonroad_scenario_with_sumo(
 ) -> Scenario:
     """
     Simulate a CommonRoad scenario with the micrsocopic simulator SUMO. Currently, only random traffic generation is supported.
+
+    :param scenario: The scenario with a lanelet network on which random traffic should be generated.
+    :param simulation_config: The configuration for this simulation.
+    :param working_directory: An empty directory that can be used to place SUMOs intermediate files there.
+    :param seed: The random seed, used for the random traffic generation.
+
+    :returns: A new scenario with the simulated trajectories.
+
+    :raises ValueError: If the selected simulation mode is not supported.
     """
     if simulation_config.mode != SimulationMode.RANDOM_TRAFFIC_GENERATION:
         raise ValueError(
@@ -211,5 +245,7 @@ def simulate_commonroad_scenario_with_sumo(
         scenario, working_directory, sumo_config
     )
     new_scenario = _execute_sumo_simulation(scenario_wrapper, sumo_config)
+
+    _patch_scenario_metadata_after_simulation(new_scenario)
 
     return new_scenario

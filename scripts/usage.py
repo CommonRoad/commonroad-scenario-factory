@@ -18,11 +18,12 @@ from scenario_factory.pipeline_steps.simulation import pipeline_simulate_scenari
 from scenario_factory.pipelines import (
     create_globetrotter_pipeline,
     create_scenario_generation_pipeline,
+    select_osm_map_provider,
 )
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 from scenario_factory.scenario_types import load_scenarios_from_folder
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
-from scenario_factory.utils import configure_root_logger, select_osm_map_provider
+from scenario_factory.utils import configure_root_logger
 
 configure_root_logger()
 

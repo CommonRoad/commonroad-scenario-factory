@@ -7,7 +7,7 @@ import jpype
 from commonroad.geometry.shape import Rectangle, Shape
 from commonroad.prediction.prediction import Trajectory, TrajectoryPrediction
 from commonroad.scenario.obstacle import ObstacleType
-from commonroad.scenario.scenario import DynamicObstacle, Scenario
+from commonroad.scenario.scenario import DynamicObstacle, Scenario, Tag
 from crots.abstractions.abstraction_level import AbstractionLevel
 
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
@@ -313,15 +313,35 @@ def _can_simulate_scenario_with_simulation_config(
     return True
 
 
+def _patch_scenario_metadata_after_simulation(simulated_scenario: Scenario):
+    """
+    Make sure the metadata of `scenario` is updated accordingly after the simulation:
+    * Obstacle behavior is set to 'Trajectory'
+    * The scenario has a prediction ID (required if obstacle behavior is set)
+    * Set the 'simulated' tag
+    """
+    simulated_scenario.scenario_id.obstacle_behavior = "T"
+    if simulated_scenario.scenario_id.configuration_id is None:
+        simulated_scenario.scenario_id.configuration_id = 1
+
+    if simulated_scenario.scenario_id.prediction_id is None:
+        simulated_scenario.scenario_id.prediction_id = 1
+
+    if simulated_scenario.tags is None:
+        simulated_scenario.tags = set()
+
+    simulated_scenario.tags.add(Tag.SIMULATED)
+
+
 def simulate_commonroad_scenario_with_ots(
     commonroad_scenario: Scenario, simulation_config: SimulationConfig, seed: int
 ) -> Optional[Scenario]:
     """
-    Use the microscopic traffic simulator OTS, to simulate random traffic on :param:`commonroad_scenario`.
+    Use the microscopic traffic simulator OTS, to simulate the scenario according to the simulation mode in `simulation_config`.
 
-    :param commonroad_scenario: The CommonRoad scenario with a lanelet network, on which the random traffic will be simulated.
-    :param seed: Seed used for the traffic generation in OTS
-    :param simulation_length: Number of time steps to which the resulting scenario will be cut.
+    :param commonroad_scenario: The CommonRoad scenario which will be simulated. If the `SimulationMode` is not `SimulationMode.RANDOM_TRAFFIC_GENERATION`, dynamic obstacles must be present in the scenario.
+    :param simulation_config: Configuration for the simulation.
+    :param seed: Seed used for the traffic generation in OTS.
 
     :returns: A new CommonRoad scenario with the simulated obstacles and None, if the simulation was unsuccessfull.
     """
@@ -358,5 +378,7 @@ def simulate_commonroad_scenario_with_ots(
         _post_process_scenario_simulated_with_random_mode(
             new_scenario, simulation_config.simulation_steps
         )
+
+    _patch_scenario_metadata_after_simulation(new_scenario)
 
     return new_scenario

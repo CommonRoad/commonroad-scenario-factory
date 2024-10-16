@@ -44,8 +44,7 @@ import multiprocess
 import numpy as np
 
 from scenario_factory.scenario_config import ScenarioFactoryConfig
-from scenario_factory.scenario_types import ScenarioContainer
-from scenario_factory.utils import redirect_all_calls_to_print
+from scenario_factory.utils import redirect_all_print_calls_to
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -545,7 +544,7 @@ class PipelineExecutor:
             # the whole print function is replaced for the pipeline execution.
             # Generally, all functions should make use of the logging module...
             print_redirection_target = None if suppress_print else print
-            with redirect_all_calls_to_print(print_redirection_target):
+            with redirect_all_print_calls_to(print_redirection_target):
                 for elem in input_values:
                     self._submit_step_for_execution(self._steps[0], 0, elem)
 

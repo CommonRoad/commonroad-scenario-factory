@@ -95,7 +95,7 @@ def configure_root_logger(level: int = logging.INFO) -> logging.Logger:
 
 
 @contextmanager
-def redirect_all_calls_to_print(target: Optional[Callable] = None):
+def redirect_all_print_calls_to(target: Optional[Callable] = None):
     """
     Patch out the python builtin `print` function so that it becomes a nop.
     """
