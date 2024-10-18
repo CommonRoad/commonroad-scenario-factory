@@ -4,10 +4,11 @@ import os
 import subprocess
 import warnings
 from pathlib import Path
+from typing import Tuple
 
 from commonroad.scenario.scenario import Scenario, Tag
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
-from crdesigner.map_conversion.sumo_map.cr2sumo.converter import CR2SumoMapConverter
+from crdesigner.map_conversion.sumo_map.cr2sumo.converter import TLS, CR2SumoMapConverter
 from crdesigner.map_conversion.sumo_map.errors import ScenarioException
 from crdesigner.map_conversion.sumo_map.sumolib_net import sumo_net_from_xml
 from crdesigner.map_conversion.sumo_map.util import update_edge_lengths
@@ -19,14 +20,32 @@ from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 _LOGGER = logging.getLogger(__name__)
 
 
+def _fix_traffic_light_signal_offsets(traffic_light_signals: TLS) -> None:
+    """
+    Currently the TLS program will be offset by the maximum cycle offset of all traffic lights
+    that are part of one TLS program. This does not realy make sense, because the offsets only apply to individual cycles and not to the whole TLS program.
+    If the offsets are applied however, this means that the CommonRoad and SUMO scenario get out of sync, because the TLS program starts after the CommonRoad one.
+    To keep the CommonRoad and SUMO scenario in sync, the offset is removed here.
+    """
+    for programs in traffic_light_signals.programs.values():
+        for program in programs.values():
+            program.offset = 0
+
+
 # The CR2SumoMapConverter does not limit the output of SUMO netconvert.
 # If we process many different scenarios, netconvert will spam unecessary warnings to the console.
-# Therefore, a custom converter is used, which limits the output by capturing SUMO netconverts output on stderr.
+# Therefore, a custom converter is used, which limits the output by capturing SUMO netconverts output on stderr and also applies some fixes so that the SUMO scenarios become usable.
 class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
     def __init__(self, scenario: Scenario, conf: SumoConfig) -> None:
         # Override the logging level, otherwise the converter will spam info logs (which should be debug logs...)
         conf.logging_level = "ERROR"
         super().__init__(scenario, conf)
+
+    # Overrides the `write_intermediate_files` method of the parent class,
+    # to apply important fix
+    def write_intermediate_files(self, output_path: str) -> Tuple[str, ...]:
+        _fix_traffic_light_signal_offsets(self.traffic_light_signals)
+        return super().write_intermediate_files(output_path)
 
     # Overrides the `merge_intermediate_files` method of the parent class
     # Mostly the same as the method of the parent class, except that we capture the subprocess output.
@@ -98,7 +117,6 @@ class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
             for line in netconvert_output.decode().splitlines():
                 if line.startswith("Warning"):
                     warning_message = line.lstrip("Warning: ")
-                    # Although the messages
                     _LOGGER.debug(
                         f"netconvert produced a warning while creating {self._output_file}: {warning_message}"
                     )

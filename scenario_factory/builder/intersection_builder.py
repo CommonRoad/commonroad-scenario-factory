@@ -1,4 +1,4 @@
-from typing import Generator, List, Optional, Sequence, Set, Tuple, Union
+from typing import Generator, List, Optional, Set, Tuple, Union
 
 from commonroad.scenario.intersection import (
     Intersection,

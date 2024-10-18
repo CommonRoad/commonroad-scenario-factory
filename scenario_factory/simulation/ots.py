@@ -163,12 +163,10 @@ def _redirect_java_log_messages_from_ots_to_logger(target_logger: logging.Logger
             pass
 
         @jpype.JOverride()
-        def flush(self):
-            pass
+        def flush(self): ...
 
         @jpype.JOverride()
-        def close(self):
-            pass
+        def close(self): ...
 
     writers = CategoryLogger.getWriters().toArray()
     if len(writers) != 1:
