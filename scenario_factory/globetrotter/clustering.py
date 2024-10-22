@@ -1,16 +1,19 @@
 import logging
 from collections import defaultdict
 from copy import deepcopy
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
-from commonroad.scenario.intersection import Intersection
+from commonroad.geometry.shape import Circle
+from commonroad.scenario.intersection import Intersection, IntersectionIncomingElement
 from commonroad.scenario.lanelet import Lanelet, LaneletNetwork
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.traffic_light import TrafficLight
 from commonroad.scenario.traffic_sign import TrafficSign
 from scipy.spatial import distance
 from sklearn.cluster import AgglomerativeClustering
+
+from scenario_factory.utils import copy_scenario
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -88,88 +91,8 @@ def centroids_and_distances(
     return centroids, distances, clusters
 
 
-def relevant_traffic_signs(
-    traffic_signs: Sequence[TrafficSign], lanelets: Sequence[Lanelet]
-) -> List[TrafficSign]:
-    """
-    Select traffic signs that are referenced by at least one lanelet.
-
-    :param traffic_lights: The list of traffic_lights to check
-    :param lanelets: The list of lanelets to check against
-    :returns: The selected intersections
-    """
-    referenced_traffic_signs = set()
-
-    for lanelet in lanelets:
-        for traffic_sign in lanelet.traffic_signs:
-            referenced_traffic_signs.add(traffic_sign)
-
-    traffic_signs_dict = {}
-    for traffic_sign in traffic_signs:
-        traffic_signs_dict[traffic_sign.traffic_sign_id] = traffic_sign
-
-    return [
-        traffic_signs_dict[referenced_traffic_sign]
-        for referenced_traffic_sign in referenced_traffic_signs
-    ]
-
-
-def relevant_traffic_lights(
-    traffic_lights: Sequence[TrafficLight], lanelets: Sequence[Lanelet]
-) -> List[TrafficLight]:
-    """
-    Select traffic lights that are referenced by at least one lanelet.
-
-    :param traffic_lights: The list of traffic_lights to check
-    :param lanelets: The list of lanelets to check against
-    :returns: The selected intersections
-    """
-    referenced_traffic_lights = set()
-
-    for lanelet in lanelets:
-        for traffic_light in lanelet.traffic_lights:
-            if len(lanelet.successor) > 0:
-                referenced_traffic_lights.add(traffic_light)
-
-    traffic_lights_dict = {}
-    for traffic_light in traffic_lights:
-        traffic_lights_dict[traffic_light.traffic_light_id] = traffic_light
-
-    return [
-        traffic_lights_dict[referenced_traffic_light]
-        for referenced_traffic_light in referenced_traffic_lights
-    ]
-
-
-def relevant_intersections(
-    intersections: Sequence[Intersection], lanelets: Sequence[Lanelet]
-) -> List[Intersection]:
-    """
-    Select intersections with known incoming lanelets.
-
-    :param intersections: The list of intersections to check
-    :param lanelets: The list of lanelets to check against
-    :returns: The selected intersections
-    """
-    referenced_intersections = set()
-    lanelet_ids = set()
-    for lanelet in lanelets:
-        lanelet_ids.add(lanelet.lanelet_id)
-
-    for intersection in intersections:
-        for incoming in intersection.incomings:
-            if incoming.incoming_lanelets is None:
-                continue
-
-            for lt_id in incoming.incoming_lanelets:
-                if lt_id in lanelet_ids:
-                    referenced_intersections.add(intersection)
-
-    return list(referenced_intersections)
-
-
 def cut_intersection_from_scenario(
-    scenario: Scenario, center: np.ndarray, max_distance: float
+    scenario: Scenario, center: np.ndarray, max_distance: float, intersection_cut_margin: int = 30
 ) -> Scenario:
     """
     Create new scenario from old scenario, by cutting the lanelet network around center with radius
@@ -180,67 +103,19 @@ def cut_intersection_from_scenario(
     :return: New Scenario only containing desired intersection
     """
 
-    intersection_cut_margin = 30
     radius = max_distance + intersection_cut_margin
+    cut_shape = Circle(radius, center)
 
-    net = deepcopy(scenario.lanelet_network)
-    lanelets = net.lanelets_in_proximity(
-        center, radius
-    )  # TODO debug cases where lanelets contains none entries
-    lanelets_not_none = [i for i in lanelets if i is not None]
-    traffic_lights = relevant_traffic_lights(
-        scenario.lanelet_network.traffic_lights, lanelets_not_none
-    )
-    traffic_signs = relevant_traffic_signs(
-        scenario.lanelet_network.traffic_signs, lanelets_not_none
-    )
-    intersections = relevant_intersections(
-        scenario.lanelet_network.intersections, lanelets_not_none
-    )
-    _LOGGER.debug(
-        f"For new scenario from {scenario.scenario_id} identified the interesting intersections '{intersections}' out of all intersections '{[intersection.intersection_id for intersection in scenario.lanelet_network.intersections]}'"
+    cut_lanelet_network = LaneletNetwork.create_from_lanelet_network(
+        scenario.lanelet_network, cut_shape
     )
 
-    # create new scenario
-    cut_lanelet_scenario = Scenario(dt=0.1)
-    cut_lanelet_scenario.scenario_id = deepcopy(scenario.scenario_id)
-    cut_lanelet_network = LaneletNetwork.create_from_lanelet_list(
-        lanelets_not_none, cleanup_ids=False
-    )
-    cut_lanelet_scenario.location = scenario.location
-    cut_lanelet_scenario.replace_lanelet_network(cut_lanelet_network)
-    cut_lanelet_scenario.add_objects(traffic_lights)
-    cut_lanelet_scenario.add_objects(traffic_signs)
-    cut_lanelet_scenario.add_objects(deepcopy(intersections))
-    cut_lanelet_scenario.lanelet_network.cleanup_lanelet_references()
-    cut_lanelet_scenario.lanelet_network.cleanup_traffic_light_references()
-    cut_lanelet_scenario.lanelet_network.cleanup_traffic_sign_references()
+    cut_lanelet_network.cleanup_lanelet_references()
+    cut_lanelet_network.cleanup_traffic_light_references()
+    cut_lanelet_network.cleanup_traffic_sign_references()
 
-    # clean-up intersections
-    remove_intersection = set()
-    for intersection in cut_lanelet_scenario.lanelet_network.intersections:
-        remove_incoming = set()
-        for incoming in intersection.incomings:
-            if (
-                len(incoming.incoming_lanelets) < 1
-                or len(incoming.successors_straight)
-                + len(incoming.successors_left)
-                + len(incoming.successors_right)
-                < 1
-            ):
-                remove_incoming.add(incoming)
-
-        for incoming in remove_incoming:
-            intersection.incomings.remove(incoming)
-
-        if len(intersection.incomings) < 1:
-            remove_intersection.add(intersection)
-
-    for intersection in remove_intersection:
-        _LOGGER.debug(
-            f"Dicarded intersection {intersection} from scenario {cut_lanelet_scenario.scenario_id} because it does not contain "
-        )
-        cut_lanelet_scenario.lanelet_network.remove_intersection(intersection)
+    cut_lanelet_scenario = copy_scenario(scenario)
+    cut_lanelet_scenario.add_objects(cut_lanelet_network)
 
     return cut_lanelet_scenario
 

@@ -14,6 +14,7 @@ nav:
   - Reference:
     - reference/cli.md
     - reference/simulation.md
+    - reference/scenario_generation.md
     - reference/pipeline.md
     - reference/ego_vehicle_selection.md
     - Api:
@@ -22,6 +23,7 @@ nav:
       - reference/api/pipeline_steps.md
       - reference/api/simulation.md
       - reference/api/globetrotter.md
+      - reference/api/builder.md
 theme:
   name: material
   logo: img/commonroad_white150.png
@@ -54,4 +56,8 @@ markdown_extensions:
       # The values of the following tags appear to be invalid YAML, but are according to mkdocs spec: https://github.com/squidfunk/mkdocs-material/blob/master/docs/reference/icons-emojis.md
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format

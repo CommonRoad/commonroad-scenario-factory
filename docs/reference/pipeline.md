@@ -22,10 +22,10 @@ Generally 3 modes are supported:
 By default, each pipeline step is concurrent, but you can change this on a per step basis by setting the `mode` argument in the decorator:
 
 ```python
-from scenario_factory.pipeline import PipelineContext, PipelineStepMode, pipeline_map
+from scenario_factory.pipeline import PipelineContext, PipelineStepExecutionMode, pipeline_map
 from scenario_factory.scenario_types import ScenarioContainer
 
-@pipeline_map(mode=PipelineStepMode.PARALLEL)
+@pipeline_map(mode=PipelineStepExecutionMode.PARALLEL)
 def pipeline_foo(ctx: PipelineContext, scenario_container: ScenarioContainer) -> ScenarioContainer:...
 
 ```

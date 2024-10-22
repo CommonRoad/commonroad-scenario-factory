@@ -4,10 +4,11 @@ import os
 import subprocess
 import warnings
 from pathlib import Path
+from typing import Tuple
 
-from commonroad.scenario.scenario import Scenario
+from commonroad.scenario.scenario import Scenario, Tag
 from crdesigner.map_conversion.sumo_map.config import SumoConfig
-from crdesigner.map_conversion.sumo_map.cr2sumo.converter import CR2SumoMapConverter
+from crdesigner.map_conversion.sumo_map.cr2sumo.converter import TLS, CR2SumoMapConverter
 from crdesigner.map_conversion.sumo_map.errors import ScenarioException
 from crdesigner.map_conversion.sumo_map.sumolib_net import sumo_net_from_xml
 from crdesigner.map_conversion.sumo_map.util import update_edge_lengths
@@ -19,14 +20,32 @@ from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 _LOGGER = logging.getLogger(__name__)
 
 
+def _fix_traffic_light_signal_offsets(traffic_light_signals: TLS) -> None:
+    """
+    Currently the TLS program will be offset by the maximum cycle offset of all traffic lights
+    that are part of one TLS program. This does not realy make sense, because the offsets only apply to individual cycles and not to the whole TLS program.
+    If the offsets are applied however, this means that the CommonRoad and SUMO scenario get out of sync, because the TLS program starts after the CommonRoad one.
+    To keep the CommonRoad and SUMO scenario in sync, the offset is removed here.
+    """
+    for programs in traffic_light_signals.programs.values():
+        for program in programs.values():
+            program.offset = 0
+
+
 # The CR2SumoMapConverter does not limit the output of SUMO netconvert.
 # If we process many different scenarios, netconvert will spam unecessary warnings to the console.
-# Therefore, a custom converter is used, which limits the output by capturing SUMO netconverts output on stderr.
+# Therefore, a custom converter is used, which limits the output by capturing SUMO netconverts output on stderr and also applies some fixes so that the SUMO scenarios become usable.
 class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
     def __init__(self, scenario: Scenario, conf: SumoConfig) -> None:
         # Override the logging level, otherwise the converter will spam info logs (which should be debug logs...)
         conf.logging_level = "ERROR"
         super().__init__(scenario, conf)
+
+    # Overrides the `write_intermediate_files` method of the parent class,
+    # to apply important fix
+    def write_intermediate_files(self, output_path: str) -> Tuple[str, ...]:
+        _fix_traffic_light_signal_offsets(self.traffic_light_signals)
+        return super().write_intermediate_files(output_path)
 
     # Overrides the `merge_intermediate_files` method of the parent class
     # Mostly the same as the method of the parent class, except that we capture the subprocess output.
@@ -74,15 +93,8 @@ class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
             f" --geometry.avoid-overlap=true"
             f" --geometry.remove.keep-edges.explicit=true"
             f" --geometry.remove.min-length=0.0"
-            f" --tls.guess-signals=true"
-            f" --tls.group-signals=true"
-            f" --tls.green.time={50}"
-            f" --tls.red.time={50}"
-            f" --tls.yellow.time={10}"
-            f" --tls.allred.time={50}"
-            f" --tls.left-green.time={50}"
-            f" --tls.crossing-min.time={50}"
-            f" --tls.crossing-clearance.time={50}"
+            f" --tls.crossing-min.time={10}"
+            f" --tls.crossing-clearance.time={10}"
             f" --offset.disable-normalization=true"
             f" --node-files={nodes_path}"
             f" --edge-files={edges_path}"
@@ -105,7 +117,6 @@ class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
             for line in netconvert_output.decode().splitlines():
                 if line.startswith("Warning"):
                     warning_message = line.lstrip("Warning: ")
-                    # Although the messages
                     _LOGGER.debug(
                         f"netconvert produced a warning while creating {self._output_file}: {warning_message}"
                     )
@@ -146,6 +157,8 @@ def _get_new_sumo_config_for_scenario(
     new_sumo_config.simulation_steps = simulation_config.simulation_steps
     new_sumo_config.scenario_name = str(scenario.scenario_id)
     new_sumo_config.dt = scenario.dt
+    # Disable highway mode so that intersections are not falsely identified as zipper junctions
+    new_sumo_config.highway_mode = False
 
     return new_sumo_config
 
@@ -181,7 +194,12 @@ def _execute_sumo_simulation(
     scenario_wrapper: ScenarioWrapper, sumo_config: SumoConfig
 ) -> Scenario:
     """
-    Simulate a CommonRoad scenario
+    Execute the concrete SUMO simulation.
+
+    :param scenario_wrapper: A wrapper around the converted scenario.
+    :param sumo_config: The configuration for the sumo simulation.
+
+    :returns: A new scenario with the trajectories of the simulated obstacles.
     """
     sumo_sim = SumoSimulation()
     sumo_sim.initialize(sumo_config, scenario_wrapper)
@@ -193,7 +211,29 @@ def _execute_sumo_simulation(
     sumo_sim.stop()
 
     scenario = sumo_sim.commonroad_scenarios_all_time_steps()
+    scenario.scenario_id.obstacle_behavior = "T"
+    scenario.scenario_id.prediction_id = 1
     return scenario
+
+
+def _patch_scenario_metadata_after_simulation(simulated_scenario: Scenario) -> None:
+    """
+    Make sure the metadata of `scenario` is updated accordingly after the simulation:
+    * Obstacle behavior is set to 'Trajectory'
+    * The scenario has a prediction ID (required if obstacle behavior is set)
+    * Set the 'simulated' tag
+    """
+    simulated_scenario.scenario_id.obstacle_behavior = "T"
+    if simulated_scenario.scenario_id.configuration_id is None:
+        simulated_scenario.scenario_id.configuration_id = 1
+
+    if simulated_scenario.scenario_id.prediction_id is None:
+        simulated_scenario.scenario_id.prediction_id = 1
+
+    if simulated_scenario.tags is None:
+        simulated_scenario.tags = set()
+
+    simulated_scenario.tags.add(Tag.SIMULATED)
 
 
 def simulate_commonroad_scenario_with_sumo(
@@ -204,6 +244,15 @@ def simulate_commonroad_scenario_with_sumo(
 ) -> Scenario:
     """
     Simulate a CommonRoad scenario with the micrsocopic simulator SUMO. Currently, only random traffic generation is supported.
+
+    :param scenario: The scenario with a lanelet network on which random traffic should be generated.
+    :param simulation_config: The configuration for this simulation.
+    :param working_directory: An empty directory that can be used to place SUMOs intermediate files there.
+    :param seed: The random seed, used for the random traffic generation.
+
+    :returns: A new scenario with the simulated trajectories.
+
+    :raises ValueError: If the selected simulation mode is not supported.
     """
     if simulation_config.mode != SimulationMode.RANDOM_TRAFFIC_GENERATION:
         raise ValueError(
@@ -216,5 +265,7 @@ def simulate_commonroad_scenario_with_sumo(
         scenario, working_directory, sumo_config
     )
     new_scenario = _execute_sumo_simulation(scenario_wrapper, sumo_config)
+
+    _patch_scenario_metadata_after_simulation(new_scenario)
 
     return new_scenario

@@ -28,4 +28,18 @@ logger.setLevel(logging.DEBUG)
 ## print
 !!! warning
 
-    Because the different projects from the CommonRoad contain many `print` debug statements even in their production releases, the pipeline will blackhole all calls to `print`. Therefore, you can also not use `print` inside your pipeline steps and instead you should resort to using descriptive log messages.
+    Because the different projects from the CommonRoad ecosystem contain many `print` debug statements even in their production releases, the pipeline will blackhole all calls to `print`. Therefore, by default, you can also not use `print` inside your pipeline steps and instead you should resort to using descriptive log messages.
+
+If you insist on using print statements, you need to enable the debug mode for the pipeline. This will allow print statements.
+
+## Use a Debugger
+
+Although you might be able to use a debugger without any configuration, it is highly recommended to enable the debug mode on the pipeline:
+
+```python
+...
+result = pipeline.execute([1,2,3], debug=True)
+...
+```
+
+This will disable concurrency on the pipeline and execute everything on the main thread, making debugging much easier. Additionally, it enables print statements which is necessary, when you are using the built-in `breakpoint()` and debug in a console.
