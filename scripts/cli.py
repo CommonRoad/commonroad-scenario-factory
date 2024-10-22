@@ -60,7 +60,6 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
     output_path = Path(output)
     if not output_path.exists():
         output_path.mkdir(parents=True)
-
     root_logger = configure_root_logger(logging.INFO)
 
     scenario_config = ScenarioFactoryConfig(seed=seed, cr_scenario_time_steps=150)

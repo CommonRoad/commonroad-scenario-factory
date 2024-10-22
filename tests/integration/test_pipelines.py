@@ -111,7 +111,7 @@ class TestScenarioGeneration:
 
 class TestSimulationWithSumo:
     def test_simulate_scenario_with_sumo_creates_random_traffic_on_empty_map(self):
-        input_maps = load_scenarios_from_folder(ResourceType.CR_MAP.get_folder())
+        input_maps = load_scenarios_from_folder(ResourceType.COMMONROAD_MAP.get_folder())
         assert len(input_maps) > 0
 
         with tempfile.TemporaryDirectory() as tempdir:
@@ -151,7 +151,7 @@ class TestSimulationWithSumo:
 
 class TestSimulationWithOts:
     def test_simulate_scenario_with_ots_creates_random_traffic_on_empty_map(self):
-        input_maps = load_scenarios_from_folder(ResourceType.CR_MAP.get_folder())
+        input_maps = load_scenarios_from_folder(ResourceType.COMMONROAD_MAP.get_folder())
         assert len(input_maps) > 0
 
         with tempfile.TemporaryDirectory() as tempdir:

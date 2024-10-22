@@ -2,6 +2,7 @@ __all__ = [
     "Pipeline",
     "PipelineStepArguments",
     "PipelineContext",
+    "PipelineStep",
     "PipelineStepResult",
     "PipelineStepType",
     "PipelineStepExecutionMode",
@@ -17,6 +18,7 @@ from .pipeline import Pipeline, PipelineExecutionResult
 from .pipeline_context import PipelineContext
 from .pipeline_step import (
     PipelineFilterPredicate,
+    PipelineStep,
     PipelineStepArguments,
     PipelineStepExecutionMode,
     PipelineStepResult,

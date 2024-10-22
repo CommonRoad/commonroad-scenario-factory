@@ -57,6 +57,12 @@ def copy_scenario(
 ) -> Scenario:
     """
     Helper to efficiently copy a CommonRoad Scenario. Should be prefered over a simple deepcopy of the scenario object, if not all elements of the input scenario are required in the end (e.g. the dynamic obstacles should not be included)
+
+    :param scenario: The scenario to be copied.
+    :param copy_lanelet_network: If True, the lanelet network (and all of its content) will be copied to the new scenario. If False, the new scenario will have no lanelet network.
+    :param copy_dynamic_obstacles: If True, the dynamic obtsacles will be copied to the new scenario. If False, the new scenario will have no dynamic obstacles.
+    :param copy_static_obstacles: If True, the static obstacles will be copied to the new scenario. If False, the new scenario will have no static obstacles.
+    :param copy_environment_obstacles: If True, the environment obstacles will be copied to the new scenario. If False, the new scenario will have no environment obstacles.
     """
     new_scenario = _create_new_scenario_with_metadata_from_old_scenario(scenario)
 
@@ -160,7 +166,15 @@ def convert_state_to_state_type(
 
 
 def convert_state_to_state(input_state: TraceState, reference_state: TraceState) -> TraceState:
-    if input_state.used_attributes == reference_state.used_attributes:
+    """
+    Alternative to `State.convert_state_to_state`, which can also handle `CustomState`.
+
+    :param input_state: The state which should be convereted. If the attributes already match those of `reference_state`, `input_state` will be returned.
+    :param reference_state: The state which will be used as a reference, for which attributes should be available of the resulting state. All attributes which are not yet present on `input_state` will be set to their defaults.
+
+    :returns: Either the `input_state`, if the attributes already match. Otherwise, a new state with the attributes from `reference_state` and values from `input_state`. If not all attributes of `reference_state` are available in `input_state` they are not included in the new state.
+    """
+    if set(input_state.used_attributes) == set(reference_state.used_attributes):
         return input_state
 
     new_state = type(reference_state)()
@@ -182,7 +196,7 @@ def get_full_state_list_of_obstacle(
     :param dynamic_obstacle: The obstacle from which the states should be extracted
     :param target_state_type: Provide an optional state type, to which all resulting states should be converted
 
-    :returns: The full state list of the obstacle where all states have the same state type
+    :returns: The full state list of the obstacle where all states have the same state type. This does however not guarantee that all states also have the same attributes, if `CustomStates` are used. See `convert_state_to_state` for more information.
     """
     if target_state_type == CustomState:
         raise ValueError(
