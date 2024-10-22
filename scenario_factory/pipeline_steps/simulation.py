@@ -10,7 +10,7 @@ from typing import Optional
 from scenario_factory.pipeline import (
     PipelineContext,
     PipelineStepArguments,
-    PipelineStepMode,
+    PipelineStepExecutionMode,
     pipeline_map_with_args,
 )
 from scenario_factory.scenario_types import ScenarioContainer
@@ -26,7 +26,7 @@ class SimulateScenarioArguments(PipelineStepArguments):
     config: SimulationConfig
 
 
-@pipeline_map_with_args(mode=PipelineStepMode.PARALLEL)
+@pipeline_map_with_args(mode=PipelineStepExecutionMode.PARALLEL)
 def pipeline_simulate_scenario_with_sumo(
     args: SimulateScenarioArguments, ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> ScenarioContainer:
@@ -50,7 +50,7 @@ def pipeline_simulate_scenario_with_sumo(
     return ScenarioContainer(simulated_scenario)
 
 
-@pipeline_map_with_args(mode=PipelineStepMode.PARALLEL)
+@pipeline_map_with_args(mode=PipelineStepExecutionMode.PARALLEL)
 def pipeline_simulate_scenario_with_ots(
     args: SimulateScenarioArguments, ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> Optional[ScenarioContainer]:

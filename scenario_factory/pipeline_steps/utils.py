@@ -26,7 +26,10 @@ from scenario_factory.scenario_types import (
     is_scenario_with_planning_problem_set,
     is_scenario_with_solution,
 )
-from scenario_factory.tags import find_applicable_tags_for_scenario
+from scenario_factory.tags import (
+    find_applicable_tags_for_planning_problem_set,
+    find_applicable_tags_for_scenario,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,7 +48,7 @@ def pipeline_write_scenario_to_file(
     scenario_container: ScenarioContainer,
 ) -> ScenarioContainer:
     """
-    Write a CommonRoad scenario to a file in the :param:`args.output_folder`. If the :param:`scenario_container` also holds a planning problem set or a planning problem solution, they will also be written to disk.
+    Write a CommonRoad scenario to a file in the `args.output_folder`. If the `scenario_container` also holds a planning problem set or a planning problem solution, they will also be written to disk.
     """
     planning_problem_set = (
         scenario_container.planning_problem_set
@@ -88,14 +91,26 @@ def pipeline_assign_tags_to_scenario(
     ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> ScenarioContainer:
     """
-    Find applicable tags for the scenario. Preserves existing tags.
+    Find applicable tags for the scenario. Preserves existing tags and guarantees that the tags attribute of the scenario is set.
+
+    :param ctx: The pipeline execution context.
+    :param scenario_container: The scenario for which tags will be selected. If the container, also has a planning problem set attached, tags for the planning problems will also be assigned.
+
+    :returns: The updated scenario container.
     """
     commonroad_scenario = scenario_container.scenario
-    tags = find_applicable_tags_for_scenario(commonroad_scenario)
     if commonroad_scenario.tags is None:
-        commonroad_scenario.tags = tags
-    else:
-        commonroad_scenario.tags.update(tags)
+        commonroad_scenario.tags = set()
+
+    scenario_tags = find_applicable_tags_for_scenario(commonroad_scenario)
+    commonroad_scenario.tags.update(scenario_tags)
+
+    if is_scenario_with_planning_problem_set(scenario_container):
+        planning_problem_set = scenario_container.planning_problem_set
+        planning_problem_tags = find_applicable_tags_for_planning_problem_set(
+            commonroad_scenario, planning_problem_set
+        )
+        commonroad_scenario.tags.update(planning_problem_tags)
 
     return scenario_container
 
