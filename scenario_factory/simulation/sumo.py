@@ -211,6 +211,8 @@ def _execute_sumo_simulation(
     sumo_sim.stop()
 
     scenario = sumo_sim.commonroad_scenarios_all_time_steps()
+    scenario.scenario_id.obstacle_behavior = "T"
+    scenario.scenario_id.prediction_id = 1
     return scenario
 
 

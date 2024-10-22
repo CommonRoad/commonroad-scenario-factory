@@ -9,7 +9,6 @@ __all__ = [
     "IntersectionBuilder",
     "IntersectionIncomingElementBuilder",
 ]
-
 from .dynamic_obstacle_builder import DynamicObstacleBuilder
 from .intersection_builder import IntersectionBuilder, IntersectionIncomingElementBuilder
 from .lanelet_network_builder import LaneletNetworkBuilder, TrafficSignBuilder
