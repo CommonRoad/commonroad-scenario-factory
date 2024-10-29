@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Tuple
 
 from commonroad.scenario.scenario import Scenario, Tag
-from sumocr.interface.sumo_simulation import SumoSimulation
 from sumocr.scenario.scenario_wrapper import SumoScenarioWrapper
 from sumocr.simulation.non_interactive_simulation import NonInteractiveSumoSimulation
 from sumocr.sumo_map.config import SumoConfig
