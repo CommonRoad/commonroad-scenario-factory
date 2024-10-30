@@ -1,16 +1,18 @@
 import logging
-import numpy as np
 from dataclasses import dataclass
 
+import numpy as np
 from commonroad.scenario.scenario import Scenario
 
 _LOGGER = logging.getLogger(__name__)
+
 
 @dataclass
 class WaymoMetricResult:
     """
     Data class for the Waymo metrics.
     """
+
     ADE3: float
     ADE5: float
     ADE8: float
@@ -43,14 +45,18 @@ def compute_waymo_metrics(scenario: Scenario, scenario_reference: Scenario) -> W
     for dyn_obst in scenario.dynamic_obstacles:
         dyn_obst_ref = scenario_reference.obstacle_by_id(dyn_obst.obstacle_id)
         if dyn_obst_ref is None:
-            logging.warning(f"Obstacle with ID {dyn_obst.obstacle_id} not found in reference scenario {scenario_reference.scenario_id}")
+            logging.warning(
+                f"Obstacle with ID {dyn_obst.obstacle_id} not found in reference scenario {scenario_reference.scenario_id}"
+            )
             continue
 
         displacement_errors = []
 
         states = dyn_obst.prediction.trajectory.state_list
         states_ref = dyn_obst_ref.prediction.trajectory.state_list
-        assert states[0].time_step == states_ref[0].time_step  # TODO offset could be != 0, but then we need to handle it
+        assert (
+            states[0].time_step == states_ref[0].time_step
+        )  # TODO offset could be != 0, but then we need to handle it
 
         for k in range(len(states)):
             displacement_errors.append(np.linalg.norm(states[k].position - states_ref[k].position))

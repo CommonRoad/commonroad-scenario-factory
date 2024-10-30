@@ -94,10 +94,12 @@ class ScenarioWithReferenceScenario(ScenarioContainer):
         super().__init__(scenario)
         self.reference_scenario = reference_scenario
 
+
 def is_scenario_with_reference_scenario(
     scenario_container: ScenarioContainer,
 ) -> TypeGuard[ScenarioWithReferenceScenario]:
     return isinstance(scenario_container, ScenarioWithReferenceScenario)
+
 
 class ScenarioWithEgoVehicleManeuver(ScenarioContainer):
     ego_vehicle_maneuver: EgoVehicleManeuver
