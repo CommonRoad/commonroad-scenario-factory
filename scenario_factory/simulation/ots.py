@@ -207,7 +207,7 @@ def _simulation_mode_to_crots_abstraction_level(
         return AbstractionLevel.RANDOM
     elif simulation_mode == SimulationMode.RESIMULATION:
         return AbstractionLevel.RESIMULATION
-    elif simulation_mode == SimulationMode.DELAY_RESIMULATION:
+    elif simulation_mode == SimulationMode.DELAY:
         return AbstractionLevel.DELAY
     elif simulation_mode == SimulationMode.DEMAND_TRAFFIC_GENERATION:
         return AbstractionLevel.DEMAND

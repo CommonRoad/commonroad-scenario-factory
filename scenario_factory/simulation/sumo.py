@@ -211,8 +211,6 @@ def _execute_sumo_simulation(
     simulation_result = sumo_sim.run(sumo_config.simulation_steps)
     scenario = simulation_result.scenario
 
-    scenario.scenario_id.obstacle_behavior = "T"
-    scenario.scenario_id.prediction_id = 1
     return scenario
 
 
@@ -241,8 +239,10 @@ def _get_traffic_generation_mode_for_simulation_mode(
 ) -> SumoTrafficGenerationMode:
     if simulation_mode == SimulationMode.RANDOM_TRAFFIC_GENERATION:
         return SumoTrafficGenerationMode.RANDOM
-    elif simulation_mode == SimulationMode.DELAY_RESIMULATION:
+    elif simulation_mode == SimulationMode.DELAY:
         return SumoTrafficGenerationMode.TRAJECTORIES
+    elif simulation_mode == SimulationMode.RESIMULATION:
+        return SumoTrafficGenerationMode.TRAJECTORIES_UNSAFE
     else:
         raise ValueError(
             f"Cannot determine traffic generation mode for simulation mode {simulation_mode}"
@@ -269,7 +269,8 @@ def simulate_commonroad_scenario_with_sumo(
     """
     supported_simulation_modes = [
         SimulationMode.RANDOM_TRAFFIC_GENERATION,
-        SimulationMode.DELAY_RESIMULATION,
+        SimulationMode.DELAY,
+        SimulationMode.RESIMULATION,
     ]
     if simulation_config.mode not in supported_simulation_modes:
         raise ValueError(

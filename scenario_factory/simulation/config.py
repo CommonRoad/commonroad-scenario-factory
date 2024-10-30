@@ -17,11 +17,11 @@ class SimulationMode(Enum):
     INFRASTRUCTURE_TRAFFIC_GENERATION = auto()
     """Generate traffic on a lanelet network according to the lanelet capacities that are calculated from the scenario."""
 
-    DELAY_RESIMULATION = auto()
+    DELAY = auto()
     """Resimulate a scenario, but optionally delay the insertion of new vehicles if they would cause unsafe situations."""
 
     RESIMULATION = auto()
-    """Resimulate the scenario."""
+    """Resimulate the scenario as close as possible. This can lead to unsafe insertions of """
 
 
 @dataclass

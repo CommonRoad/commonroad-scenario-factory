@@ -12,14 +12,14 @@ from scenario_factory.pipeline_steps.utils import (
 from scenario_factory.scenario_types import load_scenarios_from_folder
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 
-input_folder = Path("<>")
+input_folder = Path("../cr-ots-interface/resources/mona")
 output_folder = Path("/tmp/scenario_factory")
 output_folder.mkdir(exist_ok=True)
 
 pipeline = Pipeline()
 pipeline.map(
     pipeline_simulate_scenario_with_sumo(
-        SimulateScenarioArguments(config=SimulationConfig(mode=SimulationMode.DELAY_RESIMULATION))
+        SimulateScenarioArguments(config=SimulationConfig(mode=SimulationMode.DELAY))
     )
 )
 pipeline.map(
