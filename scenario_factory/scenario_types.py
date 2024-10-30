@@ -10,6 +10,7 @@ from commonroad.scenario.scenario import Scenario
 from typing_extensions import TypeGuard
 
 from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
+from scenario_factory.metrics.waymo import WaymoMetricResult
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,6 +72,32 @@ def is_scenario_with_solution(
 ) -> TypeGuard[ScenarioWithSolution]:
     return isinstance(scenario_container, ScenarioWithSolution)
 
+
+class ScenarioWithWaymoMetrics(ScenarioContainer):
+    waymo_metrics: WaymoMetricResult
+
+    def __init__(self, scenario: Scenario, waymo_metrics: WaymoMetricResult) -> None:
+        super().__init__(scenario)
+        self.waymo_metrics = waymo_metrics
+
+
+def is_scenario_with_waymo_metrics(
+    scenario_container: ScenarioContainer,
+) -> TypeGuard[ScenarioWithWaymoMetrics]:
+    return isinstance(scenario_container, ScenarioWithWaymoMetrics)
+
+
+class ScenarioWithReferenceScenario(ScenarioContainer):
+    reference_scenario: Scenario
+
+    def __init__(self, scenario: Scenario, reference_scenario: Scenario) -> None:
+        super().__init__(scenario)
+        self.reference_scenario = reference_scenario
+
+def is_scenario_with_reference_scenario(
+    scenario_container: ScenarioContainer,
+) -> TypeGuard[ScenarioWithReferenceScenario]:
+    return isinstance(scenario_container, ScenarioWithReferenceScenario)
 
 class ScenarioWithEgoVehicleManeuver(ScenarioContainer):
     ego_vehicle_maneuver: EgoVehicleManeuver
