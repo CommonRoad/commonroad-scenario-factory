@@ -7,12 +7,22 @@ __all__ = [
 ]
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Sequence
 
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
-from commonroad.common.solution import CommonRoadSolutionWriter
+from commonroad.common.solution import CommonRoadSolutionWriter, List
 from commonroad.planning.planning_problem import PlanningProblemSet
+from commonroad_crime.data_structure.base import CriMeBase
+from commonroad_crime.measure import TTCStar
+from commonroad_labeling.criticality.computer.cm_computer import CMComputer
+from commonroad_labeling.criticality.input_output.crime_output import (
+    parse_crime_output_dir_to_object,
+)
+from commonroad_labeling.criticality.trajectory_inserter.trajectory_inserter import (
+    TrajectoryInserter,
+)
 
 from scenario_factory.pipeline import (
     PipelineContext,
@@ -20,9 +30,12 @@ from scenario_factory.pipeline import (
     pipeline_map,
     pipeline_map_with_args,
 )
+from scenario_factory.pipeline.pipeline_step import pipeline_fold
 from scenario_factory.scenario_generation import delete_colliding_obstacles_from_scenario
 from scenario_factory.scenario_types import (
     ScenarioContainer,
+    ScenarioWithCriticalityData,
+    ScenarioWithPlanningProblemSet,
     is_scenario_with_planning_problem_set,
     is_scenario_with_solution,
 )
@@ -154,3 +167,45 @@ def pipeline_remove_colliding_dynamic_obstacles(
             commonroad_scenario.scenario_id,
         )
     return scenario_container
+
+
+@dataclass
+class ComputeCriticalityMetricsArgs(PipelineStepArguments):
+    metrics: Sequence[type[CriMeBase]] = field(default_factory=lambda: [TTCStar])
+
+
+@pipeline_map_with_args()
+def pipeline_compute_criticality_metrics(
+    args: ComputeCriticalityMetricsArgs,
+    ctx: PipelineContext,
+    scenario_container: ScenarioWithPlanningProblemSet,
+) -> ScenarioWithCriticalityData:
+    trajectory_inserter = TrajectoryInserter()
+    scenario_with_ego_trajectory, ego_id = trajectory_inserter.insert_ego_trajectory(
+        scenario_container.scenario, scenario_container.planning_problem_set
+    )
+
+    runtime_directory_path = ctx.get_temporary_folder("crime") / str(
+        scenario_container.scenario.scenario_id
+    )
+    runtime_directory = str(runtime_directory_path.absolute())
+    # `metrics` argument of CMComputer has the wrong type annotation
+    cm_computer = CMComputer(metrics=args.metrics)  # type: ignore
+    cm_computer.compute_metrics_for_id(scenario_with_ego_trajectory, ego_id, "", runtime_directory)
+
+    crime_metrics = parse_crime_output_dir_to_object(runtime_directory)
+    if len(crime_metrics) > 1:
+        raise RuntimeError(
+            f"Found {len(crime_metrics)} CriMe metric files for scenario {scenario_container.scenario}, but only one can be processed. This means there is a duplicated scenario ID."
+        )
+
+    if len(crime_metrics) < 1:
+        raise RuntimeError()
+
+    crime_metric_data_of_scenario = crime_metrics[0]
+
+    return ScenarioWithCriticalityData(
+        scenario_container.scenario,
+        scenario_container.planning_problem_set,
+        crime_metric_data_of_scenario,
+    )
