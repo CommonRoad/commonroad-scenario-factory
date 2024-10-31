@@ -13,7 +13,7 @@ from scenario_factory.pipeline import (
     PipelineStepExecutionMode,
     pipeline_map_with_args,
 )
-from scenario_factory.scenario_types import ScenarioContainer
+from scenario_factory.scenario_types import ScenarioContainer, ScenarioWithReferenceScenario
 from scenario_factory.simulation.config import SimulationConfig
 from scenario_factory.simulation.ots import simulate_commonroad_scenario_with_ots
 from scenario_factory.simulation.sumo import simulate_commonroad_scenario_with_sumo
@@ -67,4 +67,4 @@ def pipeline_simulate_scenario_with_ots(
         simulated_scenario.scenario_id,
         len(simulated_scenario.dynamic_obstacles),
     )
-    return ScenarioContainer(simulated_scenario)
+    return ScenarioWithReferenceScenario(simulated_scenario, commonroad_scenario)

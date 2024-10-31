@@ -1,7 +1,7 @@
 import logging
 import math
-from dataclasses import dataclass
-from typing import List, Tuple
+from dataclasses import dataclass, fields
+from typing import List, Tuple, get_args
 
 import numpy as np
 from commonroad.scenario.scenario import Scenario
@@ -23,12 +23,12 @@ class WaymoMetricResult:
     FDE3: float
     FDE5: float
     FDE8: float
-    miss_rate3: float
-    miss_rate5: float
-    miss_rate8: float
+    MR3: float
+    MR5: float
+    MR8: float
 
     def __str__(self) -> str:
-        return f"Waymo Metrics: ADE3={self.ADE3}, ADE5={self.ADE5}, ADE8={self.ADE8}"
+        return "Waymo Metrics: " + ", ".join([f"{field.name}: {getattr(self, field.name):.4f}" for field in fields(self)])
 
 
 def compute_waymo_metrics(scenario: Scenario, scenario_reference: Scenario) -> WaymoMetricResult:
@@ -47,7 +47,7 @@ def compute_waymo_metrics(scenario: Scenario, scenario_reference: Scenario) -> W
 
     ade3s, ade5s, ade8s = [], [], []
     fde3s, fde5s, fde8s = [], [], []
-    miss_rate3s, miss_rate5s, miss_rate8s = [], [], []
+    MR3s, MR5s, MR8s = [], [], []
     for dyn_obst in scenario.dynamic_obstacles:
         dyn_obst_ref = scenario_reference.obstacle_by_id(dyn_obst.obstacle_id)
         if dyn_obst_ref is None:
@@ -63,17 +63,17 @@ def compute_waymo_metrics(scenario: Scenario, scenario_reference: Scenario) -> W
         time_step_offset = states[0].time_step - states_ref[0].time_step
         assert time_step_offset >= 0  # vehicles can only be spawned after the reference vehicle
 
-        for k in range(len(states)):
+        for k in range(min(len(states), len(states_ref) - time_step_offset)):
             displacement_errors.append(
                 np.linalg.norm(states[k].position - states_ref[k + time_step_offset].position)
             )
 
         ade3, ade5, ade8, fde3, fde5, fde8 = _waymo_metrics_de(displacement_errors, scenario.dt)
-        mr3, mr5, mr8 = _waymo_metrics_miss_rate(states, states_ref[time_step_offset:], scenario.dt)
+        mr3, mr5, mr8 = _waymo_metrics_MR(states, states_ref[time_step_offset:], scenario.dt)
 
         for value, container in zip(
             [ade3, ade5, ade8, fde3, fde5, fde8, mr3, mr5, mr8],
-            [ade3s, ade5s, ade8s, fde3s, fde5s, fde8s, miss_rate3s, miss_rate5s, miss_rate8s],
+            [ade3s, ade5s, ade8s, fde3s, fde5s, fde8s, MR3s, MR5s, MR8s],
         ):
             if not math.isnan(value):
                 container.append(value)
@@ -85,9 +85,9 @@ def compute_waymo_metrics(scenario: Scenario, scenario_reference: Scenario) -> W
         np.mean(np.array(fde3s)),
         np.mean(np.array(fde5s)),
         np.mean(np.array(fde8s)),
-        np.mean(np.array(miss_rate3s)),
-        np.mean(np.array(miss_rate5s)),
-        np.mean(np.array(miss_rate8s)),
+        np.mean(np.array(MR3s)),
+        np.mean(np.array(MR5s)),
+        np.mean(np.array(MR8s)),
     )
 
 
@@ -129,7 +129,7 @@ def _waymo_metrics_de(
     return ade3, ade5, ade8, fde3, fde5, fde8
 
 
-def _waymo_metrics_miss_rate(
+def _waymo_metrics_MR(
     states: List, states_ref: List, time_step_size: float
 ) -> Tuple[float, float, float]:
     """
@@ -143,7 +143,7 @@ def _waymo_metrics_miss_rate(
     if min_len > index_3:
         threshold_lon_scaled = 2 * _scale(states_ref[0].velocity)
         threshold_lat_scaled = 1 * _scale(states_ref[0].velocity)
-        miss_rate3 = (
+        MR3 = (
             sum(
                 [
                     is_miss(states[k], states_ref[k], threshold_lon_scaled, threshold_lat_scaled)
@@ -153,11 +153,11 @@ def _waymo_metrics_miss_rate(
             / index_3
         )
     else:
-        miss_rate3 = float("nan")
+        MR3 = float("nan")
     if min_len > index_5:
         threshold_lon_scaled = 3.6 * _scale(states_ref[0].velocity)
         threshold_lat_scaled = 1.8 * _scale(states_ref[0].velocity)
-        miss_rate5 = (
+        MR5 = (
             sum(
                 [
                     is_miss(states[k], states_ref[k], threshold_lon_scaled, threshold_lat_scaled)
@@ -167,11 +167,11 @@ def _waymo_metrics_miss_rate(
             / index_5
         )
     else:
-        miss_rate5 = float("nan")
+        MR5 = float("nan")
     if min_len > index_8:
         threshold_lon_scaled = 6 * _scale(states_ref[0].velocity)
         threshold_lat_scaled = 3 * _scale(states_ref[0].velocity)
-        miss_rate8 = (
+        MR8 = (
             sum(
                 [
                     is_miss(states[k], states_ref[k], threshold_lon_scaled, threshold_lat_scaled)
@@ -181,9 +181,9 @@ def _waymo_metrics_miss_rate(
             / index_8
         )
     else:
-        miss_rate8 = float("nan")
+        MR8 = float("nan")
 
-    return miss_rate3, miss_rate5, miss_rate8
+    return MR3, MR5, MR8
 
 
 def is_miss(
