@@ -2,6 +2,7 @@ import builtins
 import copy
 import dataclasses
 import logging
+import math
 from contextlib import contextmanager
 from typing import AnyStr, Callable, Optional, Protocol, Sequence, Type, TypeVar, Union
 
@@ -23,6 +24,22 @@ from commonroad.scenario.state import (
     TraceState,
 )
 from typing_extensions import TypeGuard
+
+
+def get_scenario_length(scenario: Scenario) -> int:
+    max_time_step = 0
+    for dynamic_obstacle in scenario.dynamic_obstacles:
+        if dynamic_obstacle.prediction is None:
+            continue
+
+        if not isinstance(dynamic_obstacle.prediction, TrajectoryPrediction):
+            continue
+
+        max_time_step = max(
+            max_time_step, dynamic_obstacle.prediction.trajectory.final_state.time_step
+        )
+
+    return max_time_step
 
 
 def _create_new_scenario_with_metadata_from_old_scenario(scenario: Scenario) -> Scenario:
