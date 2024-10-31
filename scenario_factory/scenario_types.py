@@ -7,6 +7,7 @@ from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.common.solution import PlanningProblemSolution, Solution
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
+from commonroad_labeling.criticality.input_output.crime_output import ScenarioCriticalityData
 from typing_extensions import TypeGuard
 
 from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
@@ -78,6 +79,19 @@ class ScenarioWithEgoVehicleManeuver(ScenarioContainer):
     def __init__(self, scenario: Scenario, ego_vehicle_maneuver: EgoVehicleManeuver) -> None:
         super().__init__(scenario)
         self.ego_vehicle_maneuver = ego_vehicle_maneuver
+
+
+class ScenarioWithCriticalityData(ScenarioWithPlanningProblemSet):
+    criticality_data: ScenarioCriticalityData
+
+    def __init__(
+        self,
+        scenario: Scenario,
+        planning_problem_set: PlanningProblemSet,
+        criticality_data: ScenarioCriticalityData,
+    ) -> None:
+        super().__init__(scenario, planning_problem_set)
+        self.criticality_data = criticality_data
 
 
 def is_scenario_with_ego_vehicle_maneuver(
