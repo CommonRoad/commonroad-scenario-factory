@@ -147,6 +147,7 @@ def _get_new_sumo_config_for_scenario(
     scenario: Scenario, simulation_config: SimulationConfig, seed: int
 ) -> SumoConfig:
     new_sumo_config = SumoConfig()
+    # TODO: make this cleaner and maybe also apply to OTS simulation?
     if simulation_config.simulation_steps is None:
         if simulation_config.mode in [SimulationMode.RANDOM_TRAFFIC_GENERATION]:
             raise ValueError(
@@ -154,6 +155,13 @@ def _get_new_sumo_config_for_scenario(
             )
         else:
             new_sumo_config.simulation_steps = get_scenario_length(scenario)
+            _LOGGER.debug(
+                "Simulation step was not set for SUMO simulation with mode %s, so it was autodetermined to be %s",
+                simulation_config.mode,
+                new_sumo_config.simulation_steps,
+            )
+    else:
+        new_sumo_config.simulation_steps = simulation_config.simulation_steps
 
     new_sumo_config.random_seed = seed
     new_sumo_config.random_seed_trip_generation = seed
