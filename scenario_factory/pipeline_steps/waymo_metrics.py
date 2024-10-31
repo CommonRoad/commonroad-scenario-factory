@@ -38,7 +38,9 @@ def pipeline_compute_waymo_metrics(
     :param scenario_container: The scenario for which the metrics should be computed. Will not be modified.
     """
     assert isinstance(scenario_container, ScenarioWithReferenceScenario)
-    waymo_metrics = compute_waymo_metrics(scenario_container.scenario, scenario_container.reference_scenario)
+    waymo_metrics = compute_waymo_metrics(
+        scenario_container.scenario, scenario_container.reference_scenario
+    )
     # _LOGGER.warning("Computing Waymo Metric for: ", commonroad_scenario.scenario_id)
     _LOGGER.warning(
         "Computed Waymo metrics for scenario %s: %s",

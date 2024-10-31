@@ -3,7 +3,10 @@ from pathlib import Path
 from typing import Iterable
 
 from scenario_factory.pipeline import Pipeline
-from scenario_factory.pipeline_steps import pipeline_simulate_scenario_with_ots, SimulateScenarioArguments
+from scenario_factory.pipeline_steps import (
+    SimulateScenarioArguments,
+    pipeline_simulate_scenario_with_ots,
+)
 from scenario_factory.pipeline_steps.waymo_metrics import (
     ComputeWaymoMetricsArguments,
     pipeline_compute_waymo_metrics,
@@ -12,7 +15,11 @@ from scenario_factory.scenario_types import ScenarioWithWaymoMetrics, load_scena
 from scenario_factory.simulation import SimulationConfig, SimulationMode
 
 pipeline = Pipeline()
-pipeline.map(pipeline_simulate_scenario_with_ots(SimulateScenarioArguments(SimulationConfig(SimulationMode.RESIMULATION))))
+pipeline.map(
+    pipeline_simulate_scenario_with_ots(
+        SimulateScenarioArguments(SimulationConfig(SimulationMode.RESIMULATION))
+    )
+)
 pipeline.map(pipeline_compute_waymo_metrics(ComputeWaymoMetricsArguments()))
 
 
@@ -42,7 +49,21 @@ def dump_waymo_metrics(
         )
 
     with open(csv_file_path, "w") as csv_file:
-        csv_writer = csv.DictWriter(csv_file, fieldnames=["scenario_id", "ADE3", "ADE5", "ADE8", "FDE3", "FDE5", "FDE8", "MR3", "MR5", "MR8"])
+        csv_writer = csv.DictWriter(
+            csv_file,
+            fieldnames=[
+                "scenario_id",
+                "ADE3",
+                "ADE5",
+                "ADE8",
+                "FDE3",
+                "FDE5",
+                "FDE8",
+                "MR3",
+                "MR5",
+                "MR8",
+            ],
+        )
         csv_writer.writeheader()
         csv_writer.writerows(formatted_data)
 

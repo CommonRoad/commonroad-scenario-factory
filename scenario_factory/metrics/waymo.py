@@ -28,7 +28,9 @@ class WaymoMetricResult:
     MR8: float
 
     def __str__(self) -> str:
-        return "Waymo Metrics: " + ", ".join([f"{field.name}: {getattr(self, field.name):.4f}" for field in fields(self)])
+        return "Waymo Metrics: " + ", ".join(
+            [f"{field.name}: {getattr(self, field.name):.4f}" for field in fields(self)]
+        )
 
 
 def compute_waymo_metrics(scenario: Scenario, scenario_reference: Scenario) -> WaymoMetricResult:
@@ -45,9 +47,15 @@ def compute_waymo_metrics(scenario: Scenario, scenario_reference: Scenario) -> W
     assert scenario.scenario_id == scenario_reference.scenario_id
     assert scenario.dt == scenario_reference.dt
 
-    ade3s, ade5s, ade8s = [], [], []
-    fde3s, fde5s, fde8s = [], [], []
-    MR3s, MR5s, MR8s = [], [], []
+    ade3s: List[float] = []
+    ade5s: List[float] = []
+    ade8s: List[float] = []
+    fde3s: List[float] = []
+    fde5s: List[float] = []
+    fde8s: List[float] = []
+    MR3s: List[float] = []
+    MR5s: List[float] = []
+    MR8s: List[float] = []
     for dyn_obst in scenario.dynamic_obstacles:
         dyn_obst_ref = scenario_reference.obstacle_by_id(dyn_obst.obstacle_id)
         if dyn_obst_ref is None:
