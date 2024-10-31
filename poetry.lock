@@ -380,8 +380,8 @@ scikit-learn = "^1.4"
 [package.source]
 type = "git"
 url = "git@gitlab.lrz.de:cps/commonroad/automatic-scenario-labeling.git"
-reference = "8636ebaeb3f936d200a05ffa3e4ce4a30547e815"
-resolved_reference = "8636ebaeb3f936d200a05ffa3e4ce4a30547e815"
+reference = "64985b953da3fdc3a0c3046a64478a040ff17bf1"
+resolved_reference = "64985b953da3fdc3a0c3046a64478a040ff17bf1"
 
 [[package]]
 name = "commonroad-reach"
@@ -1901,13 +1901,13 @@ pyyaml = ">=5.1"
 
 [[package]]
 name = "mkdocs-material"
-version = "9.5.42"
+version = "9.5.43"
 description = "Documentation that simply works"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mkdocs_material-9.5.42-py3-none-any.whl", hash = "sha256:452a7c5d21284b373f36b981a2cbebfff59263feebeede1bc28652e9c5bbe316"},
-    {file = "mkdocs_material-9.5.42.tar.gz", hash = "sha256:92779b5e9b5934540c574c11647131d217dc540dce72b05feeda088c8eb1b8f2"},
+    {file = "mkdocs_material-9.5.43-py3-none-any.whl", hash = "sha256:4aae0664c456fd12837a3192e0225c17960ba8bf55d7f0a7daef7e4b0b914a34"},
+    {file = "mkdocs_material-9.5.43.tar.gz", hash = "sha256:83be7ff30b65a1e4930dfa4ab911e75780a3afc9583d162692e434581cb46979"},
 ]
 
 [package.dependencies]
@@ -3655,4 +3655,4 @@ test = ["pytest (>=4.6.7)", "pytest-cov (>=2.6.1)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "215afa53ca7303cafa48694fbefadba542b34a6c0f88011bef39f6e498afcc68"
+content-hash = "67d5d277984ed724f568cbe448d36e820f1fb2d6e6d63129a2fde3a1e21c732b"
