@@ -9,7 +9,7 @@ from scenario_factory.scenario_types import ScenarioContainer, ScenarioWithSingl
 class ComputeSingleScenarioMetricsArguments(PipelineStepArguments):
     """Arguments for the step `pipeline_compute_single_scenario_metrics` to specify the configuration for the computation."""
 
-    pass
+    is_orig: bool = False
 
 
 @pipeline_map_with_args()
@@ -25,7 +25,9 @@ def pipeline_compute_single_scenario_metrics(
     :param scenario_container: The scenario for which the metrics should be computed. Will not be modified.
     """
 
-    single_scenario_metric = compute_single_scenario_metrics(scenario_container.scenario)
+    single_scenario_metric = compute_single_scenario_metrics(
+        scenario_container.scenario, args.is_orig
+    )
     return ScenarioWithSingleScenarioMetrics(
         scenario=scenario_container.scenario, single_scenario_metrics=single_scenario_metric
     )

@@ -34,8 +34,8 @@ def dump_single_scenario_metrics(
                 "f [1/s]": single_scenario_metrics.frequency,
                 "v mean [m/s]": single_scenario_metrics.velocity_mean,
                 "v stdev [m/s]": single_scenario_metrics.velocity_stdev,
-                "rho mean [1/m]": single_scenario_metrics.traffic_density_mean,
-                "rho stdev [1/m]": single_scenario_metrics.traffic_density_stdev,
+                "rho mean [1/km]": single_scenario_metrics.traffic_density_mean,
+                "rho stdev [1/km]": single_scenario_metrics.traffic_density_stdev,
             }
         )
 
@@ -47,8 +47,8 @@ def dump_single_scenario_metrics(
                 "f [1/s]",
                 "v mean [m/s]",
                 "v stdev [m/s]",
-                "rho mean [1/m]",
-                "rho stdev [1/m]",
+                "rho mean [1/km]",
+                "rho stdev [1/km]",
             ],
         )
         csv_writer.writeheader()
