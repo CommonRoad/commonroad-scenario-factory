@@ -11,20 +11,21 @@ _LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
-class WaymoMetricResult:
+class WaymoMetric:
     """
     Data class for the Waymo metrics.
     """
 
-    ADE3: float
-    ADE5: float
-    ADE8: float
-    FDE3: float
-    FDE5: float
-    FDE8: float
-    MR3: float
-    MR5: float
-    MR8: float
+    # TODO add RMSE
+    ade3: float
+    ade5: float
+    ade8: float
+    fde3: float
+    fde5: float
+    fde8: float
+    mr3: float
+    mr5: float
+    mr8: float
 
     def __str__(self) -> str:
         return "Waymo Metrics: " + ", ".join(
@@ -32,7 +33,7 @@ class WaymoMetricResult:
         )
 
 
-def compute_waymo_metrics(scenario: Scenario, scenario_reference: Scenario) -> WaymoMetricResult:
+def compute_waymo_metric(scenario: Scenario, scenario_reference: Scenario) -> WaymoMetric:
     """
     Compute the Waymo metrics for the scenario.
 
@@ -96,7 +97,7 @@ def compute_waymo_metrics(scenario: Scenario, scenario_reference: Scenario) -> W
             if not math.isnan(value):
                 container.append(value)
 
-    return WaymoMetricResult(
+    return WaymoMetric(
         np.mean(np.array(ade3s)),
         np.mean(np.array(ade5s)),
         np.mean(np.array(ade8s)),
@@ -157,7 +158,7 @@ def _waymo_metrics_MR(
     if min_len > index_3:
         threshold_lon_scaled = 2 * _scale(states_ref[0].velocity)
         threshold_lat_scaled = 1 * _scale(states_ref[0].velocity)
-        MR3 = (
+        mr3 = (
             sum(
                 [
                     is_miss(states[k], states_ref[k], threshold_lon_scaled, threshold_lat_scaled)
@@ -167,11 +168,11 @@ def _waymo_metrics_MR(
             / index_3
         )
     else:
-        MR3 = float("nan")
+        mr3 = float("nan")
     if min_len > index_5:
         threshold_lon_scaled = 3.6 * _scale(states_ref[0].velocity)
         threshold_lat_scaled = 1.8 * _scale(states_ref[0].velocity)
-        MR5 = (
+        mr5 = (
             sum(
                 [
                     is_miss(states[k], states_ref[k], threshold_lon_scaled, threshold_lat_scaled)
@@ -181,11 +182,11 @@ def _waymo_metrics_MR(
             / index_5
         )
     else:
-        MR5 = float("nan")
+        mr5 = float("nan")
     if min_len > index_8:
         threshold_lon_scaled = 6 * _scale(states_ref[0].velocity)
         threshold_lat_scaled = 3 * _scale(states_ref[0].velocity)
-        MR8 = (
+        mr8 = (
             sum(
                 [
                     is_miss(states[k], states_ref[k], threshold_lon_scaled, threshold_lat_scaled)
@@ -195,9 +196,9 @@ def _waymo_metrics_MR(
             / index_8
         )
     else:
-        MR8 = float("nan")
+        mr8 = float("nan")
 
-    return MR3, MR5, MR8
+    return mr3, mr5, mr8
 
 
 def is_miss(

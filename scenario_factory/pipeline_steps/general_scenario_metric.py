@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
-from scenario_factory.metrics.single_scenario import compute_single_scenario_metrics
+from scenario_factory.metrics.general_scenario_metric import compute_general_scenario_metric
 from scenario_factory.pipeline import PipelineContext, PipelineStepArguments, pipeline_map_with_args
-from scenario_factory.scenario_types import ScenarioContainer, ScenarioWithSingleScenarioMetrics
+from scenario_factory.scenario_container import ScenarioContainer
 
 
 @dataclass
@@ -17,7 +17,7 @@ def pipeline_compute_single_scenario_metrics(
     args: ComputeSingleScenarioMetricsArguments,
     ctx: PipelineContext,
     scenario_container: ScenarioContainer,
-) -> ScenarioWithSingleScenarioMetrics:
+) -> ScenarioContainer:
     """
     Compute the single scenario metrics for the scenario.
 
@@ -25,9 +25,7 @@ def pipeline_compute_single_scenario_metrics(
     :param scenario_container: The scenario for which the metrics should be computed. Will not be modified.
     """
 
-    single_scenario_metric = compute_single_scenario_metrics(
+    general_scenario_metric = compute_general_scenario_metric(
         scenario_container.scenario, args.is_orig
     )
-    return ScenarioWithSingleScenarioMetrics(
-        scenario=scenario_container.scenario, single_scenario_metrics=single_scenario_metric
-    )
+    return scenario_container.with_new_attachments(general_scenario_metric=general_scenario_metric)

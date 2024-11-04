@@ -8,7 +8,7 @@ from commonroad.scenario.scenario import Scenario
 
 
 @dataclass
-class SingleScenarioMetricResult:
+class GeneralScenarioMetric:
     """
     Data class for the initial submission metrics.
     """
@@ -23,9 +23,7 @@ class SingleScenarioMetricResult:
         return f"f: {self.frequency:.4f}, rho_mu: {self.traffic_density_mean:.4f}, rho_sigma: {self.traffic_density_stdev:.4f}, v_mu: {self.velocity_mean:.4f}, v_sigma: {self.velocity_stdev:.4f}"
 
 
-def compute_single_scenario_metrics(
-    scenario: Scenario, is_orig: bool
-) -> SingleScenarioMetricResult:
+def compute_general_scenario_metric(scenario: Scenario, is_orig: bool) -> GeneralScenarioMetric:
     """
     Compute the initial submission metrics for the scenario.
 
@@ -38,7 +36,7 @@ def compute_single_scenario_metrics(
     traffic_density_mean, traffic_density_stdev = _traffic_density(scenario, is_orig)
     velocity_mean, velocity_stdev = _velocity(scenario)
 
-    return SingleScenarioMetricResult(
+    return GeneralScenarioMetric(
         frequency=frequency,
         traffic_density_mean=traffic_density_mean,
         traffic_density_stdev=traffic_density_stdev,

@@ -1,15 +1,11 @@
 import logging
 from collections import defaultdict
-from copy import deepcopy
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 import numpy as np
 from commonroad.geometry.shape import Circle
-from commonroad.scenario.intersection import Intersection, IntersectionIncomingElement
 from commonroad.scenario.lanelet import Lanelet, LaneletNetwork
 from commonroad.scenario.scenario import Scenario
-from commonroad.scenario.traffic_light import TrafficLight
-from commonroad.scenario.traffic_sign import TrafficSign
 from scipy.spatial import distance
 from sklearn.cluster import AgglomerativeClustering
 

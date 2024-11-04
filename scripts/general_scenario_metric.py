@@ -2,15 +2,13 @@ import csv
 from pathlib import Path
 from typing import Iterable
 
+from scenario_factory.metrics.general_scenario_metric import GeneralScenarioMetric
 from scenario_factory.pipeline import Pipeline
-from scenario_factory.pipeline_steps.single_scenario_metrics import (
+from scenario_factory.pipeline_steps.general_scenario_metric import (
     ComputeSingleScenarioMetricsArguments,
     pipeline_compute_single_scenario_metrics,
 )
-from scenario_factory.scenario_types import (
-    ScenarioWithSingleScenarioMetrics,
-    load_scenarios_from_folder,
-)
+from scenario_factory.scenario_container import ScenarioContainer, load_scenarios_from_folder
 
 pipeline = Pipeline()
 pipeline.map(pipeline_compute_single_scenario_metrics(ComputeSingleScenarioMetricsArguments()))
@@ -23,19 +21,19 @@ result = pipeline.execute(scenario_containers)
 
 
 def dump_single_scenario_metrics(
-    scenario_containers: Iterable[ScenarioWithSingleScenarioMetrics], csv_file_path: Path
+    scenario_containers: Iterable[ScenarioContainer], csv_file_path: Path
 ) -> None:
     formatted_data = []
     for scenario_container in scenario_containers:
-        single_scenario_metrics = scenario_container.single_scenario_metrics
+        single_scenario_metrics = scenario_container.get_attachment(GeneralScenarioMetric)
         formatted_data.append(
             {
                 "scenario_id": str(scenario_container.scenario.scenario_id),
-                "f [1/s]": single_scenario_metrics.frequency,
-                "v mean [m/s]": single_scenario_metrics.velocity_mean,
-                "v stdev [m/s]": single_scenario_metrics.velocity_stdev,
-                "rho mean [1/km]": single_scenario_metrics.traffic_density_mean,
-                "rho stdev [1/km]": single_scenario_metrics.traffic_density_stdev,
+                "f [1/s]": single_scenario_metrics.frequency,  # type: ignore
+                "v mean [m/s]": single_scenario_metrics.velocity_mean,  # type: ignore
+                "v stdev [m/s]": single_scenario_metrics.velocity_stdev,  # type: ignore
+                "rho mean [1/km]": single_scenario_metrics.traffic_density_mean,  # type: ignore
+                "rho stdev [1/km]": single_scenario_metrics.traffic_density_stdev,  # type: ignore
             }
         )
 
@@ -55,4 +53,4 @@ def dump_single_scenario_metrics(
         csv_writer.writerows(formatted_data)
 
 
-dump_single_scenario_metrics(result.values, Path("/tmp/single_scenario_metrics.csv"))
+dump_single_scenario_metrics(result.values, Path("/tmp/general_scenario_metrics.csv"))
