@@ -9,7 +9,7 @@ from scenario_factory.pipeline_steps.utils import (
     WriteScenarioToFileArguments,
     pipeline_write_scenario_to_file,
 )
-from scenario_factory.scenario_types import load_scenarios_from_folder
+from scenario_factory.scenario_container import load_scenarios_from_folder
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 
 input_folder = Path("../cr-ots-interface/resources/mona")

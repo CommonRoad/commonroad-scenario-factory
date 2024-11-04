@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
-from commonroad.common.solution import CommonRoadSolutionWriter
+from commonroad.common.solution import CommonRoadSolutionWriter, Solution
 from commonroad.planning.planning_problem import PlanningProblemSet
 
 from scenario_factory.pipeline import (
@@ -20,12 +20,10 @@ from scenario_factory.pipeline import (
     pipeline_map,
     pipeline_map_with_args,
 )
-from scenario_factory.scenario_generation import delete_colliding_obstacles_from_scenario
-from scenario_factory.scenario_types import (
+from scenario_factory.scenario_container import (
     ScenarioContainer,
-    is_scenario_with_planning_problem_set,
-    is_scenario_with_solution,
 )
+from scenario_factory.scenario_generation import delete_colliding_obstacles_from_scenario
 from scenario_factory.tags import (
     find_applicable_tags_for_planning_problem_set,
     find_applicable_tags_for_scenario,
@@ -50,9 +48,10 @@ def pipeline_write_scenario_to_file(
     """
     Write a CommonRoad scenario to a file in the `args.output_folder`. If the `scenario_container` also holds a planning problem set or a planning problem solution, they will also be written to disk.
     """
+    optional_planning_problem_set = scenario_container.get_attachment(PlanningProblemSet)
     planning_problem_set = (
-        scenario_container.planning_problem_set
-        if is_scenario_with_planning_problem_set(scenario_container)
+        optional_planning_problem_set
+        if optional_planning_problem_set is not None
         else PlanningProblemSet(None)
     )
     commonroad_scenario = scenario_container.scenario
@@ -76,8 +75,8 @@ def pipeline_write_scenario_to_file(
         str(scenario_file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS
     )
 
-    if is_scenario_with_solution(scenario_container):
-        solution = scenario_container.solution
+    solution = scenario_container.get_attachment(Solution)
+    if solution is not None:
         solution_file_name = f"{solution.scenario_id}.solution.xml"
         CommonRoadSolutionWriter(solution).write_to_file(
             str(args.output_folder), filename=solution_file_name, overwrite=True
@@ -105,8 +104,8 @@ def pipeline_assign_tags_to_scenario(
     scenario_tags = find_applicable_tags_for_scenario(commonroad_scenario)
     commonroad_scenario.tags.update(scenario_tags)
 
-    if is_scenario_with_planning_problem_set(scenario_container):
-        planning_problem_set = scenario_container.planning_problem_set
+    planning_problem_set = scenario_container.get_attachment(PlanningProblemSet)
+    if planning_problem_set is not None:
         planning_problem_tags = find_applicable_tags_for_planning_problem_set(
             commonroad_scenario, planning_problem_set
         )

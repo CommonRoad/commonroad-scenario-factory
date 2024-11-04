@@ -6,7 +6,7 @@ from scenario_factory.pipeline_steps import (
     ComputeCriticalityMetricsArgs,
     pipeline_compute_criticality_metrics,
 )
-from scenario_factory.scenario_types import load_scenarios_from_folder
+from scenario_factory.scenario_container import load_scenarios_from_folder
 
 pipeline = Pipeline()
 pipeline.map(pipeline_compute_criticality_metrics(ComputeCriticalityMetricsArgs()))

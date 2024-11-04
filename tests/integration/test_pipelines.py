@@ -22,7 +22,7 @@ from scenario_factory.pipeline_steps.utils import (
 )
 from scenario_factory.pipelines import create_scenario_generation_pipeline
 from scenario_factory.scenario_config import ScenarioFactoryConfig
-from scenario_factory.scenario_types import load_scenarios_from_folder
+from scenario_factory.scenario_container import load_scenarios_from_folder
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 from tests.resources import ResourceType
 
