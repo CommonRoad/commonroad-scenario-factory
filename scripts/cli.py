@@ -60,7 +60,7 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
     output_path = Path(output)
     if not output_path.exists():
         output_path.mkdir(parents=True)
-    root_logger = configure_root_logger(logging.INFO)
+    root_logger = configure_root_logger(logging.WARNING)
 
     scenario_config = ScenarioFactoryConfig(seed=seed, cr_scenario_time_steps=150)
     map_provider = select_osm_map_provider(radius, Path(maps))
@@ -76,6 +76,7 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
                 SimulateScenarioArguments(config=simulation_config)
             )
         )
+        .map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
     )
 
     scenario_generation_pipeline = create_scenario_generation_pipeline(
@@ -140,7 +141,7 @@ def globetrotter(cities, coords, output, maps, radius):
     if not output_path.exists():
         output_path.mkdir(parents=True)
 
-    root_logger = configure_root_logger(logging.INFO)
+    root_logger = configure_root_logger(logging.WARNING)
 
     map_provider = select_osm_map_provider(radius, Path(maps))
     globetrotter_pipeline = create_globetrotter_pipeline(radius, map_provider)

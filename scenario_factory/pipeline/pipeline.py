@@ -112,7 +112,7 @@ class Pipeline:
 
         if final_step.type == PipelineStepType.MAP:
             # If the last step is no filter, the final values are simply the output values of the last step
-            return [result.output for result in final_step_results]
+            return [result.output for result in final_step_results if result.output is not None]
         elif final_step.type == PipelineStepType.FILTER:
             # If the last step is a filter step, than its outputs are boolean values, while the final values are the inputs for the filter step
             return [result.input for result in final_step_results if result.output is True]

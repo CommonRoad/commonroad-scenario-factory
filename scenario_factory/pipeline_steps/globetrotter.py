@@ -26,7 +26,7 @@ from scenario_factory.pipeline import (
     pipeline_map,
     pipeline_map_with_args,
 )
-from scenario_factory.scenario_types import ScenarioContainer
+from scenario_factory.scenario_container import ScenarioContainer
 
 
 @dataclass
@@ -75,7 +75,7 @@ def pipeline_verify_and_repair_commonroad_scenario(
     ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> ScenarioContainer:
     """
-    Apply the verification and repair algorithms from the
+    Apply the verification and repair algorithms from the CommonRoad Scenario Designer.
 
     :param ctx: The context for the current pipeline execution
     :param scenario_container: The scenario that should be repaired. Repairing will happen in place, so this scenario will be modified.
