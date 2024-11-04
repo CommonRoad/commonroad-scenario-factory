@@ -8,7 +8,7 @@ from scenario_factory.builder import (
 )
 from scenario_factory.pipeline import PipelineContext
 from scenario_factory.pipeline_steps import pipeline_assign_tags_to_scenario
-from scenario_factory.scenario_types import ScenarioContainer, ScenarioWithPlanningProblemSet
+from scenario_factory.scenario_container import ScenarioContainer
 from scenario_factory.tags import (
     find_applicable_tags_for_planning_problem_set,
     find_applicable_tags_for_scenario,
@@ -184,8 +184,8 @@ class TestPipelineAssignTagsToScenario:
             return_value={Tag.INTERSTATE, Tag.COMFORT},
         )
 
-        input_scenario_container = ScenarioWithPlanningProblemSet(
-            Scenario(dt=0.1), PlanningProblemSet()
+        input_scenario_container = ScenarioContainer(
+            Scenario(dt=0.1), planning_problem_set=PlanningProblemSet()
         )
         result_scenario_container: ScenarioContainer = pipeline_assign_tags_to_scenario(
             PipelineContext(), input_scenario_container

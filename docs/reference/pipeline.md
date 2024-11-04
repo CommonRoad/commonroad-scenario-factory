@@ -23,7 +23,7 @@ By default, each pipeline step is concurrent, but you can change this on a per s
 
 ```python
 from scenario_factory.pipeline import PipelineContext, PipelineStepExecutionMode, pipeline_map
-from scenario_factory.scenario_types import ScenarioContainer
+from scenario_factory.scenario_container import ScenarioContainer
 
 @pipeline_map(mode=PipelineStepExecutionMode.PARALLEL)
 def pipeline_foo(ctx: PipelineContext, scenario_container: ScenarioContainer) -> ScenarioContainer:...

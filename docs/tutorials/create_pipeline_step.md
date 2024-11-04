@@ -11,7 +11,7 @@ Let's start by creating a `tutorial.py` file in the root of the scenario factory
 import logging
 
 from scenario_factory.pipeline import pipeline_map, PipelineContext
-from scenario_factory.scenario_types import ScenarioContainer
+from scenario_factory.scenario_container import ScenarioContainer
 
 # Make sure that we can log messages
 configure_root_logger(logging.INFO)
@@ -36,7 +36,7 @@ To use the newly created pipeline step `pipeline_hello_world`, we have to create
 import logging
 
 from scenario_factory.pipeline import Pipeline, pipeline_map, PipelineContext
-from scenario_factory.scenario_types import (
+from scenario_factory.scenario_container import (
     ScenarioContainer,
     load_scenarios_from_folder,
 )
