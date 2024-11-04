@@ -1,7 +1,6 @@
 import logging
 import math
 from dataclasses import dataclass, fields
-from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
@@ -111,7 +110,7 @@ def compute_waymo_metrics(scenario: Scenario, scenario_reference: Scenario) -> W
 
 
 def _waymo_metrics_de(
-    displacement_errors: np.array, time_step_size: float
+    displacement_errors: np.ndarray, time_step_size: float
 ) -> Tuple[float, float, float, float, float, float]:
     """
     Compute the displacement error metrics.
