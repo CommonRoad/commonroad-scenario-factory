@@ -1,13 +1,10 @@
 import logging
-from dataclasses import dataclass, field
-from email.policy import default
-from typing import Sequence
+from dataclasses import dataclass
 
 from scenario_factory.metrics.waymo import compute_waymo_metrics
 from scenario_factory.pipeline import (
     PipelineContext,
     PipelineStepArguments,
-    PipelineStepExecutionMode,
     pipeline_map_with_args,
 )
 from scenario_factory.scenario_types import (

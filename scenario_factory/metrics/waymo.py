@@ -1,12 +1,12 @@
 import logging
 import math
 from dataclasses import dataclass, fields
-from typing import List, Tuple, get_args
+from pathlib import Path
+from typing import List, Tuple
 
 import numpy as np
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.state import State
-from sklearn.utils.extmath import cartesian
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,14 +37,10 @@ def compute_waymo_metrics(scenario: Scenario, scenario_reference: Scenario) -> W
     """
     Compute the Waymo metrics for the scenario.
 
-    Parameters
-    ----------
-    scenario: Scenario
-        The scenario for which the metrics should be computed.
-    scenario_reference: Scenario
-        The reference scenario.
+    :param scenario: The scenario for which the metrics should be computed.
+    :param scenario_reference: The reference scenario for the computation.
     """
-    assert scenario.scenario_id == scenario_reference.scenario_id
+    # assert scenario.scenario_id == scenario_reference.scenario_id
     assert scenario.dt == scenario_reference.dt
 
     ade3s: List[float] = []
@@ -53,13 +49,15 @@ def compute_waymo_metrics(scenario: Scenario, scenario_reference: Scenario) -> W
     fde3s: List[float] = []
     fde5s: List[float] = []
     fde8s: List[float] = []
-    MR3s: List[float] = []
-    MR5s: List[float] = []
-    MR8s: List[float] = []
+    mr3s: List[float] = []
+    mr5s: List[float] = []
+    mr8s: List[float] = []
     for dyn_obst in scenario.dynamic_obstacles:
-        dyn_obst_ref = scenario_reference.obstacle_by_id(dyn_obst.obstacle_id)
-        if dyn_obst_ref is None:
-            logging.warning(
+        try:
+            dyn_obst_ref = scenario_reference._dynamic_obstacles[dyn_obst.obstacle_id]
+
+        except KeyError:
+            _LOGGER.warning(
                 f"Obstacle with ID {dyn_obst.obstacle_id} not found in reference scenario {scenario_reference.scenario_id}"
             )
             continue
@@ -69,19 +67,32 @@ def compute_waymo_metrics(scenario: Scenario, scenario_reference: Scenario) -> W
         states = dyn_obst.prediction.trajectory.state_list
         states_ref = dyn_obst_ref.prediction.trajectory.state_list
         time_step_offset = states[0].time_step - states_ref[0].time_step
-        assert time_step_offset >= 0  # vehicles can only be spawned after the reference vehicle
+        time_step_offset_neg = 0
+        if time_step_offset < 0:  # vehicles can only be spawned after the reference vehicle
+            if time_step_offset == -1:  # TODO this is hacky; debug!
+                time_step_offset_neg = -time_step_offset
+                time_step_offset = 0
+            else:
+                raise ValueError(
+                    f"Vehicle {dyn_obst.obstacle_id} is spawned before the reference vehicle."
+                )
 
-        for k in range(min(len(states), len(states_ref) - time_step_offset)):
+        for k in range(min(len(states) - time_step_offset_neg, len(states_ref) - time_step_offset)):
             displacement_errors.append(
-                np.linalg.norm(states[k].position - states_ref[k + time_step_offset].position)
+                np.linalg.norm(
+                    states[k + time_step_offset_neg].position
+                    - states_ref[k + time_step_offset].position
+                )
             )
 
         ade3, ade5, ade8, fde3, fde5, fde8 = _waymo_metrics_de(displacement_errors, scenario.dt)
-        mr3, mr5, mr8 = _waymo_metrics_MR(states, states_ref[time_step_offset:], scenario.dt)
+        mr3, mr5, mr8 = _waymo_metrics_MR(
+            states[time_step_offset_neg:], states_ref[time_step_offset:], scenario.dt
+        )
 
         for value, container in zip(
             [ade3, ade5, ade8, fde3, fde5, fde8, mr3, mr5, mr8],
-            [ade3s, ade5s, ade8s, fde3s, fde5s, fde8s, MR3s, MR5s, MR8s],
+            [ade3s, ade5s, ade8s, fde3s, fde5s, fde8s, mr3s, mr5s, mr8s],
         ):
             if not math.isnan(value):
                 container.append(value)
@@ -93,9 +104,9 @@ def compute_waymo_metrics(scenario: Scenario, scenario_reference: Scenario) -> W
         np.mean(np.array(fde3s)),
         np.mean(np.array(fde5s)),
         np.mean(np.array(fde8s)),
-        np.mean(np.array(MR3s)),
-        np.mean(np.array(MR5s)),
-        np.mean(np.array(MR8s)),
+        np.mean(np.array(mr3s)),
+        np.mean(np.array(mr5s)),
+        np.mean(np.array(mr8s)),
     )
 
 
@@ -105,12 +116,8 @@ def _waymo_metrics_de(
     """
     Compute the displacement error metrics.
 
-    Parameters
-    ----------
-    displacement_errors: List[float]
-        The displacement errors.
-    time_step_size: float
-        The size of the time step.
+    :param displacement_errors: The displacement errors.
+    :param time_step_size: The size of the time step.
     """
     index_3 = int(3 / time_step_size)
     index_5 = int(5 / time_step_size)

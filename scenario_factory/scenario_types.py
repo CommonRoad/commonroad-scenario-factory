@@ -1,4 +1,5 @@
 import logging
+import re
 import xml.etree.ElementTree
 from pathlib import Path
 from typing import List, Sequence, Union
@@ -142,3 +143,32 @@ def load_scenarios_from_folder(
         else:
             scenario_containers.append(ScenarioContainer(scenario))
     return scenario_containers
+
+
+def load_scenarios_with_reference_scenarios_from_folders(
+    path_scenarios: Path, path_reference_scenarios: Path
+) -> List[ScenarioWithReferenceScenario]:
+    scenarios_return: List[ScenarioWithReferenceScenario] = []
+    scenarios = path_scenarios.glob("*.xml")
+    references = {
+        "DEU_MONAEast-2": "C-DEU_MONAEast-2_1_T-299",
+        "DEU_MONAMerge-2": "C-DEU_MONAMerge-2_1_T-299",
+        "DEU_MONAWest-2": "C-DEU_MONAWest-2_1_T-299",
+        "DEU_LocationCLower4-1": "DEU_LocationCLower4-1_48255_T-9754",
+        "DEU_AachenHeckstrasse-1": "DEU_AachenHeckstrasse-1_3115929_T-17428",
+    }
+    for scenario in scenarios:
+        if int(re.search(r"_(\d+)_(?=T-\d+)", scenario.stem)[1]) in (3, 4, 5):  # type: ignore
+            continue
+        cr_scenario, _ = CommonRoadFileReader(scenario).open()
+        try:
+            reference = references[re.match(r"^[^_]+_[^_]+", str(cr_scenario.scenario_id)).group(0)]  # type: ignore
+            reference_scenario = path_reference_scenarios.joinpath(f"{reference}.xml")
+            cr_reference_scenario, _ = CommonRoadFileReader(reference_scenario).open()
+            scenarios_return.append(
+                ScenarioWithReferenceScenario(cr_scenario, cr_reference_scenario)
+            )
+        except FileNotFoundError as e:
+            _LOGGER.warning(f"Could not find reference scenario for {cr_scenario.scenario_id}: {e}")
+
+    return scenarios_return

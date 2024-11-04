@@ -11,19 +11,29 @@ from scenario_factory.pipeline_steps.waymo_metrics import (
     ComputeWaymoMetricsArguments,
     pipeline_compute_waymo_metrics,
 )
-from scenario_factory.scenario_types import ScenarioWithWaymoMetrics, load_scenarios_from_folder
+from scenario_factory.scenario_types import (
+    ScenarioWithWaymoMetrics,
+    load_scenarios_from_folder,
+    load_scenarios_with_reference_scenarios_from_folders,
+)
 from scenario_factory.simulation import SimulationConfig, SimulationMode
 
 pipeline = Pipeline()
-pipeline.map(
-    pipeline_simulate_scenario_with_ots(
-        SimulateScenarioArguments(SimulationConfig(SimulationMode.RESIMULATION))
-    )
-)
+# pipeline.map(
+#     pipeline_simulate_scenario_with_ots(
+#         SimulateScenarioArguments(SimulationConfig(SimulationMode.RESIMULATION))
+#     )
+# )
 pipeline.map(pipeline_compute_waymo_metrics(ComputeWaymoMetricsArguments()))
 
 
-scenario_containers = load_scenarios_from_folder("/tmp/input_scenarios")
+# scenario_containers = load_scenarios_from_folder("/tmp/input_scenarios")
+# result = pipeline.execute(scenario_containers)
+
+scenario_containers = load_scenarios_with_reference_scenarios_from_folders(
+    Path("/home/florian/git/temp/cr-ots-interface/resources/simulations/"),
+    Path("/home/florian/git/temp/cr-ots-interface/resources/abstraction/"),
+)
 result = pipeline.execute(scenario_containers)
 
 
