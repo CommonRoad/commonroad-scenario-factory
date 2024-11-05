@@ -2,7 +2,6 @@ import builtins
 import copy
 import dataclasses
 import logging
-import math
 from contextlib import contextmanager
 from typing import AnyStr, Callable, Optional, Protocol, Sequence, Type, TypeVar, Union
 

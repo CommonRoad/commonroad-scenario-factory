@@ -1,6 +1,7 @@
 import logging
+import re
 import xml.etree.ElementTree
-from enum import Enum, auto
+from dataclasses import dataclass
 from pathlib import Path
 from typing import (
     Any,
@@ -11,7 +12,6 @@ from typing import (
     TypedDict,
     TypeVar,
     Union,
-    overload,
 )
 
 from commonroad.common.file_reader import CommonRoadFileReader
@@ -22,8 +22,16 @@ from commonroad_labeling.criticality.input_output.crime_output import ScenarioCr
 from typing_extensions import Self, Unpack
 
 from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
+from scenario_factory.metrics.general_scenario_metric import GeneralScenarioMetric
+from scenario_factory.metrics.waymo_metric import WaymoMetric
 
 _LOGGER = logging.getLogger(__name__)
+
+
+@dataclass
+class ReferenceScenario:
+    reference_scenario: Scenario
+
 
 ScenarioContainerAttachmentT = TypeVar(
     "ScenarioContainerAttachmentT",
@@ -31,6 +39,9 @@ ScenarioContainerAttachmentT = TypeVar(
     Solution,
     ScenarioCriticalityData,
     EgoVehicleManeuver,
+    ReferenceScenario,
+    WaymoMetric,
+    GeneralScenarioMetric,
 )
 
 
@@ -48,6 +59,9 @@ class ScenarioContainerArguments(TypedDict, total=False):
     solution: Solution
     ego_vehicle_maneuver: EgoVehicleManeuver
     criticality_data: ScenarioCriticalityData
+    reference_scenario: ReferenceScenario
+    waymo_metric: WaymoMetric
+    general_scenario_metric: GeneralScenarioMetric
 
 
 class ScenarioContainer:
@@ -157,3 +171,31 @@ def load_scenarios_from_folder(
         else:
             scenario_containers.append(ScenarioContainer(scenario))
     return scenario_containers
+
+
+def load_scenarios_with_reference_from_folders(
+    path_scenarios: Path, path_reference_scenarios: Path
+) -> List[ScenarioContainer]:
+    scenarios_return: List[ScenarioContainer] = []
+    scenarios = path_scenarios.glob("*.xml")
+    references = {
+        "DEU_MONAEast-2": "C-DEU_MONAEast-2_1_T-299",
+        "DEU_MONAMerge-2": "C-DEU_MONAMerge-2_1_T-299",
+        "DEU_MONAWest-2": "C-DEU_MONAWest-2_1_T-299",
+        "DEU_LocationCLower4-1": "DEU_LocationCLower4-1_48255_T-9754",
+        "DEU_AachenHeckstrasse-1": "DEU_AachenHeckstrasse-1_3115929_T-17428",
+    }
+    for scenario in scenarios:
+        if int(re.search(r"_(\d+)_(?=T-\d+)", scenario.stem)[1]) in (3, 4, 5):  # type: ignore
+            continue
+        cr_scenario, _ = CommonRoadFileReader(scenario).open()
+        try:
+            reference = references[re.match(r"^[^_]+_[^_]+", str(cr_scenario.scenario_id)).group(0)]  # type: ignore
+            reference_scenario = path_reference_scenarios.joinpath(f"{reference}.xml")
+            cr_reference_scenario, _ = CommonRoadFileReader(reference_scenario).open()
+            scenarios_return.append(ScenarioContainer(scenario=cr_scenario))
+            scenarios_return[-1].add_attachment(ReferenceScenario(cr_reference_scenario))
+        except FileNotFoundError as e:
+            _LOGGER.warning(f"Could not find reference scenario for {cr_scenario.scenario_id}: {e}")
+
+    return scenarios_return
