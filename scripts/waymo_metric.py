@@ -41,6 +41,8 @@ def dump_waymo_metrics(
                 "mr3": waymo_metrics.mr3,  # type: ignore
                 "mr5": waymo_metrics.mr5,  # type: ignore
                 "mr8": waymo_metrics.mr8,  # type: ignore
+                "rmse_mean": waymo_metrics.rmse_mean,  # type: ignore
+                "rmse_stdev": waymo_metrics.rmse_stdev,  # type: ignore
             }
         )
 
@@ -58,6 +60,8 @@ def dump_waymo_metrics(
                 "mr3",
                 "mr5",
                 "mr8",
+                "rmse_mean",
+                "rmse_stdev",
             ],
         )
         csv_writer.writeheader()

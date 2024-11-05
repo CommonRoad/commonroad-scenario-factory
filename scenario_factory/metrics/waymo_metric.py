@@ -16,7 +16,6 @@ class WaymoMetric:
     Data class for the Waymo metrics.
     """
 
-    # TODO add RMSE
     ade3: float
     ade5: float
     ade8: float
@@ -26,6 +25,8 @@ class WaymoMetric:
     mr3: float
     mr5: float
     mr8: float
+    rmse_mean: float
+    rmse_stdev: float
 
     def __str__(self) -> str:
         return "Waymo Metrics: " + ", ".join(
@@ -52,6 +53,8 @@ def compute_waymo_metric(scenario: Scenario, scenario_reference: Scenario) -> Wa
     mr3s: List[float] = []
     mr5s: List[float] = []
     mr8s: List[float] = []
+    rmses: List[float] = []
+
     for dyn_obst in scenario.dynamic_obstacles:
         try:
             dyn_obst_ref = scenario_reference._dynamic_obstacles[dyn_obst.obstacle_id]
@@ -85,8 +88,13 @@ def compute_waymo_metric(scenario: Scenario, scenario_reference: Scenario) -> Wa
                 )
             )
 
-        ade3, ade5, ade8, fde3, fde5, fde8 = _waymo_metrics_de(displacement_errors, scenario.dt)
-        mr3, mr5, mr8 = _waymo_metrics_MR(
+        rmse = _rmse(np.array(displacement_errors))
+        if not math.isnan(rmse):
+            rmses.append(rmse)
+        ade3, ade5, ade8, fde3, fde5, fde8 = _waymo_metrics_de(
+            np.array(displacement_errors), scenario.dt
+        )
+        mr3, mr5, mr8 = _waymo_metrics_mr(
             states[time_step_offset_neg:], states_ref[time_step_offset:], scenario.dt
         )
 
@@ -107,6 +115,8 @@ def compute_waymo_metric(scenario: Scenario, scenario_reference: Scenario) -> Wa
         np.mean(np.array(mr3s)),
         np.mean(np.array(mr5s)),
         np.mean(np.array(mr8s)),
+        np.mean(np.array(rmses)),
+        np.std(np.array(rmses)),
     )
 
 
@@ -144,7 +154,7 @@ def _waymo_metrics_de(
     return ade3, ade5, ade8, fde3, fde5, fde8
 
 
-def _waymo_metrics_MR(
+def _waymo_metrics_mr(
     states: List, states_ref: List, time_step_size: float
 ) -> Tuple[float, float, float]:
     """
@@ -229,3 +239,10 @@ def _scale(v: float) -> float:
         return 0.5 + 0.5 * (v - 1.4) / (11 - 1.4)
     else:
         return 1
+
+
+def _rmse(displacement_errors: np.ndarray) -> float:
+    if len(displacement_errors) < 1:
+        return float("nan")
+    else:
+        return np.sqrt(1 / len(displacement_errors) * np.sum(np.power(displacement_errors, 2)))
