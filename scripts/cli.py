@@ -2,11 +2,18 @@ import logging
 import tempfile
 from pathlib import Path
 from typing import Optional
-
 import click
+import matplotlib
+import matplotlib.pyplot as plt
 
+# Setze Matplotlib auf ein Backend ohne GUI, um GUI-bezogene Probleme in Threads zu vermeiden
+matplotlib.use('Agg')
+# Deaktiviere den interaktiven Modus, um das Öffnen von GUI-Fenstern zu verhindern
+plt.ioff()
+
+from scenario_factory.Visualization_steps.Visulisation_renderer import pipeline_render_commonroad_scenario
 from scenario_factory.globetrotter import Coordinates, RegionMetadata, load_regions_from_csv
-from scenario_factory.pipeline import PipelineContext
+from scenario_factory.pipeline import PipelineContext, PipelineStepExecutionMode
 from scenario_factory.pipeline_steps import (
     SimulateScenarioArguments,
     WriteScenarioToFileArguments,
@@ -23,7 +30,6 @@ from scenario_factory.pipelines import (
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 from scenario_factory.simulation import SimulationConfig, SimulationMode
 from scenario_factory.utils import configure_root_logger
-
 
 @click.command()
 @click.option(
@@ -86,6 +92,7 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
         base_pipeline.chain(scenario_generation_pipeline)
         .map(pipeline_assign_tags_to_scenario)
         .map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
+        .map(pipeline_render_commonroad_scenario(output_path, fps = 5, time_steps= 25))
     )
     inputs = None
     if coords is not None:
