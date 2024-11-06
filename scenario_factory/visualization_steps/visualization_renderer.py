@@ -1,9 +1,17 @@
 from pathlib import Path
+
 from commonroad.visualization.draw_params import MPDrawParams
 from commonroad.visualization.mp_renderer import MPRenderer
-from scenario_factory.pipeline import (PipelineContext,PipelineStep,PipelineStepExecutionMode,PipelineStepType,)
 
-#Render class
+from scenario_factory.pipeline import (
+    PipelineContext,
+    PipelineStep,
+    PipelineStepExecutionMode,
+    PipelineStepType,
+)
+
+
+# Render class
 def pipeline_render_commonroad_scenario(
     output_path: Path, fps: int = 5, time_steps: int = 25
 ) -> PipelineStep:
