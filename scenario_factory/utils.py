@@ -6,7 +6,6 @@ from contextlib import contextmanager
 from typing import (
     AnyStr,
     Callable,
-    Iterable,
     List,
     Optional,
     Protocol,
@@ -16,8 +15,7 @@ from typing import (
     Union,
 )
 
-from commonroad.geometry.shape import Shape
-from commonroad.prediction.prediction import Prediction, TrajectoryPrediction
+from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.state import (
@@ -43,11 +41,25 @@ AnyStateT = TypeVar("AnyStateT", State, SignalState, AnyState)
 
 
 def align_state_to_time_step(state: AnyStateT, time_step: int) -> AnyStateT:
+    """
+    Aligns the time step of `state` to a reference `time_step`.
+
+    :param state: The state object to align.
+    :param time_step: The reference time step to align `state` to.
+
+    :return: The state object with the adjusted time step.
+    """
     state.time_step -= time_step
     return state
 
 
 def align_state_list_to_time_step(states: Sequence[AnyState], time_step: int) -> None:
+    """
+    Aligns the time steps of all states in a list to a reference time step.
+
+    :param states: A list of states to align.
+    :param time_step: The reference time step for alignment.
+    """
     for state in states:
         align_state_to_time_step(state, time_step)
 
@@ -55,6 +67,15 @@ def align_state_list_to_time_step(states: Sequence[AnyState], time_step: int) ->
 def cut_state_list_to_time_frame(
     states: List[AnyStateT], min_time_step: int = 0, max_time_step: Optional[int] = None
 ) -> Optional[List[AnyStateT]]:
+    """
+    Cuts a list of states to fit within a specified time frame.
+
+    :param states: The list of states to cut.
+    :param min_time_step: The minimum allowed time step.
+    :param max_time_step: The maximum allowed time step.
+
+    :return: A list of states within the specified time frame, or None if out of bounds.
+    """
     if max_time_step is not None and max_time_step <= min_time_step:
         raise ValueError(
             f"Cannot cut state list to [{min_time_step},{max_time_step}]: Max time step must be strictly larger than min time step."
@@ -96,11 +117,13 @@ def cut_trajectory_to_time_frame(
     max_time_step: Optional[int] = None,
 ) -> Optional[Trajectory]:
     """
-    Cut the :param:`trajectory` so that no state's time step exceeds :param:`max_time_step`.
+    Cuts a trajectory to ensure no state's time step exceeds the specified max time step.
 
-    :param trajectory: The trajectory that should be cut. Will not be modified.
-    :param max_time_step: The time step until which the trajectory should be cut.
-    :returns: The cut trajectory or None, if :param:`trajectory` starts after :param:`max_time_step`.
+    :param trajectory: The trajectory to be cut.
+    :param min_time_step: The minimum time step to retain.
+    :param max_time_step: The maximum time step to retain.
+
+    :return: The cut trajectory, or None if the trajectory starts after `max_time_step`.
     """
 
     cut_state_list = cut_state_list_to_time_frame(
@@ -117,6 +140,16 @@ def cut_dynamic_obstacle_to_time_frame(
     max_time_step: Optional[int] = None,
     align_to_min_time_step: bool = False,
 ) -> Optional[DynamicObstacle]:
+    """
+    Creates a new dynamic obstacle within a specified time frame.
+
+    :param original_obstacle: The original dynamic obstacle to be cut.
+    :param min_time_step: The minimum time step of the new obstacle.
+    :param max_time_step: The maximum time step of the new obstacle.
+    :param align_to_min_time_step: Whether to align to the minimum time step.
+
+    :return: A new dynamic obstacle within the time frame, or None if out of bounds.
+    """
     if max_time_step is not None and max_time_step <= min_time_step:
         raise ValueError(
             f"Cannot create a new dynamic obstacle from {original_obstacle.obstacle_id} in time frame [{min_time_step},{max_time_step}]: end time must be strictly larger than start time."
@@ -158,8 +191,8 @@ def cut_dynamic_obstacle_to_time_frame(
         if cut_trajectory is not None:
             if align_to_min_time_step:
                 align_state_list_to_time_step(cut_trajectory.state_list, min_time_step)
-            new_trajectory_prediction = copy_trajectory_prediction(
-                original_obstacle.prediction, new_trajectory=cut_trajectory
+            new_trajectory_prediction = TrajectoryPrediction(
+                cut_trajectory, original_obstacle.obstacle_shape
             )
 
     new_initial_signal_state = None
@@ -186,25 +219,22 @@ def cut_dynamic_obstacle_to_time_frame(
     )
 
 
-def copy_trajectory_prediction(
-    original_prediction: TrajectoryPrediction, new_trajectory: Optional[Trajectory] = None
-) -> TrajectoryPrediction:
-    trajectory = (
-        copy.deepcopy(original_prediction.trajectory) if new_trajectory is None else new_trajectory
-    )
-    new_trajectory_prediction = TrajectoryPrediction(
-        shape=original_prediction.shape, trajectory=trajectory
-    )
-
-    return new_trajectory_prediction
-
-
 def cut_scenario_to_time_frame(
     scenario: Scenario,
     min_time_step: int = 0,
     max_time_step: Optional[int] = None,
     align_to_min_time_step: bool = False,
 ) -> Scenario:
+    """
+    Cuts a scenario to include only objects within a specified time frame.
+
+    :param scenario: The original scenario to cut.
+    :param min_time_step: The minimum time step to retain.
+    :param max_time_step: The maximum time step to retain.
+    :param align_to_min_time_step: Whether to align objects to the minimum time step.
+
+    :return: A new scenario within the time frame.
+    """
     new_scenario = copy_scenario(
         scenario,
         copy_lanelet_network=True,
@@ -225,6 +255,13 @@ def cut_scenario_to_time_frame(
 
 
 def get_scenario_length_in_time_steps(scenario: Scenario) -> int:
+    """
+    Determines the total length of a scenario in time steps.
+
+    :param scenario: The scenario to analyze.
+
+    :return: The total number of time steps in the scenario.
+    """
     max_time_step = 0
     for dynamic_obstacle in scenario.dynamic_obstacles:
         if dynamic_obstacle.prediction is None:
