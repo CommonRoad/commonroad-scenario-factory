@@ -143,14 +143,15 @@ def cut_intersection_from_scenario(
     cut_scenario = copy_scenario(scenario)
     cut_scenario.add_objects(cut_lanelet_network)
 
-    # Because the new scenario should be centered at the intersection, the GPS coordinates in the
-    # scenario location must also be updated. As the `center` coordinates might not be absolute,
-    # the GPS coordinates of the input scenario will be used to derive the new scenario center.
-    cut_scenario_coordinates = _get_translated_scenario_coordinates(
-        scenario, (center[0], center[1])
-    )
-    cut_scenario_metadata = RegionMetadata.from_coordinates(cut_scenario_coordinates)
-    cut_scenario.location = cut_scenario_metadata.as_commonroad_scenario_location()
+    if scenario.location is not None:
+        # Because the new scenario should be centered at the intersection, the GPS coordinates in the
+        # scenario location must also be updated. As the `center` coordinates might not be absolute,
+        # the GPS coordinates of the input scenario will be used to derive the new scenario GPS coordinates.
+        cut_scenario_coordinates = _get_translated_scenario_coordinates(
+            scenario, (center[0], center[1])
+        )
+        cut_scenario_metadata = RegionMetadata.from_coordinates(cut_scenario_coordinates)
+        cut_scenario.location = cut_scenario_metadata.as_commonroad_scenario_location()
 
     return cut_scenario
 
