@@ -16,7 +16,8 @@ from sumocr.sumo_map.sumolib_net import sumo_net_from_xml
 from sumocr.sumo_map.util import update_edge_lengths
 
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
-from scenario_factory.utils import get_scenario_length
+from scenario_factory.simulation.utils import compute_warmup_time_for_lanelet_network
+from scenario_factory.utils import cut_scenario_to_time_frame, get_scenario_length_in_time_steps
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -154,7 +155,7 @@ def _get_new_sumo_config_for_scenario(
                 f"Invalid simulation config for SUMO simulation with mode {simulation_config.mode}: option 'simulation_time_steps' must be set, but is 'None'!"
             )
         else:
-            new_sumo_config.simulation_steps = get_scenario_length(scenario)
+            new_sumo_config.simulation_steps = get_scenario_length_in_time_steps(scenario)
             _LOGGER.debug(
                 "Simulation step was not set for SUMO simulation with mode %s, so it was autodetermined to be %s",
                 simulation_config.mode,
@@ -291,5 +292,23 @@ def simulate_commonroad_scenario_with_sumo(
     new_scenario = _execute_sumo_simulation(scenario_wrapper, sumo_config)
 
     _patch_scenario_metadata_after_simulation(new_scenario)
+
+    if (
+        simulation_config.mode == SimulationMode.DEMAND_TRAFFIC_GENERATION
+        or simulation_config.mode == SimulationMode.INFRASTRUCTURE_TRAFFIC_GENERATION
+    ):
+        original_scenario_length = get_scenario_length_in_time_steps(new_scenario)
+        warmup_time = compute_warmup_time_for_lanelet_network(new_scenario.lanelet_network)
+        new_scenario = cut_scenario_to_time_frame(
+            new_scenario, min_time_step=int(warmup_time), align_to_min_time_step=True
+        )
+        _LOGGER.info(
+            "Cut %s time steps from scenario %s after simulation with SUMO in mode %s to account for warmup time. The scenario originally had %s time steps and now has %s time steps",
+            warmup_time,
+            new_scenario.scenario_id,
+            simulation_config.mode,
+            original_scenario_length,
+            get_scenario_length_in_time_steps(new_scenario),
+        )
 
     return new_scenario
