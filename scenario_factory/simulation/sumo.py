@@ -251,6 +251,10 @@ def _get_traffic_generation_mode_for_simulation_mode(
         return SumoTrafficGenerationMode.TRAJECTORIES
     elif simulation_mode == SimulationMode.RESIMULATION:
         return SumoTrafficGenerationMode.TRAJECTORIES_UNSAFE
+    elif simulation_mode == SimulationMode.DEMAND_TRAFFIC_GENERATION:
+        return SumoTrafficGenerationMode.DEMAND
+    elif simulation_mode == SimulationMode.INFRASTRUCTURE_TRAFFIC_GENERATION:
+        return SumoTrafficGenerationMode.INFRASTRUCTURE
     else:
         raise ValueError(
             f"Cannot determine traffic generation mode for simulation mode {simulation_mode}"
@@ -275,16 +279,6 @@ def simulate_commonroad_scenario_with_sumo(
 
     :raises ValueError: If the selected simulation mode is not supported.
     """
-    supported_simulation_modes = [
-        SimulationMode.RANDOM_TRAFFIC_GENERATION,
-        SimulationMode.DELAY,
-        SimulationMode.RESIMULATION,
-    ]
-    if simulation_config.mode not in supported_simulation_modes:
-        raise ValueError(
-            f"Unsupported simulation mode {simulation_config.mode} for SUMO! Currently only {supported_simulation_modes} are supported."
-        )
-
     sumo_config = _get_new_sumo_config_for_scenario(scenario, simulation_config, seed)
 
     traffic_generation_mode = _get_traffic_generation_mode_for_simulation_mode(
