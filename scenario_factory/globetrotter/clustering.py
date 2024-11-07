@@ -9,6 +9,7 @@ from commonroad.scenario.scenario import Scenario
 from scipy.spatial import distance
 from sklearn.cluster import AgglomerativeClustering
 
+from scenario_factory.globetrotter.region import Coordinates, RegionMetadata
 from scenario_factory.utils import copy_scenario
 
 _LOGGER = logging.getLogger(__name__)
@@ -87,6 +88,32 @@ def centroids_and_distances(
     return centroids, distances, clusters
 
 
+def _get_translated_scenario_coordinates(
+    scenario: Scenario, translation_vector: Tuple[float, float]
+) -> Coordinates:
+    """
+    Translate the GPS coordinates of the `scenario` such that they are offset by `translation_vector`.
+
+    :param scenario: The reference scenario, with GPS coordinates.
+    :param translation_vector: Specifies the values by which the cartesian representation of the scenario coordinates will be translated.
+
+    :returns: A new `Coordinates` object of the translated coordinates.
+    """
+    original_scenario_coordinates = Coordinates.from_tuple(
+        (scenario.location.gps_latitude, scenario.location.gps_longitude)
+    )
+    original_scenario_center_x, original_scenario_center_y = (
+        original_scenario_coordinates.as_tuple_cartesian()
+    )
+    cut_scenario_center_x = original_scenario_center_x + translation_vector[0]
+    cut_scenario_center_y = original_scenario_center_y + translation_vector[1]
+
+    cut_scenario_coordinates = Coordinates.from_tuple_cartesian(
+        (cut_scenario_center_x, cut_scenario_center_y)
+    )
+    return cut_scenario_coordinates
+
+
 def cut_intersection_from_scenario(
     scenario: Scenario, center: np.ndarray, max_distance: float, intersection_cut_margin: int = 30
 ) -> Scenario:
@@ -110,10 +137,22 @@ def cut_intersection_from_scenario(
     cut_lanelet_network.cleanup_traffic_light_references()
     cut_lanelet_network.cleanup_traffic_sign_references()
 
-    cut_lanelet_scenario = copy_scenario(scenario)
-    cut_lanelet_scenario.add_objects(cut_lanelet_network)
+    # Make sure that the center point is the new (0,0) of the scenario
+    cut_lanelet_network.translate_rotate(-center, angle=0.0)
 
-    return cut_lanelet_scenario
+    cut_scenario = copy_scenario(scenario)
+    cut_scenario.add_objects(cut_lanelet_network)
+
+    # Because the new scenario should be centered at the intersection, the GPS coordinates in the
+    # scenario location must also be updated. As the `center` coordinates might not be absolute,
+    # the GPS coordinates of the input scenario will be used to derive the new scenario center.
+    cut_scenario_coordinates = _get_translated_scenario_coordinates(
+        scenario, (center[0], center[1])
+    )
+    cut_scenario_metadata = RegionMetadata.from_coordinates(cut_scenario_coordinates)
+    cut_scenario.location = cut_scenario_metadata.as_commonroad_scenario_location()
+
+    return cut_scenario
 
 
 def extract_forking_points(lanelets: Sequence[Lanelet]) -> np.ndarray:

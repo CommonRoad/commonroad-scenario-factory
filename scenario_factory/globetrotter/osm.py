@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Mapping, Optional
 
 import iso3166
+import numpy as np
 from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.traffic_light import TrafficLightState
@@ -290,6 +291,12 @@ def convert_osm_file_to_commonroad_scenario(osm_file: Path) -> Scenario:
     scenario.location = map_metadata.as_commonroad_scenario_location()
     scenario.scenario_id = map_metadata.as_commonroad_scenario_id()
     scenario.source = DEFAULT_OSM_SOURCE
+
+    # During the osm2cr conversion, the coordinates inside the scenario are also
+    # projected into the cartesian coordinate system. The resulting coordinates can be very large,
+    # which leads to downstream problems and is generally unwanted. Therefore, the scenario is
+    # shifted so that the (0,0) coordinate equals the GPS coordinates in the scenario location.
+    scenario.translate_rotate(-np.array(coordinates.as_tuple_cartesian()), angle=0.0)
 
     _LOGGER.debug(f"Convertered OSM {osm_file} at {map_metadata} to CommonRoad Scenario")
     return scenario
