@@ -19,7 +19,7 @@ commonroad-scenario-designer = { git = "https://github.com/CommonRoad/commonroad
 commonroad-labeling = { git = "git@gitlab.lrz.de:cps/commonroad/automatic-scenario-labeling.git", rev="64985b953da3fdc3a0c3046a64478a040ff17bf1"}
 opentrafficsim = { version = "1.7.5", source = "test" }
 crots = { git = "git@gitlab.lrz.de:cps/commonroad/cr-ots-interface.git", rev = "31feb24680295bc846f8873dd10ebcc79caae83d"}
-sumocr = { git = "git@gitlab.lrz.de:cps/sumo-interface.git", rev = "e4d15028e25fcb9ed7b0f19f1435f466c28b0f06"}
+sumocr = { git = "git@gitlab.lrz.de:cps/sumo-interface.git", rev = "c71b6eb2be6c99927cccb7c7fec919f969893109"}
 osmium = ">=2.16.0"
 iso3166 = "^2.0"
 libsumo = "^1.19"

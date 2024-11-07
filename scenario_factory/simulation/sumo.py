@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Tuple
 
 from commonroad.scenario.scenario import Scenario, Tag
+from crots.abstractions.warm_up_estimator import warm_up_estimator
 from sumocr.scenario.scenario_wrapper import SumoScenarioWrapper
 from sumocr.simulation.non_interactive_simulation import NonInteractiveSumoSimulation
 from sumocr.sumo_map.config import SumoConfig
@@ -16,7 +17,10 @@ from sumocr.sumo_map.sumolib_net import sumo_net_from_xml
 from sumocr.sumo_map.util import update_edge_lengths
 
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
-from scenario_factory.utils import get_scenario_length
+from scenario_factory.utils import (
+    crop_and_align_scenario_to_time_frame,
+    get_scenario_length_in_time_steps,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -154,7 +158,7 @@ def _get_new_sumo_config_for_scenario(
                 f"Invalid simulation config for SUMO simulation with mode {simulation_config.mode}: option 'simulation_time_steps' must be set, but is 'None'!"
             )
         else:
-            new_sumo_config.simulation_steps = get_scenario_length(scenario)
+            new_sumo_config.simulation_steps = get_scenario_length_in_time_steps(scenario)
             _LOGGER.debug(
                 "Simulation step was not set for SUMO simulation with mode %s, so it was autodetermined to be %s",
                 simulation_config.mode,
@@ -251,6 +255,10 @@ def _get_traffic_generation_mode_for_simulation_mode(
         return SumoTrafficGenerationMode.TRAJECTORIES
     elif simulation_mode == SimulationMode.RESIMULATION:
         return SumoTrafficGenerationMode.TRAJECTORIES_UNSAFE
+    elif simulation_mode == SimulationMode.DEMAND_TRAFFIC_GENERATION:
+        return SumoTrafficGenerationMode.DEMAND
+    elif simulation_mode == SimulationMode.INFRASTRUCTURE_TRAFFIC_GENERATION:
+        return SumoTrafficGenerationMode.INFRASTRUCTURE
     else:
         raise ValueError(
             f"Cannot determine traffic generation mode for simulation mode {simulation_mode}"
@@ -275,16 +283,6 @@ def simulate_commonroad_scenario_with_sumo(
 
     :raises ValueError: If the selected simulation mode is not supported.
     """
-    supported_simulation_modes = [
-        SimulationMode.RANDOM_TRAFFIC_GENERATION,
-        SimulationMode.DELAY,
-        SimulationMode.RESIMULATION,
-    ]
-    if simulation_config.mode not in supported_simulation_modes:
-        raise ValueError(
-            f"Unsupported simulation mode {simulation_config.mode} for SUMO! Currently only {supported_simulation_modes} are supported."
-        )
-
     sumo_config = _get_new_sumo_config_for_scenario(scenario, simulation_config, seed)
 
     traffic_generation_mode = _get_traffic_generation_mode_for_simulation_mode(
@@ -297,5 +295,24 @@ def simulate_commonroad_scenario_with_sumo(
     new_scenario = _execute_sumo_simulation(scenario_wrapper, sumo_config)
 
     _patch_scenario_metadata_after_simulation(new_scenario)
+
+    if (
+        simulation_config.mode == SimulationMode.DEMAND_TRAFFIC_GENERATION
+        or simulation_config.mode == SimulationMode.INFRASTRUCTURE_TRAFFIC_GENERATION
+        or simulation_config.mode == SimulationMode.RANDOM_TRAFFIC_GENERATION
+    ):
+        original_scenario_length = get_scenario_length_in_time_steps(new_scenario)
+        warmup_time_steps = int(warm_up_estimator(new_scenario.lanelet_network) * new_scenario.dt)
+        new_scenario = crop_and_align_scenario_to_time_frame(
+            new_scenario, min_time_step=warmup_time_steps, align_to_min_time_step=True
+        )
+        _LOGGER.info(
+            "Cut %s time steps from scenario %s after simulation with SUMO in mode %s to account for warmup time. The scenario originally had %s time steps and now has %s time steps",
+            warmup_time_steps,
+            new_scenario.scenario_id,
+            simulation_config.mode,
+            original_scenario_length,
+            get_scenario_length_in_time_steps(new_scenario),
+        )
 
     return new_scenario

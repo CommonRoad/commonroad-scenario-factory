@@ -3,7 +3,17 @@ import copy
 import dataclasses
 import logging
 from contextlib import contextmanager
-from typing import AnyStr, Callable, Optional, Protocol, Sequence, Type, TypeVar, Union
+from typing import (
+    AnyStr,
+    Callable,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import DynamicObstacle
@@ -19,16 +29,248 @@ from commonroad.scenario.state import (
     MBState,
     PMInputState,
     PMState,
+    SignalState,
     State,
     TraceState,
 )
+from commonroad.scenario.trajectory import Trajectory
 from typing_extensions import TypeGuard
 
+AnyState = Union[State, SignalState]
+AnyStateT = TypeVar("AnyStateT", State, SignalState, AnyState)
 
-def get_scenario_length(scenario: Scenario) -> int:
+
+def align_state_to_time_step(state: AnyStateT, time_step: int) -> AnyStateT:
+    """
+    Aligns the time step of `state` to a reference `time_step`.
+
+    :param state: The state object to align.
+    :param time_step: The reference time step to align `state` to.
+
+    :return: The state object with the adjusted time step.
+    """
+    state.time_step -= time_step
+    return state
+
+
+def align_state_list_to_time_step(states: Sequence[AnyState], time_step: int) -> None:
+    """
+    Aligns the time steps of all states in a list to a reference time step.
+
+    :param states: A list of states to align.
+    :param time_step: The reference time step for alignment.
+    """
+    for state in states:
+        align_state_to_time_step(state, time_step)
+
+
+def crop_state_list_to_time_frame(
+    states: List[AnyStateT], min_time_step: int = 0, max_time_step: Optional[int] = None
+) -> Optional[List[AnyStateT]]:
+    """
+    Cuts a list of states to fit within a specified time frame.
+
+    :param states: The list of states to cut.
+    :param min_time_step: The minimum allowed time step.
+    :param max_time_step: The maximum allowed time step.
+
+    :return: A list of states within the specified time frame, or None if out of bounds.
+    """
+    if max_time_step is not None and max_time_step <= min_time_step:
+        raise ValueError(
+            f"Cannot cut state list to [{min_time_step},{max_time_step}]: Max time step must be strictly larger than min time step."
+        )
+
+    if len(states) < 2:
+        return None
+
+    initial_state = states[0]
+    final_state = states[-1]
+
+    if initial_state.time_step >= min_time_step:
+        if max_time_step is None or final_state.time_step <= max_time_step:
+            # The trajectory is already in the time frame
+            return states
+    if max_time_step is not None and initial_state.time_step > max_time_step:
+        # The trajectory starts only after the max time step, so we cannot cut a trajectory from this
+        return None
+
+    if final_state.time_step < min_time_step:
+        return None
+
+    max_time_step = final_state.time_step if max_time_step is None else max_time_step
+    new_state_list = copy.deepcopy(
+        list(
+            filter(
+                lambda state: state.time_step >= min_time_step and state.time_step <= max_time_step,
+                states,
+            )
+        )
+    )
+
+    return new_state_list
+
+
+def crop_trajectory_to_time_frame(
+    trajectory: Trajectory,
+    min_time_step: int = 0,
+    max_time_step: Optional[int] = None,
+) -> Optional[Trajectory]:
+    """
+    Cuts a trajectory to ensure no state's time step exceeds the specified max time step.
+
+    :param trajectory: The trajectory to be cut.
+    :param min_time_step: The minimum time step to retain.
+    :param max_time_step: The maximum time step to retain.
+
+    :return: The cut trajectory, or None if the trajectory starts after `max_time_step`.
+    """
+
+    cut_state_list = crop_state_list_to_time_frame(
+        trajectory.state_list, min_time_step, max_time_step
+    )
+    if cut_state_list is None:
+        return None
+    return Trajectory(cut_state_list[0].time_step, cut_state_list)
+
+
+def crop_and_align_dynamic_obstacle_to_time_frame(
+    original_obstacle: DynamicObstacle,
+    min_time_step: int = 0,
+    max_time_step: Optional[int] = None,
+    align_to_min_time_step: bool = False,
+) -> Optional[DynamicObstacle]:
+    """
+    Creates a new dynamic obstacle within a specified time frame.
+
+    :param original_obstacle: The original dynamic obstacle to be cut.
+    :param min_time_step: The minimum time step of the new obstacle.
+    :param max_time_step: The maximum time step of the new obstacle.
+    :param align_to_min_time_step: Whether to align to the minimum time step.
+
+    :return: A new dynamic obstacle within the time frame, or None if out of bounds.
+    """
+    if max_time_step is not None and max_time_step <= min_time_step:
+        raise ValueError(
+            f"Cannot create a new dynamic obstacle from {original_obstacle.obstacle_id} in time frame [{min_time_step},{max_time_step}]: end time must be strictly larger than start time."
+        )
+
+    if max_time_step is not None and original_obstacle.initial_state.time_step > max_time_step:
+        # The obstacle starts only after max time step, so it cannot be cut!
+        return None
+
+    # Validate the prediction only after the previous check, because a prediction of value None
+    # is valid. If the following check would be but at the beginning, this would also fail for
+    # predictions that are None.
+    if original_obstacle.prediction is not None:
+        if not isinstance(original_obstacle.prediction, TrajectoryPrediction):
+            raise ValueError(
+                f"Cannot cut dynamic obstacle {original_obstacle.obstacle_id}: Currently only trajectory predictions are supported, but prediction is of type {type(original_obstacle.prediction)}."
+            )
+
+        if original_obstacle.prediction.final_time_step <= min_time_step:
+            return None
+
+    new_initial_state = None
+    if original_obstacle.initial_state.time_step < min_time_step:
+        state_at_min_time_step = copy.deepcopy(original_obstacle.state_at_time(min_time_step))
+        if state_at_min_time_step is None:
+            return None
+        new_initial_state = convert_state_to_state_type(state_at_min_time_step, InitialState)
+    else:
+        new_initial_state = copy.deepcopy(original_obstacle.initial_state)
+
+    if align_to_min_time_step:
+        align_state_to_time_step(new_initial_state, min_time_step)
+
+    new_trajectory_prediction = None
+    if original_obstacle.prediction is not None:
+        cut_trajectory_state_list = crop_state_list_to_time_frame(
+            original_obstacle.prediction.trajectory.state_list, min_time_step + 1, max_time_step
+        )
+
+        if cut_trajectory_state_list is not None:
+            if align_to_min_time_step:
+                align_state_list_to_time_step(cut_trajectory_state_list, min_time_step)
+            new_trajectory = Trajectory(
+                initial_time_step=cut_trajectory_state_list[0].time_step,
+                state_list=cut_trajectory_state_list,
+            )
+            new_trajectory_prediction = TrajectoryPrediction(
+                new_trajectory, original_obstacle.obstacle_shape
+            )
+
+    new_initial_signal_state = None
+    if original_obstacle.initial_signal_state is not None:
+        new_initial_signal_state = copy.deepcopy(original_obstacle.initial_signal_state)
+        if align_to_min_time_step:
+            align_state_to_time_step(new_initial_signal_state, min_time_step)
+
+    new_signal_series = None
+    if original_obstacle.signal_series is not None:
+        new_signal_series = crop_state_list_to_time_frame(
+            original_obstacle.signal_series, min_time_step + 1, max_time_step
+        )
+        if new_signal_series is not None and align_to_min_time_step:
+            align_state_list_to_time_step(new_signal_series, min_time_step)
+
+    return DynamicObstacle(
+        obstacle_id=original_obstacle.obstacle_id,
+        obstacle_type=original_obstacle.obstacle_type,
+        obstacle_shape=original_obstacle.obstacle_shape,
+        initial_state=new_initial_state,
+        prediction=new_trajectory_prediction,
+        initial_signal_state=new_initial_signal_state,
+    )
+
+
+def crop_and_align_scenario_to_time_frame(
+    scenario: Scenario,
+    min_time_step: int = 0,
+    max_time_step: Optional[int] = None,
+    align_to_min_time_step: bool = False,
+) -> Scenario:
+    """
+    Cuts a scenario to include only objects within a specified time frame.
+
+    :param scenario: The original scenario to cut.
+    :param min_time_step: The minimum time step to retain.
+    :param max_time_step: The maximum time step to retain.
+    :param align_to_min_time_step: Whether to align objects to the minimum time step.
+
+    :return: A new scenario within the time frame.
+    """
+    new_scenario = copy_scenario(
+        scenario,
+        copy_lanelet_network=True,
+        copy_static_obstacles=True,
+        copy_environment_obstacles=True,
+    )
+
+    # TODO: Also cut static and environment obstacles
+
+    for dynamic_obstacle in scenario.dynamic_obstacles:
+        new_dynamic_obstacle = crop_and_align_dynamic_obstacle_to_time_frame(
+            dynamic_obstacle, min_time_step, max_time_step, align_to_min_time_step
+        )
+        if new_dynamic_obstacle is not None:
+            new_scenario.add_objects(new_dynamic_obstacle)
+
+    return new_scenario
+
+
+def get_scenario_length_in_time_steps(scenario: Scenario) -> int:
+    """
+    Determines the total length of a scenario in time steps.
+
+    :param scenario: The scenario to analyze.
+
+    :return: The total number of time steps in the scenario.
+    """
     max_time_step = 0
     for dynamic_obstacle in scenario.dynamic_obstacles:
         if dynamic_obstacle.prediction is None:
+            max_time_step = max(max_time_step, dynamic_obstacle.initial_state.time_step)
             continue
 
         if not isinstance(dynamic_obstacle.prediction, TrajectoryPrediction):
@@ -83,6 +325,7 @@ def copy_scenario(
     new_scenario = _create_new_scenario_with_metadata_from_old_scenario(scenario)
 
     if copy_lanelet_network:
+        # TODO: handle lanelet network assignments
         new_scenario.add_objects(copy.deepcopy(scenario.lanelet_network))
 
     if copy_dynamic_obstacles:

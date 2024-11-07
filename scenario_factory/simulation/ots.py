@@ -5,13 +5,17 @@ from typing import Optional
 
 import jpype
 from commonroad.geometry.shape import Rectangle, Shape
-from commonroad.prediction.prediction import Trajectory, TrajectoryPrediction
+from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import ObstacleType
 from commonroad.scenario.scenario import DynamicObstacle, Scenario, Tag
 from crots.abstractions.abstraction_level import AbstractionLevel
 
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
-from scenario_factory.utils import StreamToLogger, is_state_with_discrete_time_step
+from scenario_factory.utils import (
+    StreamToLogger,
+    crop_trajectory_to_time_frame,
+    get_scenario_length_in_time_steps,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,42 +37,6 @@ def _determine_obstacle_shape_for_obstacle_type(obstacle_type: ObstacleType) -> 
         raise ValueError(f"Unknown obstacle type {obstacle_type}")
 
 
-def _cut_trajectory_to_time_step(
-    trajectory: Trajectory, max_time_step: int
-) -> Optional[Trajectory]:
-    """
-    Cut the :param:`trajectory` so that no state's time step exceeds :param:`max_time_step`. \
-
-    :param trajectory: The trajectory that should be cut. Will not be modified.
-    :param max_time_step: The time step until which the trajectory should be cut.
-    :returns: The cut trajectory or None, if :param:`trajectory` starts after :param:`max_time_step`.
-    """
-    assert is_state_with_discrete_time_step(
-        trajectory.final_state
-    ), f"Cannot cut trajectory with final state {trajectory.final_state} because its time step is not a discrete value"
-
-    if trajectory.final_state.time_step <= max_time_step:
-        # The trajectory does not exceed the max time step, so the trajectory is already correct
-        return trajectory
-
-    if trajectory.final_state.time_step > max_time_step:
-        # The trajectory starts only after the max time step, so we cannot cut a trajectory from this
-        return None
-
-    new_state_list = list(
-        filter(lambda state: state.time_step <= max_time_step, trajectory.state_list)
-    )
-
-    trajectory_initial_state = new_state_list[0]
-    assert is_state_with_discrete_time_step(
-        trajectory_initial_state
-    ), f"Cannot cut trajectory with initial state {trajectory_initial_state} because its time step is not a discrete value"
-
-    return Trajectory(
-        initial_time_step=trajectory_initial_state.time_step, state_list=new_state_list
-    )
-
-
 def _correct_dynamic_obstacle(
     dynamic_obstacle: DynamicObstacle, max_time_step: Optional[int] = None
 ) -> DynamicObstacle:
@@ -84,8 +52,8 @@ def _correct_dynamic_obstacle(
     if max_time_step is not None:
         # Fallback prediction is None, for the case that no valid trajectory can be cut
         new_prediction = None
-        cut_trajectory = _cut_trajectory_to_time_step(
-            dynamic_obstacle.prediction.trajectory, max_time_step
+        cut_trajectory = crop_trajectory_to_time_frame(
+            dynamic_obstacle.prediction.trajectory, min_time_step=0, max_time_step=max_time_step
         )
         # If the original trajectory starts after max_time_step, it cannot be cut and therefore cut_trajectory would be None
         if cut_trajectory is not None:
@@ -354,20 +322,13 @@ def simulate_commonroad_scenario_with_ots(
     if new_scenario is None:
         return None
 
-    max_time_step = 0
-    if len(new_scenario.dynamic_obstacles) > 0:
-        max_time_step = max(
-            [
-                obstacle.prediction.trajectory.final_state.time_step
-                for obstacle in new_scenario.dynamic_obstacles
-            ]
-        )
+    scenario_length = get_scenario_length_in_time_steps(new_scenario)
 
     _LOGGER.debug(
         "Simulated scenario %s and created %s random obstacles for %s time steps",
         str(new_scenario.scenario_id),
         len(new_scenario.dynamic_obstacles),
-        max_time_step,
+        scenario_length,
     )
 
     if simulation_config.mode == SimulationMode.RANDOM_TRAFFIC_GENERATION:
