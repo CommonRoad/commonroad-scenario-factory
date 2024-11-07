@@ -174,7 +174,8 @@ def crop_and_align_dynamic_obstacle_to_time_frame(
     new_initial_state = None
     if original_obstacle.initial_state.time_step < min_time_step:
         state_at_min_time_step = copy.deepcopy(original_obstacle.state_at_time(min_time_step))
-        assert state_at_min_time_step is not None
+        if state_at_min_time_step is None:
+            return None
         new_initial_state = convert_state_to_state_type(state_at_min_time_step, InitialState)
     else:
         new_initial_state = copy.deepcopy(original_obstacle.initial_state)
@@ -184,15 +185,19 @@ def crop_and_align_dynamic_obstacle_to_time_frame(
 
     new_trajectory_prediction = None
     if original_obstacle.prediction is not None:
-        cut_trajectory = crop_trajectory_to_time_frame(
-            original_obstacle.prediction.trajectory, min_time_step + 1, max_time_step
+        cut_trajectory_state_list = crop_state_list_to_time_frame(
+            original_obstacle.prediction.trajectory.state_list, min_time_step + 1, max_time_step
         )
 
-        if cut_trajectory is not None:
+        if cut_trajectory_state_list is not None:
             if align_to_min_time_step:
-                align_state_list_to_time_step(cut_trajectory.state_list, min_time_step)
+                align_state_list_to_time_step(cut_trajectory_state_list, min_time_step)
+            new_trajectory = Trajectory(
+                initial_time_step=cut_trajectory_state_list[0].time_step,
+                state_list=cut_trajectory_state_list,
+            )
             new_trajectory_prediction = TrajectoryPrediction(
-                cut_trajectory, original_obstacle.obstacle_shape
+                new_trajectory, original_obstacle.obstacle_shape
             )
 
     new_initial_signal_state = None
@@ -266,6 +271,7 @@ def get_scenario_length_in_time_steps(scenario: Scenario) -> int:
     for dynamic_obstacle in scenario.dynamic_obstacles:
         if dynamic_obstacle.prediction is None:
             max_time_step = max(max_time_step, dynamic_obstacle.initial_state.time_step)
+            continue
 
         if not isinstance(dynamic_obstacle.prediction, TrajectoryPrediction):
             continue
