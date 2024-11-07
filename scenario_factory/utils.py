@@ -64,7 +64,7 @@ def align_state_list_to_time_step(states: Sequence[AnyState], time_step: int) ->
         align_state_to_time_step(state, time_step)
 
 
-def cut_state_list_to_time_frame(
+def crop_state_list_to_time_frame(
     states: List[AnyStateT], min_time_step: int = 0, max_time_step: Optional[int] = None
 ) -> Optional[List[AnyStateT]]:
     """
@@ -111,7 +111,7 @@ def cut_state_list_to_time_frame(
     return new_state_list
 
 
-def cut_trajectory_to_time_frame(
+def crop_trajectory_to_time_frame(
     trajectory: Trajectory,
     min_time_step: int = 0,
     max_time_step: Optional[int] = None,
@@ -126,7 +126,7 @@ def cut_trajectory_to_time_frame(
     :return: The cut trajectory, or None if the trajectory starts after `max_time_step`.
     """
 
-    cut_state_list = cut_state_list_to_time_frame(
+    cut_state_list = crop_state_list_to_time_frame(
         trajectory.state_list, min_time_step, max_time_step
     )
     if cut_state_list is None:
@@ -134,7 +134,7 @@ def cut_trajectory_to_time_frame(
     return Trajectory(cut_state_list[0].time_step, cut_state_list)
 
 
-def cut_dynamic_obstacle_to_time_frame(
+def crop_and_align_dynamic_obstacle_to_time_frame(
     original_obstacle: DynamicObstacle,
     min_time_step: int = 0,
     max_time_step: Optional[int] = None,
@@ -184,7 +184,7 @@ def cut_dynamic_obstacle_to_time_frame(
 
     new_trajectory_prediction = None
     if original_obstacle.prediction is not None:
-        cut_trajectory = cut_trajectory_to_time_frame(
+        cut_trajectory = crop_trajectory_to_time_frame(
             original_obstacle.prediction.trajectory, min_time_step + 1, max_time_step
         )
 
@@ -203,7 +203,7 @@ def cut_dynamic_obstacle_to_time_frame(
 
     new_signal_series = None
     if original_obstacle.signal_series is not None:
-        new_signal_series = cut_state_list_to_time_frame(
+        new_signal_series = crop_state_list_to_time_frame(
             original_obstacle.signal_series, min_time_step + 1, max_time_step
         )
         if new_signal_series is not None and align_to_min_time_step:
@@ -219,7 +219,7 @@ def cut_dynamic_obstacle_to_time_frame(
     )
 
 
-def cut_scenario_to_time_frame(
+def crop_and_align_scenario_to_time_frame(
     scenario: Scenario,
     min_time_step: int = 0,
     max_time_step: Optional[int] = None,
@@ -245,7 +245,7 @@ def cut_scenario_to_time_frame(
     # TODO: Also cut static and environment obstacles
 
     for dynamic_obstacle in scenario.dynamic_obstacles:
-        new_dynamic_obstacle = cut_dynamic_obstacle_to_time_frame(
+        new_dynamic_obstacle = crop_and_align_dynamic_obstacle_to_time_frame(
             dynamic_obstacle, min_time_step, max_time_step, align_to_min_time_step
         )
         if new_dynamic_obstacle is not None:

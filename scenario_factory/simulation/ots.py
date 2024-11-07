@@ -13,7 +13,7 @@ from crots.abstractions.abstraction_level import AbstractionLevel
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 from scenario_factory.utils import (
     StreamToLogger,
-    cut_trajectory_to_time_frame,
+    crop_trajectory_to_time_frame,
     get_scenario_length_in_time_steps,
 )
 
@@ -52,7 +52,7 @@ def _correct_dynamic_obstacle(
     if max_time_step is not None:
         # Fallback prediction is None, for the case that no valid trajectory can be cut
         new_prediction = None
-        cut_trajectory = cut_trajectory_to_time_frame(
+        cut_trajectory = crop_trajectory_to_time_frame(
             dynamic_obstacle.prediction.trajectory, min_time_step=0, max_time_step=max_time_step
         )
         # If the original trajectory starts after max_time_step, it cannot be cut and therefore cut_trajectory would be None

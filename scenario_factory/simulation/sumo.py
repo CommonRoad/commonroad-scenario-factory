@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Tuple
 
 from commonroad.scenario.scenario import Scenario, Tag
+from crots.abstractions.warm_up_estimator import warm_up_estimator
 from sumocr.scenario.scenario_wrapper import SumoScenarioWrapper
 from sumocr.simulation.non_interactive_simulation import NonInteractiveSumoSimulation
 from sumocr.sumo_map.config import SumoConfig
@@ -16,8 +17,10 @@ from sumocr.sumo_map.sumolib_net import sumo_net_from_xml
 from sumocr.sumo_map.util import update_edge_lengths
 
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
-from scenario_factory.simulation.utils import compute_warmup_time_for_lanelet_network
-from scenario_factory.utils import cut_scenario_to_time_frame, get_scenario_length_in_time_steps
+from scenario_factory.utils import (
+    crop_and_align_scenario_to_time_frame,
+    get_scenario_length_in_time_steps,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -296,15 +299,16 @@ def simulate_commonroad_scenario_with_sumo(
     if (
         simulation_config.mode == SimulationMode.DEMAND_TRAFFIC_GENERATION
         or simulation_config.mode == SimulationMode.INFRASTRUCTURE_TRAFFIC_GENERATION
+        or simulation_config.mode == SimulationMode.RANDOM_TRAFFIC_GENERATION
     ):
         original_scenario_length = get_scenario_length_in_time_steps(new_scenario)
-        warmup_time = compute_warmup_time_for_lanelet_network(new_scenario.lanelet_network)
-        new_scenario = cut_scenario_to_time_frame(
-            new_scenario, min_time_step=int(warmup_time), align_to_min_time_step=True
+        warmup_time_steps = int(warm_up_estimator(new_scenario.lanelet_network) * new_scenario.dt)
+        new_scenario = crop_and_align_scenario_to_time_frame(
+            new_scenario, min_time_step=warmup_time_steps, align_to_min_time_step=True
         )
         _LOGGER.info(
             "Cut %s time steps from scenario %s after simulation with SUMO in mode %s to account for warmup time. The scenario originally had %s time steps and now has %s time steps",
-            warmup_time,
+            warmup_time_steps,
             new_scenario.scenario_id,
             simulation_config.mode,
             original_scenario_length,

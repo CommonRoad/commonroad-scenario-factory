@@ -30,7 +30,11 @@ from commonroad.scenario.trajectory import Trajectory
 from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
 from scenario_factory.scenario_checker import get_colliding_dynamic_obstacles_in_scenario
 from scenario_factory.scenario_config import ScenarioFactoryConfig
-from scenario_factory.utils import copy_scenario, get_full_state_list_of_obstacle
+from scenario_factory.utils import (
+    copy_scenario,
+    crop_and_align_dynamic_obstacle_to_time_frame,
+    get_full_state_list_of_obstacle,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,57 +53,6 @@ def _find_most_likely_lanelet_by_state(
         return lanelet_ids[0]
 
     return lanelet_ids[0]
-
-
-def _create_new_obstacle_in_time_frame(
-    orig_obstacle: DynamicObstacle, start_time: int, end_time: int, with_prediction: bool = True
-) -> Optional[DynamicObstacle]:
-    """
-    Create a copy of orig_obstacle aligned to time step 0.
-
-    :param orig_obstacle: The obstacle from which the new one will be derived
-    :param start_time: Start of the time frame (inclusive)
-    :param end_time: End of the time frame (exclusive)
-    :param with_prediction: Whether to include the aligned trajectory in the resulting obstacle
-
-    :returns: The new DynamicObstacle that is aligned to the time frame or None, if no state was definied for the start of the time frame
-    """
-    # TODO: The inclusion criterion here is quiet weak, because it is only checked whether the obstacle is there at the beginning of the scenario. Maybe a better inclusion criterion would be to check, whether there is a trajectory of minimum length x in the time frame?
-    state_at_start = copy.deepcopy(orig_obstacle.state_at_time(start_time))
-    if state_at_start is None:
-        return None
-
-    # As state_at_start can also be a TraceState, an extra InitialState must be created from it
-    initial_state = InitialState(
-        time_step=0,
-        position=state_at_start.position,
-        orientation=state_at_start.orientation,
-        velocity=state_at_start.velocity,
-        acceleration=state_at_start.acceleration,
-    )
-    new_obstacle = DynamicObstacle(
-        obstacle_id=orig_obstacle.obstacle_id,
-        obstacle_type=orig_obstacle.obstacle_type,
-        obstacle_shape=orig_obstacle.obstacle_shape,
-        initial_state=initial_state,
-    )
-
-    if with_prediction:
-        # The state_list creation is seperated in to two list comprehensions, so that mypy does not complain about possible None values...
-        state_list = [
-            orig_obstacle.state_at_time(time_step) for time_step in range(start_time + 1, end_time)
-        ]
-        state_list = [copy.deepcopy(state) for state in state_list if state is not None]
-        if len(state_list) > 0:
-            for i, state in enumerate(state_list):
-                state.time_step = i + 1
-
-            new_obstacle.prediction = TrajectoryPrediction(
-                Trajectory(initial_time_step=1, state_list=state_list),
-                shape=orig_obstacle.obstacle_shape,
-            )
-
-    return new_obstacle
 
 
 def _select_obstacles_in_sensor_range_of_ego_vehicle(
@@ -306,11 +259,10 @@ def create_scenario_for_ego_vehicle_maneuver(
         if obstacle.initial_state.time_step > ego_vehicle_maneuver.start_time:
             continue
 
-        new_obstacle = _create_new_obstacle_in_time_frame(
+        new_obstacle = crop_and_align_dynamic_obstacle_to_time_frame(
             obstacle,
             ego_vehicle_maneuver.start_time,
             ego_vehicle_maneuver.start_time + scenario_config.cr_scenario_time_steps + 1,
-            with_prediction=True,
         )
         if new_obstacle is not None:
             new_obstacles.append(new_obstacle)
@@ -360,11 +312,10 @@ def generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_man
 
     # Make sure that the ego vehicle is also aligned to the start of the new scenario and not to the old scenario.
     # This is important, because the planning problem will be created from the trajectories start and end state.
-    aligned_ego_vehicle = _create_new_obstacle_in_time_frame(
+    aligned_ego_vehicle = crop_and_align_dynamic_obstacle_to_time_frame(
         ego_vehicle_maneuver.ego_vehicle,
-        start_time=ego_vehicle_maneuver.start_time,
-        end_time=ego_vehicle_maneuver.start_time + scenario_config.cr_scenario_time_steps + 1,
-        with_prediction=True,
+        min_time_step=ego_vehicle_maneuver.start_time,
+        max_time_step=ego_vehicle_maneuver.start_time + scenario_config.cr_scenario_time_steps + 1,
     )
     if aligned_ego_vehicle is None:
         raise RuntimeError(
