@@ -4,7 +4,7 @@ from pathlib import Path
 
 from commonroad.scenario.scenario import Scenario, Tag
 from crots.abstractions.warm_up_estimator import warm_up_estimator
-from sumocr.backend.sumo_simulation_backend import TraciSumoSimulationBackend
+from sumocr.backend import TraciSumoSimulationBackend
 from sumocr.scenario.scenario_wrapper import SumoScenarioWrapper
 from sumocr.simulation.non_interactive_simulation import NonInteractiveSumoSimulation
 from sumocr.sumo_map.config import SumoConfig
@@ -25,20 +25,6 @@ def _get_new_sumo_config_for_scenario(
 ) -> SumoConfig:
     new_sumo_config = SumoConfig()
     # TODO: make this cleaner and maybe also apply to OTS simulation?
-    if simulation_config.simulation_steps is None:
-        if simulation_config.mode in [SimulationMode.RANDOM_TRAFFIC_GENERATION]:
-            raise ValueError(
-                f"Invalid simulation config for SUMO simulation with mode {simulation_config.mode}: option 'simulation_time_steps' must be set, but is 'None'!"
-            )
-        else:
-            new_sumo_config.simulation_steps = get_scenario_length_in_time_steps(scenario)
-            _LOGGER.debug(
-                "Simulation step was not set for SUMO simulation with mode %s, so it was autodetermined to be %s",
-                simulation_config.mode,
-                new_sumo_config.simulation_steps,
-            )
-    else:
-        new_sumo_config.simulation_steps = simulation_config.simulation_steps
 
     new_sumo_config.random_seed = seed
     new_sumo_config.random_seed_trip_generation = seed
@@ -82,7 +68,7 @@ def _convert_commonroad_scenario_to_sumo_scenario(
 
 
 def _execute_sumo_simulation(
-    scenario_wrapper: SumoScenarioWrapper, sumo_config: SumoConfig
+    scenario_wrapper: SumoScenarioWrapper, simulation_steps: int
 ) -> Scenario:
     """
     Execute the concrete SUMO simulation.
@@ -94,7 +80,7 @@ def _execute_sumo_simulation(
     """
 
     sumo_sim = NonInteractiveSumoSimulation(scenario_wrapper)
-    simulation_result = sumo_sim.run(sumo_config.simulation_steps)
+    simulation_result = sumo_sim.run(simulation_steps)
     scenario = simulation_result.scenario
 
     return scenario
@@ -163,24 +149,44 @@ def simulate_commonroad_scenario_with_sumo(
         simulation_config.mode
     )
 
+    if simulation_config.simulation_steps is None:
+        if simulation_config.mode in [SimulationMode.RANDOM_TRAFFIC_GENERATION]:
+            raise ValueError(
+                f"Invalid simulation config for SUMO simulation with mode {simulation_config.mode}: option 'simulation_time_steps' must be set, but is 'None'!"
+            )
+        else:
+            simulation_steps = get_scenario_length_in_time_steps(scenario)
+            _LOGGER.debug(
+                "Simulation step was not set for SUMO simulation with mode %s, so it was autodetermined to be %s",
+                simulation_config.mode,
+                simulation_steps,
+            )
+    else:
+        simulation_steps = simulation_config.simulation_steps
+
+    simulation_mode_requires_warmup = simulation_config.mode in [
+        SimulationMode.DEMAND_TRAFFIC_GENERATION,
+        SimulationMode.INFRASTRUCTURE_TRAFFIC_GENERATION,
+        SimulationMode.RANDOM_TRAFFIC_GENERATION,
+    ]
+    warmup_time_steps = 0
+    if simulation_mode_requires_warmup:
+        warmup_time_steps = int(warm_up_estimator(scenario.lanelet_network) * scenario.dt)
+        simulation_steps += warmup_time_steps
+
     scenario_wrapper = _convert_commonroad_scenario_to_sumo_scenario(
         scenario, working_directory, sumo_config, traffic_generation_mode=traffic_generation_mode
     )
-    new_scenario = _execute_sumo_simulation(scenario_wrapper, sumo_config)
+    new_scenario = _execute_sumo_simulation(scenario_wrapper, simulation_steps)
 
     _patch_scenario_metadata_after_simulation(new_scenario)
 
-    if (
-        simulation_config.mode == SimulationMode.DEMAND_TRAFFIC_GENERATION
-        or simulation_config.mode == SimulationMode.INFRASTRUCTURE_TRAFFIC_GENERATION
-        or simulation_config.mode == SimulationMode.RANDOM_TRAFFIC_GENERATION
-    ):
+    if simulation_mode_requires_warmup:
         original_scenario_length = get_scenario_length_in_time_steps(new_scenario)
-        warmup_time_steps = int(warm_up_estimator(new_scenario.lanelet_network) * new_scenario.dt)
         new_scenario = crop_scenario_to_time_frame(new_scenario, min_time_step=warmup_time_steps)
         align_scenario_to_time_step(new_scenario, warmup_time_steps)
         _LOGGER.debug(
-            "Cut %s time steps from scenario %s after simulation with SUMO in mode %s to account for warmup time. The scenario originally had %s time steps and now has %s time steps",
+            "Cut %s time steps from scenario %s after simulation with SUMO in mode %s to account for warmup time. The scenario after simulation had %s time steps and now has %s time steps",
             warmup_time_steps,
             new_scenario.scenario_id,
             simulation_config.mode,

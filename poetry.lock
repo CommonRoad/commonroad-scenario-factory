@@ -3353,8 +3353,8 @@ typing-extensions = "^4.12.2"
 [package.source]
 type = "git"
 url = "git@gitlab.lrz.de:cps/sumo-interface.git"
-reference = "ad4f82269e4b56a9af7e1df25d2743c2a60d94fa"
-resolved_reference = "ad4f82269e4b56a9af7e1df25d2743c2a60d94fa"
+reference = "401d71e825295aa43dba449218ba7fa850feaa36"
+resolved_reference = "401d71e825295aa43dba449218ba7fa850feaa36"
 
 [[package]]
 name = "sumolib"
@@ -3655,4 +3655,4 @@ test = ["pytest (>=4.6.7)", "pytest-cov (>=2.6.1)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "0b00a2034c194defb1abcc280f17a738fc2f48bd4326c9aec6a00a01b292c195"
+content-hash = "2d9de409218f50ad6758bf1b4293cb6899caf51164f992660630a81d0c818be7"
