@@ -1,150 +1,23 @@
 import copy
 import logging
-import os
-import subprocess
-import warnings
 from pathlib import Path
-from typing import Tuple
 
 from commonroad.scenario.scenario import Scenario, Tag
 from crots.abstractions.warm_up_estimator import warm_up_estimator
+from sumocr.backend.sumo_simulation_backend import TraciSumoSimulationBackend
 from sumocr.scenario.scenario_wrapper import SumoScenarioWrapper
 from sumocr.simulation.non_interactive_simulation import NonInteractiveSumoSimulation
 from sumocr.sumo_map.config import SumoConfig
-from sumocr.sumo_map.cr2sumo.converter import TLS, CR2SumoMapConverter, SumoTrafficGenerationMode
-from sumocr.sumo_map.errors import ScenarioException
-from sumocr.sumo_map.sumolib_net import sumo_net_from_xml
-from sumocr.sumo_map.util import update_edge_lengths
+from sumocr.sumo_map.cr2sumo.converter import CR2SumoMapConverter, SumoTrafficGenerationMode
 
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 from scenario_factory.utils import (
-    crop_and_align_scenario_to_time_frame,
+    align_scenario_to_time_step,
+    crop_scenario_to_time_frame,
     get_scenario_length_in_time_steps,
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _fix_traffic_light_signal_offsets(traffic_light_signals: TLS) -> None:
-    """
-    Currently the TLS program will be offset by the maximum cycle offset of all traffic lights
-    that are part of one TLS program. This does not realy make sense, because the offsets only apply to individual cycles and not to the whole TLS program.
-    If the offsets are applied however, this means that the CommonRoad and SUMO scenario get out of sync, because the TLS program starts after the CommonRoad one.
-    To keep the CommonRoad and SUMO scenario in sync, the offset is removed here.
-    """
-    for programs in traffic_light_signals.programs.values():
-        for program in programs.values():
-            program.offset = 0
-
-
-# The CR2SumoMapConverter does not limit the output of SUMO netconvert.
-# If we process many different scenarios, netconvert will spam unecessary warnings to the console.
-# Therefore, a custom converter is used, which limits the output by capturing SUMO netconverts output on stderr and also applies some fixes so that the SUMO scenarios become usable.
-class CustomCommonroad2SumoMapConverter(CR2SumoMapConverter):
-    def __init__(self, scenario: Scenario, conf: SumoConfig) -> None:
-        # Override the logging level, otherwise the converter will spam info logs (which should be debug logs...)
-        conf.logging_level = "ERROR"
-        super().__init__(scenario, conf)
-
-    # Overrides the `write_intermediate_files` method of the parent class,
-    # to apply important fix
-    def write_intermediate_files(self, output_path: str) -> Tuple[str, ...]:
-        _fix_traffic_light_signal_offsets(self.traffic_light_signals)
-        return super().write_intermediate_files(output_path)
-
-    # Overrides the `merge_intermediate_files` method of the parent class
-    # Mostly the same as the method of the parent class, except that we capture the subprocess output.
-    # Otherwise the netconvert output will be spammed to stdout.
-    def merge_intermediate_files(
-        self,
-        output_path: str,
-        cleanup: bool,
-        nodes_path: str,
-        edges_path: str,
-        connections_path: str,
-        traffic_path: str,
-        type_path: str,
-    ) -> bool:
-        """
-        Function that merges the edges and nodes files into one using netconvert
-        :param output_path
-        :param cleanup: deletes temporary input files after creating net file (only deactivate for debugging)
-        :param connections_path:
-        :param nodes_path:
-        :param edges_path:
-        :param traffic_path:
-        :param type_path:
-        :param output_path: the relative path of the output
-        :return: bool: returns False if conversion fails
-        """
-
-        # The header of the xml files must be removed
-        to_remove = ["options", "xml"]
-        for path in [nodes_path, edges_path, connections_path, traffic_path]:
-            # Removing header in file
-            with open(path, "r") as file:
-                lines = file.readlines()
-            with open(path, "w") as file:
-                for line in lines:
-                    if not any(word in line for word in to_remove):
-                        file.write(line)
-
-        self._output_file = str(output_path)
-        # Calling of Netconvert
-        command = (
-            f"{os.environ['SUMO_HOME']}/bin/netconvert "
-            f" --no-turnarounds=true"
-            f" --junctions.internal-link-detail=20"
-            f" --geometry.avoid-overlap=true"
-            f" --geometry.remove.keep-edges.explicit=true"
-            f" --geometry.remove.min-length=0.0"
-            f" --tls.crossing-min.time={10}"
-            f" --tls.crossing-clearance.time={10}"
-            f" --offset.disable-normalization=true"
-            f" --node-files={nodes_path}"
-            f" --edge-files={edges_path}"
-            f" --connection-files={connections_path}"
-            f" --tllogic-files={traffic_path}"
-            f" --type-files={type_path}"
-            f" --output-file={output_path}"
-            f" --seed={self.conf.random_seed_trip_generation}"
-        )
-        success = True
-        try:
-            # Capture stderr and include in output, so that we can analyze the warnings
-            netconvert_output = subprocess.check_output(
-                command.split(), timeout=5.0, stderr=subprocess.STDOUT
-            )
-
-            # All warnings produced by netconvert are considered debug messages,
-            # because they are usuallay rather informative
-            # and do not affect the functionality of the simulation
-            for line in netconvert_output.decode().splitlines():
-                if line.startswith("Warning"):
-                    warning_message = line.lstrip("Warning: ")
-                    _LOGGER.debug(
-                        f"netconvert produced a warning while creating {self._output_file}: {warning_message}"
-                    )
-
-            update_edge_lengths(self._output_file)
-            net = sumo_net_from_xml(self._output_file)
-            self._update_junctions_from_net(net)
-
-        except FileNotFoundError as e:
-            if "netconvert" in e.filename:
-                warnings.warn("Is netconvert installed and added to PATH?")
-            success = False
-        except ScenarioException:
-            raise
-        except Exception as e:
-            _LOGGER.exception(e)
-            success = False
-
-        if cleanup and success:
-            for path in [nodes_path, edges_path, connections_path, traffic_path]:
-                os.remove(path)
-
-        return success
 
 
 def _get_new_sumo_config_for_scenario(
@@ -194,7 +67,7 @@ def _convert_commonroad_scenario_to_sumo_scenario(
     :returns: A wrapper that can be used in the SUMO simulation
     """
     new_scenario = copy.deepcopy(commonroad_scenario)
-    cr2sumo = CustomCommonroad2SumoMapConverter(new_scenario, sumo_config)
+    cr2sumo = CR2SumoMapConverter(new_scenario, sumo_config)
     conversion_possible = cr2sumo.create_sumo_files(
         str(output_folder), traffic_generation_mode=traffic_generation_mode
     )
@@ -219,6 +92,7 @@ def _execute_sumo_simulation(
 
     :returns: A new scenario with the trajectories of the simulated obstacles.
     """
+
     sumo_sim = NonInteractiveSumoSimulation(scenario_wrapper)
     simulation_result = sumo_sim.run(sumo_config.simulation_steps)
     scenario = simulation_result.scenario
@@ -303,10 +177,9 @@ def simulate_commonroad_scenario_with_sumo(
     ):
         original_scenario_length = get_scenario_length_in_time_steps(new_scenario)
         warmup_time_steps = int(warm_up_estimator(new_scenario.lanelet_network) * new_scenario.dt)
-        new_scenario = crop_and_align_scenario_to_time_frame(
-            new_scenario, min_time_step=warmup_time_steps, align_to_min_time_step=True
-        )
-        _LOGGER.info(
+        new_scenario = crop_scenario_to_time_frame(new_scenario, min_time_step=warmup_time_steps)
+        align_scenario_to_time_step(new_scenario, warmup_time_steps)
+        _LOGGER.debug(
             "Cut %s time steps from scenario %s after simulation with SUMO in mode %s to account for warmup time. The scenario originally had %s time steps and now has %s time steps",
             warmup_time_steps,
             new_scenario.scenario_id,
