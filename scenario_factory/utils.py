@@ -16,6 +16,7 @@ from typing import (
 )
 
 from commonroad.prediction.prediction import TrajectoryPrediction
+from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.state import (
@@ -385,8 +386,10 @@ def copy_scenario(
     new_scenario = _create_new_scenario_with_metadata_from_old_scenario(scenario)
 
     if copy_lanelet_network:
-        # TODO: handle lanelet network assignments
-        new_scenario.add_objects(copy.deepcopy(scenario.lanelet_network))
+        # It is necessary that `create_from_lanelet_network` is used instead of a simple deepcopy
+        # because the geoemtry cache inside lanelet network might otherwise be incomplete
+        new_lanelet_network = LaneletNetwork.create_from_lanelet_network(scenario.lanelet_network)
+        new_scenario.add_objects(new_lanelet_network)
 
     if copy_dynamic_obstacles:
         for dynamic_obstacle in scenario.dynamic_obstacles:
