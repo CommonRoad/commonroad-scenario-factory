@@ -13,8 +13,10 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    runtime_checkable,
 )
 
+from commonroad.common.util import Interval
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.obstacle import DynamicObstacle
@@ -30,7 +32,6 @@ from commonroad.scenario.state import (
     MBState,
     PMInputState,
     PMState,
-    SignalState,
     State,
     TraceState,
 )
@@ -38,11 +39,82 @@ from commonroad.scenario.traffic_light import TrafficLight
 from commonroad.scenario.trajectory import Trajectory
 from typing_extensions import TypeGuard
 
-AnyState = Union[State, SignalState]
-AnyStateT = TypeVar("AnyStateT", State, SignalState, AnyState)
+StateWithAcceleration = Union[
+    InitialState, ExtendedPMState, LongitudinalState, InputState, PMInputState
+]
+StateWithOrientation = Union[InitialState, ExtendedPMState, KSState, LateralState, MBState]
+StateWithPosition = Union[InitialState, PMState]
+StateWithVelocity = Union[InitialState, PMState, KSState, MBState, LongitudinalState]
 
 
-def align_state_to_time_step(state: AnyState, time_step: int) -> None:
+@runtime_checkable
+class WithTimeStep(Protocol):
+    time_step: Union[int, Interval]
+
+
+@runtime_checkable
+class WithDiscreteTimeStep(Protocol):
+    time_step: int
+
+
+@runtime_checkable
+class WithDiscreteVelocity(Protocol):
+    velocity: float
+
+
+def is_state_with_acceleration(state: TraceState) -> TypeGuard[StateWithAcceleration]:
+    return state.has_value("acceleration")
+
+
+def is_state_list_with_acceleration(
+    state_list: Sequence[TraceState],
+) -> TypeGuard[Sequence[StateWithAcceleration]]:
+    return all(is_state_with_acceleration(state) for state in state_list)
+
+
+def is_state_with_orientation(state: TraceState) -> TypeGuard[StateWithOrientation]:
+    return state.has_value("orientation")
+
+
+def is_state_list_with_orientation(
+    state_list: Sequence[TraceState],
+) -> TypeGuard[Sequence[StateWithOrientation]]:
+    return all(is_state_with_orientation(state) for state in state_list)
+
+
+def is_state_with_position(state: TraceState) -> TypeGuard[StateWithPosition]:
+    return state.has_value("position")
+
+
+def is_state_list_with_position(
+    state_list: Sequence[TraceState],
+) -> TypeGuard[Sequence[StateWithPosition]]:
+    return all(is_state_with_position(state) for state in state_list)
+
+
+def is_state_with_discrete_time_step(
+    state: TraceState,
+) -> TypeGuard[WithDiscreteTimeStep]:
+    return isinstance(state.time_step, int)
+
+
+def is_state_with_velocity(state: TraceState) -> TypeGuard[StateWithVelocity]:
+    return state.has_value("velocity")
+
+
+def is_state_with_discrete_velocity(
+    state: StateWithVelocity,
+) -> TypeGuard[WithDiscreteVelocity]:
+    return isinstance(state.velocity, float)
+
+
+def is_state_list_with_velocity(
+    state_list: Sequence[TraceState],
+) -> TypeGuard[Sequence[StateWithVelocity]]:
+    return all(is_state_with_velocity(state) for state in state_list)
+
+
+def align_state_to_time_step(state: WithTimeStep, time_step: int) -> None:
     """
     Aligns the time step of `state` to a reference `time_step`.
 
@@ -54,7 +126,7 @@ def align_state_to_time_step(state: AnyState, time_step: int) -> None:
     state.time_step -= time_step
 
 
-def align_state_list_to_time_step(states: Sequence[AnyState], time_step: int) -> None:
+def align_state_list_to_time_step(states: Sequence[WithTimeStep], time_step: int) -> None:
     """
     Aligns the time steps of all states in a list to a reference time step.
 
@@ -85,15 +157,17 @@ def align_dynamic_obstacle_to_time_step(dynamic_obstacle: DynamicObstacle, time_
         align_state_list_to_time_step(dynamic_obstacle.signal_series, time_step)
 
     if dynamic_obstacle.prediction is None:
-        return dynamic_obstacle
+        return
 
-    if not isinstance(dynamic_obstacle.prediction, TrajectoryPrediction):
-        return dynamic_obstacle
-
-    align_state_list_to_time_step(dynamic_obstacle.prediction.trajectory.state_list, time_step)
-    dynamic_obstacle.prediction.trajectory.initial_time_step = (
-        dynamic_obstacle.prediction.trajectory.state_list[0].time_step
-    )
+    if isinstance(dynamic_obstacle.prediction, TrajectoryPrediction):
+        align_state_list_to_time_step(dynamic_obstacle.prediction.trajectory.state_list, time_step)
+        dynamic_obstacle.prediction.trajectory.initial_time_step = (
+            dynamic_obstacle.prediction.trajectory.state_list[0].time_step
+        )
+    else:
+        raise ValueError(
+            f"Cannot align dynamic obstacle {dynamic_obstacle.obstacle_id} to time step {time_step}: exepected a prediction of type `TrajectoryPrediction` but got `SetBasedPrediction`"
+        )
 
 
 def align_traffic_light_to_time_step(traffic_light: TrafficLight, time_step: int) -> None:
@@ -132,8 +206,8 @@ def align_scenario_to_time_step(scenario: Scenario, time_step: int) -> None:
 
 
 def crop_state_list_to_time_frame(
-    states: List[AnyStateT], min_time_step: int = 0, max_time_step: Optional[int] = None
-) -> Optional[List[AnyStateT]]:
+    states: List[WithTimeStep], min_time_step: int = 0, max_time_step: Optional[int] = None
+) -> Optional[List[WithTimeStep]]:
     """
     Cuts a list of states to fit within a specified time frame.
 
@@ -518,7 +592,7 @@ def get_full_state_list_of_obstacle(
     :param dynamic_obstacle: The obstacle from which the states should be extracted
     :param target_state_type: Provide an optional state type, to which all resulting states should be converted
 
-    :returns: The full state list of the obstacle where all states have the same state type. This does however not guarantee that all states also have the same attributes, if `CustomStates` are used. See `convert_state_to_state` for more information.
+    :returns: The full state list of the obstacle where all states have the same state type. This does however not guarantee that all states also have the same attributes, if `CustomState`s are used. See `convert_state_to_state` for more information.
     """
     if target_state_type == CustomState:
         raise ValueError(
@@ -551,71 +625,3 @@ def get_full_state_list_of_obstacle(
     # Harmonizes the state types: If the caller wants to construct a trajectory
     # from this state list, all states need to have the same attributes aka. the same state type.
     return [convert_state_to_state_type(state, target_state_type) for state in state_list]
-
-
-StateWithAcceleration = Union[
-    InitialState, ExtendedPMState, LongitudinalState, InputState, PMInputState
-]
-StateWithOrientation = Union[InitialState, ExtendedPMState, KSState, LateralState, MBState]
-StateWithPosition = Union[InitialState, PMState]
-StateWithVelocity = Union[InitialState, PMState, KSState, MBState, LongitudinalState]
-
-
-class StateWithDiscreteTimeStep(Protocol):
-    time_step: int
-
-
-class StateWithDiscreteVelocity(Protocol):
-    velocity: float
-
-
-def is_state_with_acceleration(state: TraceState) -> TypeGuard[StateWithAcceleration]:
-    return state.has_value("acceleration")
-
-
-def is_state_list_with_acceleration(
-    state_list: Sequence[TraceState],
-) -> TypeGuard[Sequence[StateWithAcceleration]]:
-    return all(is_state_with_acceleration(state) for state in state_list)
-
-
-def is_state_with_orientation(state: TraceState) -> TypeGuard[StateWithOrientation]:
-    return state.has_value("orientation")
-
-
-def is_state_list_with_orientation(
-    state_list: Sequence[TraceState],
-) -> TypeGuard[Sequence[StateWithOrientation]]:
-    return all(is_state_with_orientation(state) for state in state_list)
-
-
-def is_state_with_position(state: TraceState) -> TypeGuard[StateWithPosition]:
-    return state.has_value("position")
-
-
-def is_state_list_with_position(
-    state_list: Sequence[TraceState],
-) -> TypeGuard[Sequence[StateWithPosition]]:
-    return all(is_state_with_position(state) for state in state_list)
-
-
-def is_state_with_discrete_time_step(
-    state: TraceState,
-) -> TypeGuard[StateWithDiscreteTimeStep]:
-    return isinstance(state.time_step, int)
-
-
-def is_state_with_velocity(state: TraceState) -> TypeGuard[StateWithVelocity]:
-    return state.has_value("velocity")
-
-
-def is_state_with_discrete_velocity(
-    state: StateWithVelocity,
-) -> TypeGuard[StateWithDiscreteVelocity]:
-    return isinstance(state.velocity, float)
-
-
-def is_state_list_with_velocity(
-    state_list: Sequence[TraceState],
-) -> TypeGuard[Sequence[StateWithVelocity]]:
-    return all(is_state_with_velocity(state) for state in state_list)
