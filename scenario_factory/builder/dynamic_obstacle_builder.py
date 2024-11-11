@@ -9,6 +9,8 @@ class DynamicObstacleBuilder(BuilderCore[DynamicObstacle]):
     """
     The `DynamicObstacleBuilder` makes it easy to create new dynamic obstacles.
     It is espacially usefull if one does not care about the specific properties of a dynamic obstacle (e.g. type, shape, states) and just needs a valid dynamic obstacle.
+
+    :param dynamic_obstacle_id: The unique identifier for the dynamic obstacle to be built.
     """
 
     def __init__(self, dynamic_obstacle_id: int) -> None:
@@ -24,6 +26,12 @@ class DynamicObstacleBuilder(BuilderCore[DynamicObstacle]):
 
     @classmethod
     def from_dynamic_obstacle(cls, dynamic_obstacle: DynamicObstacle) -> "DynamicObstacleBuilder":
+        """
+        Creates a `DynamicObstacleBuilder` from an existing `DynamicObstacle` instance.
+
+        :param dynamic_obstacle: The dynamic obstacle to use as a template for the builder.
+        :return: A builder initialized with the properties of the provided dynamic obstacle.
+        """
         dynamic_obstacle_builder = DynamicObstacleBuilder(dynamic_obstacle.obstacle_id)
         dynamic_obstacle_builder.set_obstacle_type(dynamic_obstacle.obstacle_type)
         dynamic_obstacle_builder.set_obstacle_shape(dynamic_obstacle.obstacle_shape)
@@ -32,22 +40,51 @@ class DynamicObstacleBuilder(BuilderCore[DynamicObstacle]):
         return dynamic_obstacle_builder
 
     def set_obstacle_type(self, obstacle_type: ObstacleType) -> "DynamicObstacleBuilder":
+        """
+        Sets the `ObstacleType` of the obstacle.
+
+        :param obstacle_type: The type of obstacle, such as CAR, TRUCK, etc.
+        :return: The builder instance, allowing for method chaining.
+        """
         self._obstacle_type = obstacle_type
         return self
 
     def set_obstacle_shape(self, obstacle_shape: Shape) -> "DynamicObstacleBuilder":
+        """
+        Sets the shape of the obstacle.
+
+        :param obstacle_shape: The geometric shape of the obstacle.
+        :return: The builder instance, allowing for method chaining.
+        """
         self._obstacle_shape = obstacle_shape
         return self
 
     def set_initial_state(self, initial_state: InitialState) -> "DynamicObstacleBuilder":
+        """
+        Sets the initial state of the obstacle.
+
+        :param initial_state: The initial state of the obstacle, including position, velocity, etc.
+        :return: The builder instance, allowing for method chaining.
+        """
         self._initial_state = initial_state
         return self
 
     def set_prediction(self, prediction: Prediction) -> "DynamicObstacleBuilder":
+        """
+        Sets the prediction of the obstacle's future states.
+
+        :param prediction: The prediction of the obstacle's trajectory.
+        :return: The builder instance, allowing for method chaining.
+        """
         self._prediction = prediction
         return self
 
     def build(self) -> DynamicObstacle:
+        """
+        Constructs and returns a new `DynamicObstacle` instance based on the builder's current settings.
+
+        :return: A `DynamicObstacle` instance with the specified properties.
+        """
         new_dynamic_obstacle = DynamicObstacle(
             self._dynamic_obstacle_id,
             obstacle_type=self._obstacle_type,
