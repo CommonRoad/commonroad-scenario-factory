@@ -175,7 +175,6 @@ def extract_forking_points(lanelets: Sequence[Lanelet]) -> np.ndarray:
 
 
 def generate_intersections(scenario: Scenario, forking_points: np.ndarray) -> List[Scenario]:
-    """ """
     if len(forking_points) < 2:
         raise RuntimeError(
             f"Scenario {scenario.scenario_id} only has {len(forking_points)} forking points, but at least 2 forking points are required to extract intersections"
@@ -200,4 +199,11 @@ def generate_intersections(scenario: Scenario, forking_points: np.ndarray) -> Li
 
 def extract_intersections_from_scenario(scenario: Scenario) -> List[Scenario]:
     forking_points = extract_forking_points(scenario.lanelet_network.lanelets)
+    if len(forking_points) < 2:
+        _LOGGER.warning(
+            "Scenario %s has %s forking point(s), but at least two are required to extract intersections. The scenario will be used as one intersection.",
+            scenario.scenario_id,
+            len(forking_points),
+        )
+        return [scenario]
     return generate_intersections(scenario, forking_points)
