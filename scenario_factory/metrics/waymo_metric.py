@@ -55,11 +55,24 @@ def compute_waymo_metric(scenario: Scenario, scenario_reference: Scenario) -> Wa
     mr8s: List[float] = []
     rmses: List[float] = []
 
-    for dyn_obst in scenario.dynamic_obstacles:
-        try:
-            dyn_obst_ref = scenario_reference._dynamic_obstacles[dyn_obst.obstacle_id]
+    # id_correction = scenario_reference.dynamic_obstacles[0].obstacle_id - scenario.dynamic_obstacles[0].obstacle_id  # TODO remove once obstacle_ids remain constant
+    scen_dyn_obsts = scenario.dynamic_obstacles
+    scen_ref_dyn_obsts = scenario_reference.dynamic_obstacles
+    for i, dyn_obst in enumerate(scen_dyn_obsts):
+        dyn_obst_ref = scen_ref_dyn_obsts[i]
 
-        except KeyError:
+        if not dyn_obst.prediction:
+            _LOGGER.warning("Missing prediction")
+            continue
+
+        if not dyn_obst_ref.prediction:
+            _LOGGER.warning("Missing prediction")
+            continue
+
+        if (
+            np.linalg.norm(dyn_obst.initial_state.position - dyn_obst_ref.initial_state.position)
+            > 4
+        ):
             _LOGGER.warning(
                 f"Obstacle with ID {dyn_obst.obstacle_id} not found in reference scenario {scenario_reference.scenario_id}"
             )
