@@ -11,23 +11,28 @@ from sumocr.sumo_map.cr2sumo.converter import SumoTrafficGenerationMode
 from sumocr.sumo_map.util import get_scenario_length_in_seconds
 
 from scenario_factory.metrics.general_scenario_metric import compute_general_scenario_metric
+from scenario_factory.metrics.waymo_metric import compute_waymo_metric
 from scenario_factory.utils import (
     align_scenario_to_time_step,
     crop_scenario_to_time_frame,
     get_scenario_length_in_time_steps,
 )
 
-scenario, _ = CommonRoadFileReader("./resources/paper/C-DEU_MONAMerge-2_1_T-299.xml").open()
+scenario, _ = CommonRoadFileReader(
+    Path(__file__).parents[1].joinpath("resources/paper/C-DEU_MONAMerge-2_1_T-299.xml")
+).open()
 simulation_steps = get_scenario_length_in_time_steps(scenario)
 warmup_time_steps = int(warm_up_estimator(scenario.lanelet_network) * scenario.dt)
 simulation_steps += warmup_time_steps
 
 sim = NonInteractiveSumoSimulation.from_scenario(
-    scenario, traffic_generation_mode=SumoTrafficGenerationMode.INFRASTRUCTURE
+    scenario, traffic_generation_mode=SumoTrafficGenerationMode.TRAJECTORIES_UNSAFE
 )
 
 shutil.copyfile(
-    "./resources/paper/sumo/mona_merge/C-DEU_MONAMerge-2_1_T-299.net.xml",
+    Path(__file__)
+    .parents[1]
+    .joinpath("resources/paper/sumo/mona_merge/C-DEU_MONAMerge-2_1_T-299.net.xml"),
     str(Path(sim.scenario_wrapper.runtime_directory.name) / "C-DEU_MONAMerge-2_1_T-299.net.xml"),
 )
 
@@ -35,5 +40,7 @@ result = sim.run(simulation_steps=simulation_steps)
 crop_scenario_to_time_frame(result.scenario, min_time_step=warmup_time_steps)
 align_scenario_to_time_step(result.scenario, warmup_time_steps)
 
-metrics = compute_general_scenario_metric(result.scenario, is_orig=False)
-print(metrics)
+metrics_general = compute_general_scenario_metric(result.scenario, is_orig=False)
+metrics_waymo = compute_waymo_metric(result.scenario, scenario)
+print(metrics_general)
+print(metrics_waymo)

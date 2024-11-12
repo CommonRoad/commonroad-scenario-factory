@@ -52,7 +52,7 @@ def _spawn_frequency(scenario: Scenario) -> float:
 
     # number of vehicles with initial time > 0
     number_of_spawned_vehicles = sum(
-        [1 for obs in scenario.dynamic_obstacles if obs.initial_state.time_step > 0]
+        [1 for obs in scenario.dynamic_obstacles if obs.initial_state.time_step > 2]
     )
     max_time_step = 0
     for obs in scenario.dynamic_obstacles:
