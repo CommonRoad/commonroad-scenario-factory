@@ -2,13 +2,13 @@ import shutil
 from pathlib import Path
 
 from commonroad.common.file_reader import CommonRoadFileReader
+from commonroad.scenario.scenario import TrafficSign
 from crots.abstractions.warm_up_estimator import warm_up_estimator
 from sumocr.backend.sumo_simulation_backend import TraciSumoSimulationBackend
 from sumocr.scenario.scenario_wrapper import ScenarioWrapper, SumoScenarioWrapper
 from sumocr.simulation import NonInteractiveSumoSimulation
 from sumocr.sumo_map.config import SumoConfig
 from sumocr.sumo_map.cr2sumo.converter import SumoTrafficGenerationMode
-from sumocr.sumo_map.util import get_scenario_length_in_seconds
 
 from scenario_factory.metrics.general_scenario_metric import compute_general_scenario_metric
 from scenario_factory.metrics.waymo_metric import compute_waymo_metric
@@ -18,15 +18,26 @@ from scenario_factory.utils import (
     get_scenario_length_in_time_steps,
 )
 
-traffic_generation_mode = SumoTrafficGenerationMode.INFRASTRUCTURE
+# Uncomment one of the paragraphs and comment the other out
+# scenario_name = "C-DEU_MONAMerge-2_1_T-299"
+
+scenario_name = "DEU_AachenHeckstrasse-1_3115929_T-17428"
+SumoConfig.highway_mode = False
+
+
+# Select traffic generation mode
+traffic_generation_mode = SumoTrafficGenerationMode.DEMAND
+
+
 warmup_required = traffic_generation_mode in [
     SumoTrafficGenerationMode.RANDOM,
     SumoTrafficGenerationMode.DEMAND,
     SumoTrafficGenerationMode.INFRASTRUCTURE,
 ]
 
+print(Path(__file__).parents[1].joinpath(f"resources/paper/{scenario_name}.xml").absolute())
 scenario, _ = CommonRoadFileReader(
-    Path(__file__).parents[1].joinpath("resources/paper/C-DEU_MONAMerge-2_1_T-299.xml")
+    Path(__file__).parents[1].joinpath(f"resources/paper/{scenario_name}.xml")
 ).open()
 simulation_steps = get_scenario_length_in_time_steps(scenario)
 if warmup_required:
@@ -36,14 +47,13 @@ else:
     warmup_time_steps = 0
 
 sim = NonInteractiveSumoSimulation.from_scenario(
-    scenario, traffic_generation_mode=traffic_generation_mode
+    scenario,
+    traffic_generation_mode=traffic_generation_mode,
 )
 
 shutil.copyfile(
-    Path(__file__)
-    .parents[1]
-    .joinpath("resources/paper/sumo/mona_merge/C-DEU_MONAMerge-2_1_T-299.net.xml"),
-    str(Path(sim.scenario_wrapper.runtime_directory.name) / "C-DEU_MONAMerge-2_1_T-299.net.xml"),
+    Path(__file__).parents[1].joinpath(f"resources/paper/sumo/{scenario_name}.net.xml"),
+    str(Path(sim.scenario_wrapper.runtime_directory.name) / f"{scenario_name}.net.xml"),
 )
 
 result = sim.run(simulation_steps=simulation_steps)
