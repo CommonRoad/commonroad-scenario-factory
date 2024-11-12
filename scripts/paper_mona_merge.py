@@ -18,7 +18,7 @@ from scenario_factory.utils import (
     get_scenario_length_in_time_steps,
 )
 
-traffic_generation_mode = SumoTrafficGenerationMode.INFRASTRUCTURE
+traffic_generation_mode = SumoTrafficGenerationMode.TRAJECTORIES
 warmup_required = traffic_generation_mode in [
     SumoTrafficGenerationMode.RANDOM,
     SumoTrafficGenerationMode.DEMAND,

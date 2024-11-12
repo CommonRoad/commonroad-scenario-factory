@@ -3,7 +3,7 @@ from typing import Sequence
 
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad_crime.data_structure.base import CriMeBase
-from commonroad_crime.measure import TTCStar
+from commonroad_crime.measure import TTC
 
 from scenario_factory.metrics.crime import compute_crime_criticality_metrics
 from scenario_factory.pipeline.pipeline_context import PipelineContext
@@ -15,7 +15,7 @@ from scenario_factory.scenario_container import (
 
 @dataclass
 class ComputeCriticalityMetricsArgs(PipelineStepArguments):
-    metrics: Sequence[type[CriMeBase]] = field(default_factory=lambda: [TTCStar])
+    metrics: Sequence[type[CriMeBase]] = field(default_factory=lambda: [TTC])
 
 
 @pipeline_map_with_args()
