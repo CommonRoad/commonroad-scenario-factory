@@ -9,7 +9,9 @@ from scenario_factory.pipeline_steps.general_scenario_metric import (
 from scenario_factory.scenario_container import load_scenarios_from_folder
 
 pipeline = Pipeline()
-pipeline.map(pipeline_compute_general_scenario_metrics(ComputeGeneralScenarioMetricsArguments(is_orig=True)))
+pipeline.map(
+    pipeline_compute_general_scenario_metrics(ComputeGeneralScenarioMetricsArguments(is_orig=True))
+)
 
 scenario_containers = load_scenarios_from_folder(
     Path(__file__).parents[1].joinpath("resources/paper/"),
@@ -17,4 +19,6 @@ scenario_containers = load_scenarios_from_folder(
 
 result = pipeline.execute(scenario_containers)
 
-write_general_scenario_metrics_to_csv(result.values, Path("/tmp/paper/general_scenario_metrics.csv"))
+write_general_scenario_metrics_to_csv(
+    result.values, Path("/tmp/paper/general_scenario_metrics.csv")
+)
