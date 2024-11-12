@@ -148,7 +148,7 @@ def _get_frame_factor_sim(scenario: Scenario) -> float:
 
 
 def _get_frame_factor_orig(scenario: Scenario) -> float:
-    scenario_id = str(scenario.scenario_id).split("-")[0]
+    scenario_id = str(scenario.scenario_id).split("-")[-3]
     match scenario_id:
         case "DEU_MONAEast":
             return 0.75

@@ -74,4 +74,10 @@ def pipeline_simulate_scenario_with_ots(
         simulated_scenario.scenario_id,
         len(simulated_scenario.dynamic_obstacles),
     )
-    return ScenarioContainer(simulated_scenario)
+
+    new_scenario = ScenarioContainer(simulated_scenario)
+    if (
+        commonroad_scenario
+    ):  # if there has been an input scenario, add it as the reference scenario.
+        new_scenario.add_attachment(ReferenceScenario(deepcopy(commonroad_scenario)))
+    return new_scenario
