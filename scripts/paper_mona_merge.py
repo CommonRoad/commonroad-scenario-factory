@@ -18,7 +18,7 @@ from scenario_factory.utils import (
     get_scenario_length_in_time_steps,
 )
 
-traffic_generation_mode = SumoTrafficGenerationMode.RANDOM
+traffic_generation_mode = SumoTrafficGenerationMode.INFRASTRUCTURE
 warmup_required = traffic_generation_mode in [
     SumoTrafficGenerationMode.RANDOM,
     SumoTrafficGenerationMode.DEMAND,
@@ -36,7 +36,7 @@ else:
     warmup_time_steps = 0
 
 sim = NonInteractiveSumoSimulation.from_scenario(
-    scenario, traffic_generation_mode=SumoTrafficGenerationMode.TRAJECTORIES_UNSAFE
+    scenario, traffic_generation_mode=traffic_generation_mode
 )
 
 shutil.copyfile(
@@ -52,5 +52,6 @@ align_scenario_to_time_step(cropped_scenario, warmup_time_steps)
 
 metrics_general = compute_general_scenario_metric(cropped_scenario, is_orig=False)
 print(metrics_general)
-metrics_waymo = compute_waymo_metric(cropped_scenario, scenario)
-print(metrics_waymo)
+if not warmup_required:
+    metrics_waymo = compute_waymo_metric(cropped_scenario, scenario)
+    print(metrics_waymo)
