@@ -15,6 +15,7 @@ from scenario_factory.pipeline_steps.general_scenario_metric import (
     ComputeGeneralScenarioMetricsArguments,
     pipeline_compute_general_scenario_metrics,
 )
+from scenario_factory.pipeline_steps.utils import pipeline_remove_parked_dynamic_obstacles
 from scenario_factory.pipeline_steps.waymo_metric import (
     ComputeWaymoMetricsArguments,
     pipeline_compute_waymo_metrics,
@@ -27,13 +28,14 @@ path.mkdir(parents=True, exist_ok=True)
 
 scenarios = load_scenarios_from_folder(Path(__file__).parents[1].joinpath("resources/paper/"))
 
-simulation_config = SimulationConfig(SimulationMode.RESIMULATION)
+simulation_config = SimulationConfig(SimulationMode.DEMAND_TRAFFIC_GENERATION)
 pipeline = (
     Pipeline()
+    .map(pipeline_remove_parked_dynamic_obstacles)
     .map(pipeline_simulate_scenario_with_sumo(SimulateScenarioArguments(simulation_config)))
     .map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(Path("/tmp/paper/"))))
     .map(pipeline_compute_general_scenario_metrics(ComputeGeneralScenarioMetricsArguments()))
-    .map(pipeline_compute_waymo_metrics(ComputeWaymoMetricsArguments()))
+    # .map(pipeline_compute_waymo_metrics(ComputeWaymoMetricsArguments()))
 )
 
 results = pipeline.execute(scenarios)

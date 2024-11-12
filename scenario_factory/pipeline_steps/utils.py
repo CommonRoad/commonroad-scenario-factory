@@ -28,6 +28,7 @@ from scenario_factory.tags import (
     find_applicable_tags_for_planning_problem_set,
     find_applicable_tags_for_scenario,
 )
+from scenario_factory.utils import calculate_driven_distance_of_dynamic_obstacle
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -152,4 +153,33 @@ def pipeline_remove_colliding_dynamic_obstacles(
             len(deleted_obstacles),
             commonroad_scenario.scenario_id,
         )
+    return scenario_container
+
+
+@pipeline_map()
+def pipeline_remove_parked_dynamic_obstacles(
+    ctx: PipelineContext, scenario_container: ScenarioContainer
+) -> ScenarioContainer:
+    """
+    Remove all dynamic obstacles from the scenario that are parked.
+    A dynamic obstacle is identified as 'parked', if it travels less than 0.1 meters during the whole scenario.
+
+    :param ctx: The pipeline context.
+    :param scenario_container: The scenario container from which the parked dynamic obstacles will be removed. Will be modified in place.
+    """
+    commonroad_scenario = scenario_container.scenario
+
+    num_removed = 0
+    for dynamic_obstacle in commonroad_scenario.dynamic_obstacles:
+        distance_driven = calculate_driven_distance_of_dynamic_obstacle(dynamic_obstacle)
+        if distance_driven < 0.1:
+            commonroad_scenario.remove_obstacle(dynamic_obstacle)
+            num_removed += 1
+
+    _LOGGER.debug(
+        "Removed %s parked dynamic obstacles from scenario %s",
+        num_removed,
+        commonroad_scenario.scenario_id,
+    )
+
     return scenario_container
