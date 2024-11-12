@@ -12,7 +12,8 @@ from scenario_factory.pipeline_steps import (
     pipeline_add_metadata_to_scenario,
     pipeline_assign_tags_to_scenario,
     pipeline_simulate_scenario_with_sumo,
-    pipeline_write_scenario_to_file, )
+    pipeline_write_scenario_to_file,
+)
 from scenario_factory.pipelines import (
     create_globetrotter_pipeline,
     create_scenario_generation_pipeline,
@@ -79,5 +80,7 @@ crime_config.update(
 )
 #
 evaluator = TTC(crime_config)
-for k in range(len(scenario.obstacle_by_id(crime_config.vehicle.ego_id).prediction.trajectory.state_list)):
+for k in range(
+    len(scenario.obstacle_by_id(crime_config.vehicle.ego_id).prediction.trajectory.state_list)
+):
     print(evaluator.compute(10, k))
