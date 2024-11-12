@@ -36,3 +36,4 @@ crop_scenario_to_time_frame(result.scenario, min_time_step=warmup_time_steps)
 align_scenario_to_time_step(result.scenario, warmup_time_steps)
 
 metrics = compute_general_scenario_metric(result.scenario, is_orig=False)
+print(metrics)
