@@ -23,12 +23,12 @@ from scenario_factory.pipeline_steps.waymo_metric import (
 from scenario_factory.scenario_container import load_scenarios_from_folder
 from scenario_factory.simulation import SimulationConfig, SimulationMode
 
-path = Path("/tmp/sumo/")
+path = Path("/tmp/sumo/5random")
 path.mkdir(parents=True, exist_ok=True)
 
 scenarios = load_scenarios_from_folder(Path(__file__).parents[1].joinpath("resources/paper/"))
 
-simulation_config = SimulationConfig(SimulationMode.RANDOM_TRAFFIC_GENERATION, 300)
+simulation_config = SimulationConfig(SimulationMode.RANDOM_TRAFFIC_GENERATION, 300)  # 300
 pipeline = (
     Pipeline()
     .map(pipeline_remove_parked_dynamic_obstacles)

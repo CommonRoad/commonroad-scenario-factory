@@ -20,4 +20,6 @@ scenario_containers = load_scenarios_from_folder(
 
 result = pipeline.execute(scenario_containers)
 
-write_general_scenario_metrics_to_csv(result.values, Path("/tmp/general_scenario_metrics.csv"))
+write_general_scenario_metrics_to_csv(
+    result.values, Path("/tmp/sumo/general_scenario_metrics_orig.csv")
+)

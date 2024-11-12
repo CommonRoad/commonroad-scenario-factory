@@ -2,16 +2,18 @@ import shutil
 from pathlib import Path
 
 from commonroad.common.file_reader import CommonRoadFileReader
-from commonroad.scenario.scenario import TrafficSign
 from crots.abstractions.warm_up_estimator import warm_up_estimator
-from sumocr.backend.sumo_simulation_backend import TraciSumoSimulationBackend
-from sumocr.scenario.scenario_wrapper import ScenarioWrapper, SumoScenarioWrapper
 from sumocr.simulation import NonInteractiveSumoSimulation
 from sumocr.sumo_map.config import SumoConfig
 from sumocr.sumo_map.cr2sumo.converter import SumoTrafficGenerationMode
 
 from scenario_factory.metrics.general_scenario_metric import compute_general_scenario_metric
+from scenario_factory.metrics.output import (
+    write_general_scenario_metrics_to_csv,
+    write_waymo_metrics_to_csv,
+)
 from scenario_factory.metrics.waymo_metric import compute_waymo_metric
+from scenario_factory.scenario_container import ScenarioContainer
 from scenario_factory.utils import (
     align_scenario_to_time_step,
     crop_scenario_to_time_frame,
@@ -26,7 +28,7 @@ SumoConfig.highway_mode = False
 
 
 # Select traffic generation mode
-traffic_generation_mode = SumoTrafficGenerationMode.DEMAND
+traffic_generation_mode = SumoTrafficGenerationMode.RANDOM
 
 
 warmup_required = traffic_generation_mode in [
@@ -62,6 +64,13 @@ align_scenario_to_time_step(cropped_scenario, warmup_time_steps)
 
 metrics_general = compute_general_scenario_metric(cropped_scenario, is_orig=False)
 print(metrics_general)
+scenario_container = ScenarioContainer(cropped_scenario)
+scenario_container.add_attachment(metrics_general)
+write_general_scenario_metrics_to_csv(
+    [scenario_container], Path("/tmp/general_scenario_metrics.csv")
+)
 if not warmup_required:
     metrics_waymo = compute_waymo_metric(cropped_scenario, scenario)
     print(metrics_waymo)
+    scenario_container.add_attachment(metrics_waymo)
+    write_waymo_metrics_to_csv([scenario_container], Path("/tmp/waymo_metrics.csv"))
