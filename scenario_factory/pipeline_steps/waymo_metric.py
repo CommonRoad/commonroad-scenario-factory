@@ -42,4 +42,4 @@ def pipeline_compute_waymo_metric(
         str(waymo_metric),
     )
 
-    return scenario_container.with_new_attachments(waymo_metric=waymo_metric)
+    return scenario_container.with_attachments(waymo_metric=waymo_metric)

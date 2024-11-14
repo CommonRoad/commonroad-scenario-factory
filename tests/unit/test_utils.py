@@ -1,6 +1,4 @@
 import numpy as np
-from commonroad.common.reader.file_reader_protobuf import TrajectoryPrediction
-from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.state import CustomState, ExtendedPMState, InitialState
 
 from scenario_factory.builder.scenario_builder import ScenarioBuilder
@@ -15,10 +13,6 @@ from tests.helpers import create_test_obstacle_with_trajectory
 class TestCopyScenario:
     def test_handles_empty_scenario(self):
         scenario_builder = ScenarioBuilder()
-        lanelet_network_builder = scenario_builder.create_lanelet_network()
-        lanelet_network_builder.add_lanelet(start=(0.0, 0.0), end=(10.0, 10.0))
-        scenario_builder.create_dynamic_obstacle()
-
         scenario = scenario_builder.build()
         new_scenario = copy_scenario(scenario)
         assert id(new_scenario) != id(scenario)

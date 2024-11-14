@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-import pytest
 from commonroad.scenario.scenario import Scenario, Tag
 
 from scenario_factory.builder.scenario_builder import ScenarioBuilder

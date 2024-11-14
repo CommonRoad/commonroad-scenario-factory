@@ -28,4 +28,4 @@ def pipeline_compute_single_scenario_metrics(
     general_scenario_metric = compute_general_scenario_metric(
         scenario_container.scenario, args.is_orig
     )
-    return scenario_container.with_new_attachments(general_scenario_metric=general_scenario_metric)
+    return scenario_container.with_attachments(general_scenario_metric=general_scenario_metric)

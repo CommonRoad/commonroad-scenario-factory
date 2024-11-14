@@ -16,10 +16,19 @@ from typing import (
     runtime_checkable,
 )
 
+from commonroad.common.solution import (
+    CostFunction,
+    PlanningProblemSolution,
+    VehicleModel,
+    VehicleType,
+    vehicle_parameters,
+)
 from commonroad.common.util import Interval
+from commonroad.geometry.shape import Rectangle
+from commonroad.planning.planning_problem import PlanningProblem
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.lanelet import LaneletNetwork
-from commonroad.scenario.obstacle import DynamicObstacle
+from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.state import (
     CustomState,
@@ -380,12 +389,7 @@ def crop_scenario_to_time_frame(
 
     :return: A new scenario within the time frame.
     """
-    new_scenario = copy_scenario(
-        scenario,
-        copy_lanelet_network=True,
-        copy_static_obstacles=True,
-        copy_environment_obstacles=True,
-    )
+    new_scenario = copy_scenario(scenario, copy_dynamic_obstacles=False)
 
     # TODO: Also cut static and environment obstacles
 
@@ -443,10 +447,11 @@ def _create_new_scenario_with_metadata_from_old_scenario(scenario: Scenario) -> 
 
 def copy_scenario(
     scenario: Scenario,
-    copy_lanelet_network: bool = False,
-    copy_dynamic_obstacles: bool = False,
-    copy_static_obstacles: bool = False,
-    copy_environment_obstacles: bool = False,
+    copy_lanelet_network: bool = True,
+    copy_dynamic_obstacles: bool = True,
+    copy_static_obstacles: bool = True,
+    copy_environment_obstacles: bool = True,
+    copy_phantom_obstacles: bool = True,
 ) -> Scenario:
     """
     Helper to efficiently copy a CommonRoad Scenario. Should be prefered over a simple deepcopy of the scenario object, if not all elements of the input scenario are required in the end (e.g. the dynamic obstacles should not be included)
@@ -456,6 +461,7 @@ def copy_scenario(
     :param copy_dynamic_obstacles: If True, the dynamic obtsacles will be copied to the new scenario. If False, the new scenario will have no dynamic obstacles.
     :param copy_static_obstacles: If True, the static obstacles will be copied to the new scenario. If False, the new scenario will have no static obstacles.
     :param copy_environment_obstacles: If True, the environment obstacles will be copied to the new scenario. If False, the new scenario will have no environment obstacles.
+    :param copy_phantom_obstacles: If True, the phantom obstacles will be copied to the new scenario. If False, the new scenario will have no phantom obstacles.
     """
     new_scenario = _create_new_scenario_with_metadata_from_old_scenario(scenario)
 
@@ -476,6 +482,10 @@ def copy_scenario(
     if copy_environment_obstacles:
         for environment_obstacle in scenario.environment_obstacle:
             new_scenario.add_objects(copy.deepcopy(environment_obstacle))
+
+    if copy_phantom_obstacles:
+        for phatom_obstacle in scenario.phantom_obstacle:
+            new_scenario.add_objects(copy.deepcopy(phatom_obstacle))
 
     return new_scenario
 
@@ -557,7 +567,8 @@ def convert_state_to_state_type(
     # Copy over all fields that are common to both state types
     for to_field in dataclasses.fields(target_state_type):
         if to_field.name in input_state.attributes:
-            setattr(resulting_state, to_field.name, getattr(input_state, to_field.name))
+            input_state_attribute_value = getattr(input_state, to_field.name)
+            setattr(resulting_state, to_field.name, input_state_attribute_value)
     return resulting_state
 
 
@@ -625,3 +636,80 @@ def get_full_state_list_of_obstacle(
     # Harmonizes the state types: If the caller wants to construct a trajectory
     # from this state list, all states need to have the same attributes aka. the same state type.
     return [convert_state_to_state_type(state, target_state_type) for state in state_list]
+
+
+def _create_trajectory_for_planning_problem_solution(
+    ego_vehicle: DynamicObstacle, target_state_type: Type[State]
+) -> Trajectory:
+    """
+    Create a trajectory of the :param:`ego_vehicle`, that can be used in a planning problem solution.
+    """
+    state_list = get_full_state_list_of_obstacle(ego_vehicle, target_state_type)
+
+    trajectory = Trajectory(
+        initial_time_step=state_list[0].time_step,
+        state_list=state_list,
+    )
+    return trajectory
+
+
+def create_planning_problem_solution_for_ego_vehicle(
+    ego_vehicle: DynamicObstacle, planning_problem: PlanningProblem
+) -> PlanningProblemSolution:
+    """
+    Create a planning problem solution for the :param:`planning_problem` with the trajectory of the :param:`ego_vehicle`. The solution always has the KS vehicle model.
+    """
+    # TODO: Enable different solution vehicle models, instead of only KS.
+    # It would be better, to select the vehicle model based on the trajectory state types.
+    # Currently, this is not possible easily because their are some discrepencies between
+    # the states used in trajectories and the state types for solutions.
+    # See https://gitlab.lrz.de/cps/commonroad/commonroad-io/-/issues/131 for more infos.
+    trajectory = _create_trajectory_for_planning_problem_solution(
+        ego_vehicle, target_state_type=KSState
+    )
+    planning_problem_solution = PlanningProblemSolution(
+        planning_problem_id=planning_problem.planning_problem_id,
+        vehicle_model=VehicleModel.KS,
+        vehicle_type=VehicleType.FORD_ESCORT,
+        cost_function=CostFunction.TR1,
+        trajectory=trajectory,
+    )
+    return planning_problem_solution
+
+
+def create_dynamic_obstacle_from_planning_problem_solution(
+    planning_problem_solution: PlanningProblemSolution,
+) -> DynamicObstacle:
+    """
+    Create new `DynamicObstacle` object which follows the solution trajectory in the `PlanningProblemSolution`.
+
+    This method is similar to `Solution.create_dynamic_obstacle`, but it can handle states which only contain a subset of attributes of an `InitialState`.
+
+    :param planning_problem_solution: The planning problem solution for which the dynamic obstacle should be created.
+    :returns: A new `DynamicObstacle` object with the planning problem id from the solution as its obstacle id.
+    """
+    obstacle_shape = Rectangle(
+        length=vehicle_parameters[planning_problem_solution.vehicle_type].l,
+        width=vehicle_parameters[planning_problem_solution.vehicle_type].w,
+    )
+    trajectory = crop_trajectory_to_time_frame(
+        planning_problem_solution.trajectory,
+        planning_problem_solution.trajectory.initial_time_step + 1,
+    )
+    if trajectory is None:
+        # This can happen if the trajectory only contains one state...
+        # In this case we error out, although it would be possible to construct a dynamic obstacle without a trajectory prediction.
+        # Usually, this is not intended, therefore this case is considered an error.
+        raise ValueError(
+            f"Cannot create dynamic obstacle from planning probolem solution {planning_problem_solution.planning_problem_id}: The solution trajectory is not long enough!"
+        )
+    prediction = TrajectoryPrediction(trajectory, obstacle_shape)
+    first_state_in_trajectory = planning_problem_solution.trajectory.state_list[0]
+    initial_state = convert_state_to_state_type(first_state_in_trajectory, InitialState)
+    return DynamicObstacle(
+        obstacle_id=planning_problem_solution.planning_problem_id,
+        obstacle_type=ObstacleType.CAR,
+        obstacle_shape=obstacle_shape,
+        initial_state=initial_state,
+        prediction=prediction,
+    )

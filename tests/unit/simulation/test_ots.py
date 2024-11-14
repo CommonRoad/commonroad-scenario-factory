@@ -1,8 +1,7 @@
 from typing import Optional
 
-from commonroad.scenario.scenario import Scenario, Tag
+from commonroad.scenario.scenario import Scenario
 
-from scenario_factory.builder import ScenarioBuilder
 from scenario_factory.simulation import (
     SimulationConfig,
     SimulationMode,

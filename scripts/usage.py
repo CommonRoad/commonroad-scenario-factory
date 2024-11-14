@@ -4,19 +4,14 @@ from tempfile import TemporaryDirectory
 
 import numpy as np
 
-from scenario_factory.globetrotter.region import load_regions_from_csv
 from scenario_factory.pipeline import Pipeline, PipelineContext
 from scenario_factory.pipeline_steps import (
     SimulateScenarioArguments,
     WriteScenarioToFileArguments,
-    pipeline_add_metadata_to_scenario,
-    pipeline_assign_tags_to_scenario,
-    pipeline_simulate_scenario_with_ots,
     pipeline_write_scenario_to_file,
 )
 from scenario_factory.pipeline_steps.simulation import pipeline_simulate_scenario_with_sumo
 from scenario_factory.pipelines import (
-    create_globetrotter_pipeline,
     create_scenario_generation_pipeline,
     select_osm_map_provider,
 )

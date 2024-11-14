@@ -4,7 +4,6 @@ from pathlib import Path
 
 from commonroad.scenario.scenario import Scenario, Tag
 from crots.abstractions.warm_up_estimator import warm_up_estimator
-from sumocr.backend import TraciSumoSimulationBackend
 from sumocr.scenario.scenario_wrapper import SumoScenarioWrapper
 from sumocr.simulation.non_interactive_simulation import NonInteractiveSumoSimulation
 from sumocr.sumo_map.config import SumoConfig

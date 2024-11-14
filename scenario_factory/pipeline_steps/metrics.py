@@ -40,6 +40,6 @@ def pipeline_compute_criticality_metrics(
         args.metrics,
     )
 
-    return scenario_container.with_new_attachments(
+    return scenario_container.with_attachments(
         criticality_data=crime_metric_data_of_scenario,
     )

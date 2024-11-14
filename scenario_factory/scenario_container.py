@@ -1,3 +1,4 @@
+import copy
 import logging
 import re
 import xml.etree.ElementTree as ET
@@ -138,12 +139,27 @@ class ScenarioContainer:
         """
         del self._attachments[attachment_locator]
 
-    def with_new_attachments(self, **kwargs: Unpack[ScenarioContainerArguments]) -> Self:
+    def with_attachments(self, **kwargs: Unpack[ScenarioContainerArguments]) -> Self:
         """
         Add the attachments to this scenario container and return it-self.
         """
         self._populate_attachments_from_dict(kwargs)
         return self
+
+    def new_with_attachments(
+        self, new_scenario: Scenario, **kwargs: Unpack[ScenarioContainerArguments]
+    ) -> "ScenarioContainer":
+        """
+        Create a new `ScenarioContainer` to wrap `new_scenario`, but copy all attachments from the old `ScenarioContainer` to the new one. If attachments are provided as kwargs, they will override the copied ones.
+
+        :param new_scenario: The new scenario.
+        :returns: A new `ScenarioContainer` object, with attachments from the old `ScenarioContainer` and kwargs.
+        """
+        new_scenario_container = ScenarioContainer(new_scenario)
+        for attachment in self._attachments.values():
+            attachment_copy = copy.deepcopy(attachment)
+            new_scenario_container.add_attachment(attachment_copy)
+        return new_scenario_container.with_attachments(**kwargs)
 
     def __str__(self) -> str:
         return str(self.scenario.scenario_id)
@@ -292,7 +308,7 @@ def load_scenarios_from_folder(
             reference_scenario_path = reference_scenario_lookup_key(scenario.scenario_id)
             if reference_scenario_path is None:
                 _LOGGER.warning(
-                    f"Failed to load reference scenario for %s: no mapping to reference scenario path",
+                    "Failed to load reference scenario for %s: no mapping to reference scenario path",
                     scenario.scenario_id,
                 )
                 continue

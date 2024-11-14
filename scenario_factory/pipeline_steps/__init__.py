@@ -5,6 +5,8 @@ __all__ = [
     "pipeline_add_metadata_to_scenario",
     "pipeline_assign_tags_to_scenario",
     "pipeline_remove_colliding_dynamic_obstacles",
+    "pipeline_insert_ego_vehicle_solutions_into_scenario",
+    "pipeline_extract_ego_vehicle_solutions_from_scenario",
     # Open Street Map
     "ExtractOsmMapArguments",
     "pipeline_extract_osm_map",
@@ -53,6 +55,8 @@ from .utils import (
     WriteScenarioToFileArguments,
     pipeline_add_metadata_to_scenario,
     pipeline_assign_tags_to_scenario,
+    pipeline_extract_ego_vehicle_solutions_from_scenario,
+    pipeline_insert_ego_vehicle_solutions_into_scenario,
     pipeline_remove_colliding_dynamic_obstacles,
     pipeline_write_scenario_to_file,
 )
