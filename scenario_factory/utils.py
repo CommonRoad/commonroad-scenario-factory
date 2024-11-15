@@ -2,6 +2,7 @@ import builtins
 import copy
 import dataclasses
 import logging
+import math
 from contextlib import contextmanager
 from typing import (
     AnyStr,
@@ -713,3 +714,24 @@ def create_dynamic_obstacle_from_planning_problem_solution(
         initial_state=initial_state,
         prediction=prediction,
     )
+
+
+def calculate_driven_distance_of_dynamic_obstacle(dynamic_obstacle: DynamicObstacle) -> float:
+    """
+    Calculates the total distance traveled by a dynamic obstacle over time.
+
+    :param dynamic_obstacle: The dynamic obstacle for which the traveled distance is calculated.
+    :return: The total distance traveled by the dynamic obstacle.
+    """
+    dist = 0.0
+    time_step = dynamic_obstacle.initial_state.time_step + 1
+    prev_state = dynamic_obstacle.initial_state
+    state = dynamic_obstacle.state_at_time(time_step)
+    while state is not None:
+        dist += math.dist(prev_state.position, state.position)
+
+        time_step += 1
+        prev_state = state
+        state = dynamic_obstacle.state_at_time(time_step)
+
+    return dist

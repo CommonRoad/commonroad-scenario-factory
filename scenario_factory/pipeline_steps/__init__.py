@@ -7,6 +7,7 @@ __all__ = [
     "pipeline_remove_colliding_dynamic_obstacles",
     "pipeline_insert_ego_vehicle_solutions_into_scenario",
     "pipeline_extract_ego_vehicle_solutions_from_scenario",
+    "pipeline_remove_parked_dynamic_obstacles",
     # Open Street Map
     "ExtractOsmMapArguments",
     "pipeline_extract_osm_map",
@@ -58,5 +59,6 @@ from .utils import (
     pipeline_extract_ego_vehicle_solutions_from_scenario,
     pipeline_insert_ego_vehicle_solutions_into_scenario,
     pipeline_remove_colliding_dynamic_obstacles,
+    pipeline_remove_parked_dynamic_obstacles,
     pipeline_write_scenario_to_file,
 )

@@ -1,4 +1,3 @@
-import copy
 import logging
 from pathlib import Path
 
@@ -12,6 +11,7 @@ from sumocr.sumo_map.cr2sumo.converter import CR2SumoMapConverter, SumoTrafficGe
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 from scenario_factory.utils import (
     align_scenario_to_time_step,
+    copy_scenario,
     crop_scenario_to_time_frame,
     get_scenario_length_in_time_steps,
 )
@@ -51,8 +51,7 @@ def _convert_commonroad_scenario_to_sumo_scenario(
 
     :returns: A wrapper that can be used in the SUMO simulation
     """
-    new_scenario = copy.deepcopy(commonroad_scenario)
-    cr2sumo = CR2SumoMapConverter(new_scenario, sumo_config)
+    cr2sumo = CR2SumoMapConverter(commonroad_scenario, sumo_config)
     conversion_possible = cr2sumo.create_sumo_files(
         str(output_folder), traffic_generation_mode=traffic_generation_mode
     )
@@ -62,6 +61,7 @@ def _convert_commonroad_scenario_to_sumo_scenario(
             f"Failed to convert CommonRoad scenario {commonroad_scenario.scenario_id} to SUMO"
         )
 
+    new_scenario = copy_scenario(commonroad_scenario, copy_lanelet_network=True)
     scenario_wrapper = SumoScenarioWrapper(new_scenario, sumo_config, cr2sumo.sumo_cfg_file)
     return scenario_wrapper
 
