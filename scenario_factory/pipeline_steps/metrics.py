@@ -36,6 +36,13 @@ def pipeline_compute_criticality_metrics(
     ctx: PipelineContext,
     scenario_container: ScenarioContainer,
 ) -> ScenarioContainer:
+    """
+    Compute the criticality metrics for the scenario.
+
+    :param ctx: The context for this pipeline execution
+    :param scenario_container: The scenario for which the metrics should be computed. Will not be modified.
+    :returns: The input `ScenarioContainer` with an additional `CriticalityMetric` attachment.
+    """
     planning_problem_set = scenario_container.get_attachment(PlanningProblemSet)
     if planning_problem_set is None:
         raise ValueError(
@@ -54,7 +61,7 @@ def pipeline_compute_criticality_metrics(
 
 
 @pipeline_map()
-def pipeline_compute_waymo_metric(
+def pipeline_compute_waymo_metrics(
     ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> ScenarioContainer:
     """

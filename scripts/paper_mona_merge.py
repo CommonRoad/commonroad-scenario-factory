@@ -4,7 +4,6 @@ from pathlib import Path
 from commonroad.common.file_reader import CommonRoadFileReader
 from crots.abstractions.warm_up_estimator import warm_up_estimator
 from sumocr.simulation import NonInteractiveSumoSimulation
-from sumocr.sumo_map.config import SumoConfig
 from sumocr.sumo_map.cr2sumo.converter import SumoTrafficGenerationMode
 
 from scenario_factory.metrics import (
@@ -23,14 +22,14 @@ from scenario_factory.utils import (
 )
 
 # Uncomment one of the paragraphs and comment the other out
-# scenario_name = "C-DEU_MONAMerge-2_1_T-299"
+scenario_name = "C-DEU_MONAMerge-2_1_T-299"
 
-scenario_name = "DEU_AachenHeckstrasse-1_3115929_T-17428"
-SumoConfig.highway_mode = False
+# scenario_name = "DEU_AachenHeckstrasse-1_3115929_T-17428"
+# SumoConfig.highway_mode = False
 
 
 # Select traffic generation mode
-traffic_generation_mode = SumoTrafficGenerationMode.RANDOM
+traffic_generation_mode = SumoTrafficGenerationMode.TRAJECTORIES
 
 
 warmup_required = traffic_generation_mode in [
@@ -65,7 +64,6 @@ cropped_scenario = crop_scenario_to_time_frame(result.scenario, min_time_step=wa
 align_scenario_to_time_step(cropped_scenario, warmup_time_steps)
 
 metrics_general = compute_general_scenario_metric(cropped_scenario, is_orig=False)
-print(metrics_general)
 scenario_container = ScenarioContainer(cropped_scenario)
 scenario_container.add_attachment(metrics_general)
 write_general_scenario_metrics_of_scenario_containers_to_csv(

@@ -29,7 +29,8 @@ __all__ = [
     # Metrics
     "ComputeCriticalityMetricsArgs",
     "pipeline_compute_criticality_metrics",
-    "pipeline_compute_waymo_metric",
+    "pipeline_compute_waymo_metrics",
+    "ComputeSingleScenarioMetricsArguments",
     "pipeline_compute_single_scenario_metrics",
 ]
 
@@ -43,9 +44,10 @@ from .globetrotter import (
 )
 from .metrics import (
     ComputeCriticalityMetricsArgs,
+    ComputeSingleScenarioMetricsArguments,
     pipeline_compute_criticality_metrics,
     pipeline_compute_single_scenario_metrics,
-    pipeline_compute_waymo_metric,
+    pipeline_compute_waymo_metrics,
 )
 from .scenario_generation import (
     FindEgoVehicleManeuversArguments,

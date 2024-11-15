@@ -1,5 +1,6 @@
 import dataclasses
 from typing import (
+    Any,
     Protocol,
     Sequence,
     Type,
@@ -58,7 +59,7 @@ def is_state_list_with_acceleration(
 
 
 def is_state_with_orientation(state: TraceState) -> TypeGuard[StateWithOrientation]:
-    return state.has_value("orientation")
+    return isinstance(state, State) and state.has_value("orientation")
 
 
 def is_state_list_with_orientation(
@@ -67,8 +68,8 @@ def is_state_list_with_orientation(
     return all(is_state_with_orientation(state) for state in state_list)
 
 
-def is_state_with_position(state: TraceState) -> TypeGuard[StateWithPosition]:
-    return state.has_value("position")
+def is_state_with_position(state: Any) -> TypeGuard[StateWithPosition]:
+    return isinstance(state, State) and state.has_value("position")
 
 
 def is_state_list_with_position(

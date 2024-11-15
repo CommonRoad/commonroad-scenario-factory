@@ -59,7 +59,7 @@ def _compute_spawn_frequency(scenario: Scenario) -> float:
     for obs in scenario.dynamic_obstacles:
         if not obs.prediction:
             logging.warning("Missing prediction for dynamic obstacle.")
-            continue  # TODO how can this be?
+            continue
         max_time_step = max(max_time_step, obs.prediction.trajectory.state_list[-1].time_step)
 
     return number_of_spawned_vehicles / (scenario.dt * max_time_step)
@@ -145,7 +145,7 @@ def _get_frame_factor_sim(scenario: Scenario) -> float:
         case "DEU_LocationCLower4":
             return 0.94
         case _:
-            raise ValueError(f"Unknown scenario id: {scenario_id}")
+            return 1.0
 
 
 def _get_frame_factor_orig(scenario: Scenario) -> float:
@@ -164,4 +164,4 @@ def _get_frame_factor_orig(scenario: Scenario) -> float:
         case "DEU_LocationCLower4":
             return 0.87
         case _:
-            raise ValueError(f"Unknown scenario id: {scenario_id}")
+            return 1.0

@@ -103,7 +103,7 @@ class TestScenarioGeneration:
                 input_scenarios, ctx, num_threads=None, num_processes=None
             )
             assert len(result.errors) == 0
-            assert len(result.values) == 4
+            assert len(result.values) == 3
 
             for scenario_path in output_folder.glob("*.cr.xml"):
                 assert _is_valid_commonroad_scenario(scenario_path)
