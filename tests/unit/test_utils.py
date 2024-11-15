@@ -1,7 +1,7 @@
 import numpy as np
 from commonroad.scenario.state import CustomState, ExtendedPMState, InitialState
 
-from scenario_factory.builder.scenario_builder import ScenarioBuilder
+from scenario_factory.builder import ScenarioBuilder
 from scenario_factory.utils import (
     convert_state_to_state,
     copy_scenario,

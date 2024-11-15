@@ -7,17 +7,19 @@ from sumocr.simulation import NonInteractiveSumoSimulation
 from sumocr.sumo_map.config import SumoConfig
 from sumocr.sumo_map.cr2sumo.converter import SumoTrafficGenerationMode
 
-from scenario_factory.metrics.general_scenario_metric import compute_general_scenario_metric
-from scenario_factory.metrics.output import (
-    write_general_scenario_metrics_to_csv,
-    write_waymo_metrics_to_csv,
+from scenario_factory.metrics import (
+    compute_general_scenario_metric,
+    compute_waymo_metric,
 )
-from scenario_factory.metrics.waymo_metric import compute_waymo_metric
-from scenario_factory.scenario_container import ScenarioContainer
+from scenario_factory.scenario_container import (
+    ScenarioContainer,
+    write_general_scenario_metrics_of_scenario_containers_to_csv,
+    write_waymo_metrics_of_scenario_containers_to_csv,
+)
 from scenario_factory.utils import (
     align_scenario_to_time_step,
     crop_scenario_to_time_frame,
-    get_scenario_length_in_time_steps,
+    get_scenario_final_time_step,
 )
 
 # Uncomment one of the paragraphs and comment the other out
@@ -41,7 +43,7 @@ print(Path(__file__).parents[1].joinpath(f"resources/paper/{scenario_name}.xml")
 scenario, _ = CommonRoadFileReader(
     Path(__file__).parents[1].joinpath(f"resources/paper/{scenario_name}.xml")
 ).open()
-simulation_steps = get_scenario_length_in_time_steps(scenario)
+simulation_steps = get_scenario_final_time_step(scenario)
 if warmup_required:
     warmup_time_steps = int(warm_up_estimator(scenario.lanelet_network) * scenario.dt)
     simulation_steps += warmup_time_steps
@@ -66,11 +68,13 @@ metrics_general = compute_general_scenario_metric(cropped_scenario, is_orig=Fals
 print(metrics_general)
 scenario_container = ScenarioContainer(cropped_scenario)
 scenario_container.add_attachment(metrics_general)
-write_general_scenario_metrics_to_csv(
+write_general_scenario_metrics_of_scenario_containers_to_csv(
     [scenario_container], Path("/tmp/general_scenario_metrics.csv")
 )
 if not warmup_required:
     metrics_waymo = compute_waymo_metric(cropped_scenario, scenario)
     print(metrics_waymo)
     scenario_container.add_attachment(metrics_waymo)
-    write_waymo_metrics_to_csv([scenario_container], Path("/tmp/waymo_metrics.csv"))
+    write_waymo_metrics_of_scenario_containers_to_csv(
+        [scenario_container], Path("/tmp/waymo_metrics.csv")
+    )

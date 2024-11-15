@@ -13,7 +13,7 @@ from scenario_factory.utils import (
     align_scenario_to_time_step,
     copy_scenario,
     crop_scenario_to_time_frame,
-    get_scenario_length_in_time_steps,
+    get_scenario_final_time_step,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -154,7 +154,7 @@ def simulate_commonroad_scenario_with_sumo(
                 f"Invalid simulation config for SUMO simulation with mode {simulation_config.mode}: option 'simulation_time_steps' must be set, but is 'None'!"
             )
         else:
-            simulation_steps = get_scenario_length_in_time_steps(scenario)
+            simulation_steps = get_scenario_final_time_step(scenario)
             _LOGGER.debug(
                 "Simulation step was not set for SUMO simulation with mode %s, so it was autodetermined to be %s",
                 simulation_config.mode,
@@ -181,7 +181,7 @@ def simulate_commonroad_scenario_with_sumo(
     _patch_scenario_metadata_after_simulation(new_scenario)
 
     if simulation_mode_requires_warmup:
-        original_scenario_length = get_scenario_length_in_time_steps(new_scenario)
+        original_scenario_length = get_scenario_final_time_step(new_scenario)
         new_scenario = crop_scenario_to_time_frame(new_scenario, min_time_step=warmup_time_steps)
         align_scenario_to_time_step(new_scenario, warmup_time_steps)
         _LOGGER.debug(
@@ -190,7 +190,7 @@ def simulate_commonroad_scenario_with_sumo(
             new_scenario.scenario_id,
             simulation_config.mode,
             original_scenario_length,
-            get_scenario_length_in_time_steps(new_scenario),
+            get_scenario_final_time_step(new_scenario),
         )
 
     return new_scenario

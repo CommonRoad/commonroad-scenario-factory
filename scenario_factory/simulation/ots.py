@@ -1,7 +1,7 @@
 import copy
 import logging
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
-from typing import Optional
+from typing import AnyStr, Optional
 
 import jpype
 from commonroad.geometry.shape import Rectangle, Shape
@@ -12,12 +12,34 @@ from crots.abstractions.abstraction_level import AbstractionLevel
 
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 from scenario_factory.utils import (
-    StreamToLogger,
     crop_trajectory_to_time_frame,
-    get_scenario_length_in_time_steps,
+    get_scenario_final_time_step,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class _StreamToLogger:
+    """
+    Generic Stream that can be used as a replacement for an StringIO to redirect stdout and stderr to a logger.
+    """
+
+    def __init__(self, logger: logging.Logger) -> None:
+        self._logger = logger
+
+    def write(self, s: AnyStr) -> int:
+        stripped = s.strip()
+        if len(stripped) == 0:
+            return 0
+
+        self._logger.debug(stripped)
+        return len(s)
+
+    def flush(self):
+        pass
+
+    def close(self):
+        pass
 
 
 def _determine_obstacle_shape_for_obstacle_type(obstacle_type: ObstacleType) -> Shape:
@@ -226,7 +248,7 @@ def _execute_ots_simulation(
     )
 
     _redirect_java_log_messages_from_ots_to_logger(_LOGGER)
-    stream = StreamToLogger(_LOGGER)
+    stream = _StreamToLogger(_LOGGER)
     # Also StreamToLogger implements the I/O interface, it is not a subclass of IO.
     # Therefore, the type checker does not recognice that infact everything is alright.
     with redirect_stdout(stream):  # type: ignore
@@ -322,7 +344,7 @@ def simulate_commonroad_scenario_with_ots(
     if new_scenario is None:
         return None
 
-    scenario_length = get_scenario_length_in_time_steps(new_scenario)
+    scenario_length = get_scenario_final_time_step(new_scenario)
 
     _LOGGER.debug(
         "Simulated scenario %s and created %s random obstacles for %s time steps",

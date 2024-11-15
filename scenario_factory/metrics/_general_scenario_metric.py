@@ -31,22 +31,23 @@ def compute_general_scenario_metric(scenario: Scenario, is_orig: bool) -> Genera
     :param scenario: The scenario for which the metrics should be computed.
     """
     # frequency
-    frequency = _spawn_frequency(scenario)
+    frequency = _compute_spawn_frequency(scenario)
 
     # calculate traffic density
-    traffic_density_mean, traffic_density_stdev = _traffic_density(scenario, is_orig)
-    velocity_mean, velocity_stdev = _velocity(scenario)
+    traffic_density_mean, traffic_density_stdev = _compute_traffic_density(scenario, is_orig)
+    velocity_mean, velocity_stdev = _compute_velocity(scenario)
 
+    precision = 3
     return GeneralScenarioMetric(
-        frequency=frequency,
-        traffic_density_mean=traffic_density_mean,
-        traffic_density_stdev=traffic_density_stdev,
-        velocity_mean=velocity_mean,
-        velocity_stdev=velocity_stdev,
+        frequency=round(frequency, precision),
+        traffic_density_mean=round(traffic_density_mean, precision),
+        traffic_density_stdev=round(traffic_density_stdev, precision),
+        velocity_mean=round(velocity_mean, precision),
+        velocity_stdev=round(velocity_stdev, precision),
     )
 
 
-def _spawn_frequency(scenario: Scenario) -> float:
+def _compute_spawn_frequency(scenario: Scenario) -> float:
     # divide number of vehicles by scenario duration
     # do not count vehicles that already exist at 0
 
@@ -64,7 +65,7 @@ def _spawn_frequency(scenario: Scenario) -> float:
     return number_of_spawned_vehicles / (scenario.dt * max_time_step)
 
 
-def _velocity(scenario: Scenario) -> Tuple[float, float]:
+def _compute_velocity(scenario: Scenario) -> Tuple[float, float]:
     # calculate mean velocity
     velocities_at_k = defaultdict(list)
 
@@ -84,7 +85,7 @@ def _velocity(scenario: Scenario) -> Tuple[float, float]:
     return np.mean(mean_velocity_over_time), np.std(mean_velocity_over_time)
 
 
-def _traffic_density(scenario: Scenario, is_orig: bool) -> Tuple[float, float]:
+def _compute_traffic_density(scenario: Scenario, is_orig: bool) -> Tuple[float, float]:
     # calculate traffic density
     number_of_vehicles_at_k: Dict[int, int] = defaultdict(int)
     max_time_step = 0

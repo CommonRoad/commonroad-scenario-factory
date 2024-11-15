@@ -92,7 +92,7 @@ def compute_waymo_metric(scenario: Scenario, scenario_reference: Scenario) -> Wa
                 time_step_offset_neg = -time_step_offset
                 time_step_offset = 0
             else:
-                raise ValueError(
+                raise RuntimeError(
                     f"Vehicle {dyn_obst.obstacle_id} is spawned before the reference vehicle."
                 )
 

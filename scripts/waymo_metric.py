@@ -1,17 +1,16 @@
 from pathlib import Path
 
-from scenario_factory.metrics.output import write_waymo_metrics_to_csv
 from scenario_factory.pipeline import Pipeline
-from scenario_factory.pipeline_steps.waymo_metric import (
-    ComputeWaymoMetricsArguments,
-    pipeline_compute_waymo_metrics,
+from scenario_factory.pipeline_steps import (
+    pipeline_compute_waymo_metric,
 )
 from scenario_factory.scenario_container import (
     load_scenarios_with_reference_from_folders,
+    write_waymo_metrics_of_scenario_containers_to_csv,
 )
 
 pipeline = Pipeline()
-pipeline.map(pipeline_compute_waymo_metrics(ComputeWaymoMetricsArguments()))
+pipeline.map(pipeline_compute_waymo_metric)
 
 scenario_containers = load_scenarios_with_reference_from_folders(
     Path("/home/florian/git/temp/cr-ots-interface/resources/simulations/"),
@@ -19,4 +18,4 @@ scenario_containers = load_scenarios_with_reference_from_folders(
 )
 result = pipeline.execute(scenario_containers)
 
-write_waymo_metrics_to_csv(result.values, Path("/tmp/waymo_metrics.csv"))
+write_waymo_metrics_of_scenario_containers_to_csv(result.values, Path("/tmp/waymo_metrics.csv"))
