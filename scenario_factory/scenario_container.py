@@ -24,6 +24,7 @@ from xml.sax import SAXParseException
 
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.common.solution import CommonRoadSolutionReader, Solution
+from commonroad.common.util import FileFormat
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario, ScenarioID
 from typing_extensions import Self, Unpack
@@ -162,7 +163,7 @@ class ScenarioContainer:
         return new_scenario_container.with_attachments(**kwargs)
 
     def __str__(self) -> str:
-        return str(self.scenario.scenario_id)
+        return str(self._scenario.scenario_id)
 
 
 def _try_load_xml_file_as_commonroad_scenario(
@@ -179,9 +180,20 @@ def _try_load_xml_file_as_commonroad_scenario(
         )
         return None
     try:
-        scenario, planning_problem_set = CommonRoadFileReader(xml_file_path).open()
+        scenario, planning_problem_set = CommonRoadFileReader(
+            xml_file_path, file_format=FileFormat.XML
+        ).open()
         return scenario, planning_problem_set
     except ET.ParseError as e:
+        _LOGGER.warning(
+            "Failed to load CommonRoad scenario from file %s, because file does not contain valid XML: %s",
+            xml_file_path,
+            e,
+        )
+        return None
+    except AssertionError as e:
+        # Sadly, the CommonRoadFileReader does not expose a custom error type.
+        # Therefore, all AssertionErrors are captured here, because they represent most of the errors that occur.
         _LOGGER.warning("Failed to load CommonRoad scenario from file %s: %s", xml_file_path, e)
         return None
 
@@ -201,7 +213,22 @@ def _try_load_xml_file_as_commonroad_solution(xml_file_path: Path) -> Optional[S
         solution = CommonRoadSolutionReader().open(str(xml_file_path))
         return solution
     except ET.ParseError as e:
-        _LOGGER.warning("Failed to load CommonRoad solution from file %s: %s", xml_file_path, e)
+        _LOGGER.warning(
+            "Failed to load CommonRoad solution from file %s, because file does not contain valid XML: %s",
+            xml_file_path,
+            e,
+        )
+        return None
+    except AttributeError as e:
+        # Sadly, the CommonRoadSolutionReader does not expose a custom error type.
+        # Therefore, all AttributeErrors are captured here,
+        # because this is usually the error indicating that the file is indeed valid XML,
+        # but not a valid solution file.
+        _LOGGER.warning(
+            "Failed to load CommonRoad solution from file %s. The file is valid XML, but not a valid CommonRoad solution file: %s",
+            xml_file_path,
+            e,
+        )
         return None
 
 
@@ -276,6 +303,11 @@ def load_scenarios_from_folder(
     else:
         raise ValueError(
             f"Argument 'folder' must be either 'str' or 'Path', but instead is {type(folder)}"
+        )
+
+    if not folder_path.exists():
+        raise FileNotFoundError(
+            f"Cannot load scenarios from folder {folder_path}: folder does not exist!"
         )
 
     # Use a dict for containers and solution, so it is easier to merge them later on

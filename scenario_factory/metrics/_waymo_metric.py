@@ -119,11 +119,6 @@ def compute_waymo_metric(scenario: Scenario, scenario_reference: Scenario) -> Wa
                 )
             )
 
-    print(average_displacement_errors)
-    print(final_displacement_errors)
-    print(miss_rates)
-    print(root_mean_squared_errors)
-
     filtered_average_displacmenet_errors = _filter_and_combine_waymo_metrics(
         average_displacement_errors
     )
@@ -165,6 +160,7 @@ def _filter_and_combine_waymo_metrics(metrics: Dict[int, List[float]]) -> Dict[i
 def _compute_displacment_vector_between_two_dynamic_obstacle(
     dynamic_obstacle: DynamicObstacle, dynamic_obstacle_reference: DynamicObstacle
 ) -> Optional[np.ndarray]:
+    """ """
     if not isinstance(dynamic_obstacle.prediction, TrajectoryPrediction):
         return None
 
