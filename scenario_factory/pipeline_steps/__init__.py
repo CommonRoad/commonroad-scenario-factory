@@ -5,6 +5,7 @@ __all__ = [
     "pipeline_add_metadata_to_scenario",
     "pipeline_assign_tags_to_scenario",
     "pipeline_remove_colliding_dynamic_obstacles",
+    "pipeline_remove_parked_dynamic_obstacles",
     # Open Street Map
     "ExtractOsmMapArguments",
     "pipeline_extract_osm_map",
@@ -54,5 +55,6 @@ from .utils import (
     pipeline_add_metadata_to_scenario,
     pipeline_assign_tags_to_scenario,
     pipeline_remove_colliding_dynamic_obstacles,
+    pipeline_remove_parked_dynamic_obstacles,
     pipeline_write_scenario_to_file,
 )

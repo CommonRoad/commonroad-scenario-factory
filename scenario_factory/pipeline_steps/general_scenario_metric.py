@@ -6,22 +6,22 @@ from scenario_factory.scenario_container import ScenarioContainer
 
 
 @dataclass
-class ComputeSingleScenarioMetricsArguments(PipelineStepArguments):
+class ComputeGeneralScenarioMetricsArguments(PipelineStepArguments):
     """Arguments for the step `pipeline_compute_single_scenario_metrics` to specify the configuration for the computation."""
 
-    is_orig: bool = False
+    is_orig: bool = False  # real-world recordings need other frame factors
 
 
 @pipeline_map_with_args()
-def pipeline_compute_single_scenario_metrics(
-    args: ComputeSingleScenarioMetricsArguments,
+def pipeline_compute_general_scenario_metrics(
+    args: ComputeGeneralScenarioMetricsArguments,
     ctx: PipelineContext,
     scenario_container: ScenarioContainer,
 ) -> ScenarioContainer:
     """
     Compute the single scenario metrics for the scenario.
 
-    :param args: `ComputeSingleScenarioMetricsArguments` that specify the configuration for the computation
+    :param args: `ComputeGeneralScenarioMetricsArguments` that specify the configuration for the computation
     :param scenario_container: The scenario for which the metrics should be computed. Will not be modified.
     """
 

@@ -20,7 +20,7 @@ class ComputeWaymoMetricsArguments(PipelineStepArguments):
 
 
 @pipeline_map_with_args()
-def pipeline_compute_waymo_metric(
+def pipeline_compute_waymo_metrics(
     args: ComputeWaymoMetricsArguments, ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> ScenarioContainer:
     """
@@ -35,8 +35,7 @@ def pipeline_compute_waymo_metric(
         scenario_container.scenario,
         scenario_container.get_attachment(ReferenceScenario).reference_scenario,  # type: ignore
     )
-    # _LOGGER.warning("Computing Waymo Metric for: ", commonroad_scenario.scenario_id)
-    _LOGGER.warning(
+    _LOGGER.debug(
         "Computed Waymo metrics for scenario %s: %s",
         str(scenario_container.scenario.scenario_id),
         str(waymo_metric),

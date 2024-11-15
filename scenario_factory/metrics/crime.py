@@ -44,7 +44,7 @@ def compute_crime_criticality_metrics(
     runtime_directory = str(runtime_directory_path.absolute())
     cm_computer = CMComputer(metrics=metrics)  # type: ignore
     cm_computer.compute_metrics_for_id(
-        scenario_with_ego_trajectory, ego_id, scneario_path="", output_dir=runtime_directory
+        scenario_with_ego_trajectory, ego_id, scenario_path="", output_dir=runtime_directory
     )
 
     crime_metrics = parse_crime_output_dir_to_object(runtime_directory)

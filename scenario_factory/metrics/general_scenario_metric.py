@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Dict, Tuple
@@ -51,10 +52,13 @@ def _spawn_frequency(scenario: Scenario) -> float:
 
     # number of vehicles with initial time > 0
     number_of_spawned_vehicles = sum(
-        [1 for obs in scenario.dynamic_obstacles if obs.initial_state.time_step > 0]
+        [1 for obs in scenario.dynamic_obstacles if obs.initial_state.time_step > 2]
     )
     max_time_step = 0
     for obs in scenario.dynamic_obstacles:
+        if not obs.prediction:
+            logging.warning("Missing prediction for dynamic obstacle.")
+            continue  # TODO how can this be?
         max_time_step = max(max_time_step, obs.prediction.trajectory.state_list[-1].time_step)
 
     return number_of_spawned_vehicles / (scenario.dt * max_time_step)
@@ -65,6 +69,11 @@ def _velocity(scenario: Scenario) -> Tuple[float, float]:
     velocities_at_k = defaultdict(list)
 
     for obs in scenario.dynamic_obstacles:
+        if not obs.prediction:
+            logging.warning(
+                f"Missing prediction for dynamic obstacle: {scenario.scenario_id}, {obs.obstacle_id}"
+            )  # TODO how?
+            continue
         for state in obs.prediction.trajectory.state_list:
             velocities_at_k[state.time_step].append(state.velocity)
 
@@ -81,6 +90,9 @@ def _traffic_density(scenario: Scenario, is_orig: bool) -> Tuple[float, float]:
     max_time_step = 0
 
     for obs in scenario.dynamic_obstacles:
+        if not obs.prediction:
+            logging.warning("Missing prediction for dynamic obstacle.")  # TODO why?
+            continue
         for state in obs.prediction.trajectory.state_list:
             number_of_vehicles_at_k[state.time_step] += 1
             max_time_step = max(max_time_step, state.time_step)
@@ -117,7 +129,7 @@ def _get_frame_factor_sim(scenario: Scenario) -> float:
     simulation_mode = int(str(scenario.scenario_id).split("_")[2])
     if simulation_mode > 2:  # demand, infrastructure, or random
         return 1.0
-    scenario_id = str(scenario.scenario_id).split("-")[0]
+    scenario_id = str(scenario.scenario_id).split("-")[-3]
     match scenario_id:
         case "DEU_MONAEast":
             return 0.86
@@ -136,7 +148,7 @@ def _get_frame_factor_sim(scenario: Scenario) -> float:
 
 
 def _get_frame_factor_orig(scenario: Scenario) -> float:
-    scenario_id = str(scenario.scenario_id).split("-")[0]
+    scenario_id = str(scenario.scenario_id).split("-")[-3]
     match scenario_id:
         case "DEU_MONAEast":
             return 0.75

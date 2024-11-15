@@ -16,7 +16,7 @@ from typing import (
     runtime_checkable,
 )
 
-from commonroad.common.util import Interval
+from commonroad.common.util import Interval, math
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.obstacle import DynamicObstacle
@@ -625,3 +625,24 @@ def get_full_state_list_of_obstacle(
     # Harmonizes the state types: If the caller wants to construct a trajectory
     # from this state list, all states need to have the same attributes aka. the same state type.
     return [convert_state_to_state_type(state, target_state_type) for state in state_list]
+
+
+def calculate_driven_distance_of_dynamic_obstacle(dynamic_obstacle: DynamicObstacle) -> float:
+    """
+    Calculates the total distance traveled by a dynamic obstacle over time.
+
+    :param dynamic_obstacle: The dynamic obstacle for which the traveled distance is calculated.
+    :return: The total distance traveled by the dynamic obstacle.
+    """
+    dist = 0.0
+    time_step = dynamic_obstacle.initial_state.time_step + 1
+    prev_state = dynamic_obstacle.initial_state
+    state = dynamic_obstacle.state_at_time(time_step)
+    while state is not None:
+        dist += math.dist(prev_state.position, state.position)
+
+        time_step += 1
+        prev_state = state
+        state = dynamic_obstacle.state_at_time(time_step)
+
+    return dist
