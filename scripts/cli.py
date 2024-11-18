@@ -17,6 +17,10 @@ from scenario_factory.pipeline_steps import (
     pipeline_simulate_scenario_with_sumo,
     pipeline_write_scenario_to_file,
 )
+from scenario_factory.pipeline_steps.visualization_renderer import (
+    RenderCommonRoadScenarioArgs,
+    pipeline_render_commonroad_scenario,
+)
 from scenario_factory.pipelines import (
     create_globetrotter_pipeline,
     create_scenario_generation_pipeline,
@@ -25,7 +29,6 @@ from scenario_factory.pipelines import (
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 from scenario_factory.simulation import SimulationConfig, SimulationMode
 from scenario_factory.utils import configure_root_logger
-from scenario_factory.pipeline_steps.visualization_renderer import (pipeline_render_commonroad_scenario,RenderCommonRoadScenarioArgs)
 
 # Set Matplotlib to a non-GUI backend to avoid GUI-related issues in threads
 matplotlib.use("Agg")
@@ -92,7 +95,7 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
     render_args = RenderCommonRoadScenarioArgs(
         output_path=output_path,
         fps=5,  # Example FPS
-        time_steps=25  # Example time steps
+        time_steps=25,  # Example time steps
     )
 
     pipeline = (

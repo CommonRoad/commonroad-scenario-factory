@@ -7,10 +7,12 @@ from commonroad.visualization.mp_renderer import MPRenderer
 from scenario_factory.pipeline import (
     PipelineContext,
     PipelineStep,
+    PipelineStepArguments,
     PipelineStepExecutionMode,
-    PipelineStepArguments, pipeline_map_with_args
+    pipeline_map_with_args,
 )
 from scenario_factory.scenario_types import ScenarioContainer
+
 
 @dataclass
 class RenderCommonRoadScenarioArgs(PipelineStepArguments):
@@ -21,9 +23,8 @@ class RenderCommonRoadScenarioArgs(PipelineStepArguments):
 
 @pipeline_map_with_args(mode=PipelineStepExecutionMode.PARALLEL)
 def pipeline_render_commonroad_scenario(
-        args: RenderCommonRoadScenarioArgs, ctx: PipelineContext, scenario_container: ScenarioContainer
+    args: RenderCommonRoadScenarioArgs, ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> ScenarioContainer:
-
     """
     Pipeline step for visualizing a CommonRoad scenario as a video file.
 
