@@ -1,11 +1,16 @@
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict, Tuple
+from typing import List, Tuple
 
 import numpy as np
 from commonroad.scenario.lanelet import Lanelet
 from commonroad.scenario.scenario import Scenario
+
+from scenario_factory.utils._scenario import (
+    get_scenario_final_time_step,
+    get_scenario_start_time_step,
+)
 
 
 @dataclass
@@ -24,17 +29,20 @@ class GeneralScenarioMetric:
         return f"f: {self.frequency:.4f}, rho_mu: {self.traffic_density_mean:.4f}, rho_sigma: {self.traffic_density_stdev:.4f}, v_mu: {self.velocity_mean:.4f}, v_sigma: {self.velocity_stdev:.4f}"
 
 
-def compute_general_scenario_metric(scenario: Scenario, is_orig: bool) -> GeneralScenarioMetric:
+def compute_general_scenario_metric(
+    scenario: Scenario, frame_factor: float = 1.0
+) -> GeneralScenarioMetric:
     """
     Compute the initial submission metrics for the scenario.
 
     :param scenario: The scenario for which the metrics should be computed.
+    :param frame_factor: Scaling factor to adjust the traffic densisty for recorded datasets.
+
+    :returns: The scenario metrics
     """
-    # frequency
     frequency = _compute_spawn_frequency(scenario)
 
-    # calculate traffic density
-    traffic_density_mean, traffic_density_stdev = _compute_traffic_density(scenario, is_orig)
+    traffic_density_mean, traffic_density_stdev = _compute_traffic_density(scenario, frame_factor)
     velocity_mean, velocity_stdev = _compute_velocity(scenario)
 
     precision = 3
@@ -50,17 +58,18 @@ def compute_general_scenario_metric(scenario: Scenario, is_orig: bool) -> Genera
 def _compute_spawn_frequency(scenario: Scenario) -> float:
     # divide number of vehicles by scenario duration
     # do not count vehicles that already exist at 0
+    min_time_step = get_scenario_start_time_step(scenario)
 
     # number of vehicles with initial time > 0
     number_of_spawned_vehicles = sum(
-        [1 for obs in scenario.dynamic_obstacles if obs.initial_state.time_step > 2]
+        [1 for obs in scenario.dynamic_obstacles if obs.initial_state.time_step > min_time_step]
     )
-    max_time_step = 0
-    for obs in scenario.dynamic_obstacles:
-        if not obs.prediction:
-            logging.warning("Missing prediction for dynamic obstacle.")
-            continue
-        max_time_step = max(max_time_step, obs.prediction.trajectory.state_list[-1].time_step)
+    if number_of_spawned_vehicles == 0:
+        return 0.0
+
+    max_time_step = get_scenario_final_time_step(scenario)
+    if max_time_step == 0:
+        return 0.0
 
     return number_of_spawned_vehicles / (scenario.dt * max_time_step)
 
@@ -85,26 +94,22 @@ def _compute_velocity(scenario: Scenario) -> Tuple[float, float]:
     return np.mean(mean_velocity_over_time), np.std(mean_velocity_over_time)
 
 
-def _compute_traffic_density(scenario: Scenario, is_orig: bool) -> Tuple[float, float]:
+def _compute_traffic_density(scenario: Scenario, frame_factor: float) -> Tuple[float, float]:
     # calculate traffic density
-    number_of_vehicles_at_k: Dict[int, int] = defaultdict(int)
-    max_time_step = 0
+    max_time_step = get_scenario_final_time_step(scenario)
+    if max_time_step == 0:
+        return float("nan"), float("nan")
 
-    for obs in scenario.dynamic_obstacles:
-        if not obs.prediction:
-            logging.warning("Missing prediction for dynamic obstacle.")  # TODO why?
-            continue
-        for state in obs.prediction.trajectory.state_list:
-            number_of_vehicles_at_k[state.time_step] += 1
-            max_time_step = max(max_time_step, state.time_step)
-
-    if is_orig:
-        frame_factor = _get_frame_factor_orig(scenario)
-    else:
-        frame_factor = _get_frame_factor_sim(scenario)
+    number_of_vehicles_at_time_step: List[int] = [0] * max_time_step
+    # By iterating over the time steps instead of the obstacle trajectories, no checks
+    # on the trajectories have to be performed here.
+    for time_step in range(max_time_step):
+        for dynamic_obstacle in scenario.dynamic_obstacles:
+            if dynamic_obstacle.state_at_time(time_step) is not None:
+                number_of_vehicles_at_time_step[time_step] += 1
 
     traffic_density_over_time = (
-        np.array([v for v in number_of_vehicles_at_k.values()])
+        np.array(number_of_vehicles_at_time_step)
         / _lanelet_network_length(scenario)
         / frame_factor
         * 1000

@@ -26,6 +26,9 @@ def pipeline_solve_planning_problem_with_motion_planner(
     ctx: PipelineContext,
     scenario_container: ScenarioContainer,
 ) -> ScenarioContainer:
+    """
+    Solve the planning problems attached to the scenario container with the motion planner from `args`.
+    """
     planning_problem_set = scenario_container.get_attachment(PlanningProblemSet)
     if planning_problem_set is None:
         raise ValueError(

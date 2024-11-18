@@ -63,7 +63,7 @@ result = sim.run(simulation_steps=simulation_steps)
 cropped_scenario = crop_scenario_to_time_frame(result.scenario, min_time_step=warmup_time_steps)
 align_scenario_to_time_step(cropped_scenario, warmup_time_steps)
 
-metrics_general = compute_general_scenario_metric(cropped_scenario, is_orig=False)
+metrics_general = compute_general_scenario_metric(cropped_scenario)
 scenario_container = ScenarioContainer(cropped_scenario)
 scenario_container.add_attachment(metrics_general)
 write_general_scenario_metrics_of_scenario_containers_to_csv(

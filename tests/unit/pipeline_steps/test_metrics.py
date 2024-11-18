@@ -5,7 +5,7 @@ from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 
-from scenario_factory.metrics import CriticalityMetric
+from scenario_factory.metrics import CriticalityMetrics
 from scenario_factory.metrics._general_scenario_metric import GeneralScenarioMetric
 from scenario_factory.pipeline import PipelineContext
 from scenario_factory.pipeline_steps import (
@@ -46,7 +46,7 @@ class TestPipelineComputeCriticalityMetrics:
         )(ctx, scenario_container)
 
         criticality_metric = scenario_container_with_criticality_metrics.get_attachment(
-            CriticalityMetric
+            CriticalityMetrics
         )
         assert criticality_metric is not None
         # The planning problem set should be preserved

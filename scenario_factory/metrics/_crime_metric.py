@@ -12,14 +12,22 @@ from commonroad_labeling.criticality.trajectory_inserter.trajectory_inserter imp
 from scenario_factory.utils import is_state_with_discrete_time_step
 
 
-class CriticalityMetric:
-    def __init__(
-        self, metrics: Sequence[type[CriMeBase]], criticality_dict: Dict[int, Dict[str, float]]
-    ) -> None:
-        self._metrics = metrics
+class CriticalityMetrics:
+    """
+    Collection of multiple computed criticality metrics for a scenario.
+
+    This is used to simplify the access and processing of measurments, over the simple dict that is returned by `CriMeInterface`.
+
+    :param criticality_dict: The measurments for each metric. Usually directly exported from the `CriMeInterface`.
+    """
+
+    def __init__(self, criticality_dict: Dict[int, Dict[str, float]]) -> None:
         self._criticality_dict = criticality_dict
 
     def get_metric_names(self) -> Set[str]:
+        """
+        Obtain the names of all criticality metrics that were computed.
+        """
         metric_names: Set[str] = set()
         for measurment in self._criticality_dict.values():
             metric_names.update(measurment.keys())
@@ -27,13 +35,19 @@ class CriticalityMetric:
         return metric_names
 
     def measurments_per_time_step(self) -> Iterator[Tuple[int, Dict[str, float]]]:
+        """
+        Iterate over the measurments at each time step.
+        """
+        # Currently, this simply wraps the iterator over the dict. The idea here is,
+        # to provide an existing API, while the underlying data structure might change.
         for time_step, measurment in self._criticality_dict.items():
             yield time_step, measurment
 
 
-def compute_crime_criticality_metrics_for_scenario_with_ego_trajectory(
+def compute_criticality_metrics_for_scenario_with_ego_trajectory(
     scenario_with_ego_trajectory: Scenario, ego_id: int, metrics: Sequence[type[CriMeBase]]
-) -> CriticalityMetric:
+) -> CriticalityMetrics:
+    """ """
     ego_obstacle = scenario_with_ego_trajectory.obstacle_by_id(ego_id)
     if ego_obstacle is None:
         raise ValueError(
@@ -71,14 +85,14 @@ def compute_crime_criticality_metrics_for_scenario_with_ego_trajectory(
         verbose=False,
     )
 
-    return CriticalityMetric(metrics, cri_me_interface.criticality_dict)
+    return CriticalityMetrics(cri_me_interface.criticality_dict)
 
 
-def compute_crime_criticality_metrics_for_scenario_and_planning_problem_set(
+def compute_criticality_metrics_for_scenario_and_planning_problem_set(
     scenario: Scenario,
     planning_problem_set: PlanningProblemSet,
     metrics: Sequence[type[CriMeBase]],
-) -> CriticalityMetric:
+) -> CriticalityMetrics:
     """
     Computes criticality metrics for a given scenario using specified CriMe metrics.
 
@@ -100,12 +114,15 @@ def compute_crime_criticality_metrics_for_scenario_and_planning_problem_set(
         scenario, planning_problem_set
     )
 
-    return compute_crime_criticality_metrics_for_scenario_with_ego_trajectory(
+    return compute_criticality_metrics_for_scenario_with_ego_trajectory(
         scenario_with_ego_trajectory, ego_id, metrics
     )
 
 
 def _get_cri_me_config_for_scenario(scenario: Scenario, ego_vehicle_id: int) -> CriMeConfiguration:
+    """
+    Create a configuration for use with the `CriMeInterface`.
+    """
     config = CriMeConfiguration()
     config.update(ego_vehicle_id, scenario)
 

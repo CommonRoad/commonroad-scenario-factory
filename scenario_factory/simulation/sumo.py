@@ -61,7 +61,13 @@ def _convert_commonroad_scenario_to_sumo_scenario(
             f"Failed to convert CommonRoad scenario {commonroad_scenario.scenario_id} to SUMO"
         )
 
-    new_scenario = copy_scenario(commonroad_scenario, copy_lanelet_network=True)
+    new_scenario = copy_scenario(
+        commonroad_scenario,
+        copy_dynamic_obstacles=False,
+        copy_static_obstacles=False,
+        copy_environment_obstacles=False,
+        copy_phantom_obstacles=False,
+    )
     scenario_wrapper = SumoScenarioWrapper(new_scenario, sumo_config, cr2sumo.sumo_cfg_file)
     return scenario_wrapper
 

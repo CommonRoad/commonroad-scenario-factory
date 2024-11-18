@@ -173,7 +173,7 @@ def pipeline_insert_ego_vehicle_solutions_into_scenario(
     ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> ScenarioContainer:
     """
-    Insert the ego vehicles from a solution into the scenario as new dynamic obstacles.
+    Insert the ego vehicles of a solution into the scenario as new dynamic obstacles.
 
     Counterpart of `pipeline_extract_ego_vehicle_from_scenario`.
 
@@ -222,7 +222,7 @@ def pipeline_extract_ego_vehicle_solutions_from_scenario(
     ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> ScenarioContainer:
     """
-    Extract the ego vehicles from a solution from the scenario as new solutions.
+    Extract the ego vehicles of a planning problem from the scenario as new solutions.
 
     Counterpart of `pipeline_insert_ego_vehicle_from_scenario`.
 

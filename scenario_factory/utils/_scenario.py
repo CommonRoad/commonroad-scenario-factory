@@ -1,7 +1,9 @@
 import copy
+from typing import Iterator, Tuple
 
 from commonroad.common.util import Interval
 from commonroad.scenario.lanelet import LaneletNetwork
+from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
 
 
@@ -105,3 +107,43 @@ def copy_scenario(
             new_scenario.add_objects(copy.deepcopy(phatom_obstacle))
 
     return new_scenario
+
+
+def iterate_zipped_dynamic_obstacles_from_scenarios(
+    *scenarios: Scenario,
+) -> Iterator[Tuple[DynamicObstacle, ...]]:
+    """
+    Iterates over zipped dynamic obstacles across multiple scenarios.
+
+    This function ensures that dynamic obstacles with matching IDs are
+    present in all provided scenarios and yields them as tuples,
+    one from each scenario.
+
+     :param scenario: A variable number of `Scenario` objects
+        to zip dynamic obstacles from. The first scenario is used as
+        the reference.
+
+    :yields: Tuples of matching `DynamicObstacle` objects across the scenarios.
+
+    :raises RuntimeError: If a dynamic obstacle in the base scenario is
+        missing or not a `DynamicObstacle` in other scenarios.
+    """
+    # Simply use the first scenario as the "base" scenario. This way, it is implicitly assume that
+    # all dynamic obstacles from this "base" scenario are also in the other scenarios.
+    base_scenario = scenarios[0]
+    for dynamic_obstacle in base_scenario.dynamic_obstacles:
+        all_obstacles = [dynamic_obstacle]
+        for other_scenario in scenarios[1:]:
+            other_dynamic_obstacle = other_scenario.obstacle_by_id(dynamic_obstacle.obstacle_id)
+            if other_dynamic_obstacle is None:
+                raise RuntimeError(
+                    f"Cannot zip obstacles from scenario {other_scenario.scenario_id} with base scenario {base_scenario.scenario_id}: The obstacle {dynamic_obstacle.obstacle_id} from the base scenario is not part of the other scenario!"
+                )
+
+            if not isinstance(other_dynamic_obstacle, DynamicObstacle):
+                raise RuntimeError(
+                    f"Cannot zip obstacles from scenario {other_scenario.scenario_id} with base scenario {base_scenario.scenario_id}: The obstacle {dynamic_obstacle.obstacle_id} is part of the other scenario, but is not a dynamic obstacle!"
+                )
+
+            all_obstacles.append(other_dynamic_obstacle)
+        yield tuple(all_obstacles)

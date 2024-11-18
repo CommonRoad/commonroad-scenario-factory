@@ -11,6 +11,7 @@ from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.state import State
 
+from scenario_factory.utils._scenario import iterate_zipped_dynamic_obstacles_from_scenarios
 from scenario_factory.utils._types import (
     WithDiscreteVelocity,
     is_state_with_position,
@@ -43,24 +44,6 @@ class WaymoMetric:
         )
 
 
-def _zipped_iter_dynamic_obstacles_in_scenarios(*scenarios: Scenario):
-    if len(scenarios) < 2:
-        raise ValueError("")
-    base_scenario = scenarios[0]
-    for dynamic_obstacle in base_scenario.dynamic_obstacles:
-        all_obstacles = [dynamic_obstacle]
-        for other_scenario in scenarios[1:]:
-            other_dynamic_obstacle = other_scenario.obstacle_by_id(dynamic_obstacle.obstacle_id)
-            if other_dynamic_obstacle is None:
-                raise RuntimeError()
-
-            if not isinstance(other_dynamic_obstacle, DynamicObstacle):
-                raise RuntimeError()
-
-            all_obstacles.append(other_dynamic_obstacle)
-        yield tuple(all_obstacles)
-
-
 def compute_waymo_metric(scenario: Scenario, scenario_reference: Scenario) -> WaymoMetric:
     """
     Compute the Waymo metrics for the scenario.
@@ -77,12 +60,13 @@ def compute_waymo_metric(scenario: Scenario, scenario_reference: Scenario) -> Wa
     miss_rates: Dict[int, List[float]] = defaultdict(list)
     root_mean_squared_errors: List[float] = []
 
-    for dynamic_obstacle, dynamic_obstacle_ref in _zipped_iter_dynamic_obstacles_in_scenarios(
+    for dynamic_obstacle, dynamic_obstacle_ref in iterate_zipped_dynamic_obstacles_from_scenarios(
         scenario, scenario_reference
     ):
         displacement_vector = _compute_displacment_vector_between_two_dynamic_obstacle(
             dynamic_obstacle, dynamic_obstacle_ref
         )
+        # The displacement vector is none, if the
         if displacement_vector is None:
             continue
 
@@ -90,7 +74,9 @@ def compute_waymo_metric(scenario: Scenario, scenario_reference: Scenario) -> Wa
             dynamic_obstacle_ref.prediction.initial_time_step
         )
         if reference_start_state is None:
-            raise RuntimeError()
+            raise RuntimeError(
+                f"Cannot compute waymo metric for scenario {scenario.scenario_id}: The reference obstacle for obstacle {dynamic_obstacle.obstacle_id} does not contain a state at the beginning of its prediction! This is a bug."
+            )
 
         root_mean_squared_errors.append(_compute_root_mean_squared_error(displacement_vector))
         for measurment_time_in_sec in measurment_times:
@@ -119,6 +105,9 @@ def compute_waymo_metric(scenario: Scenario, scenario_reference: Scenario) -> Wa
                 )
             )
 
+    # The repective metrics might contain 'nan' values, when they could not be computed.
+    # This usually happens, when a metric is calculated for a time step that is after the end of the prediction.
+    # Therefore, they first need to be filtered.
     filtered_average_displacmenet_errors = _filter_and_combine_waymo_metrics(
         average_displacement_errors
     )
@@ -146,6 +135,12 @@ def compute_waymo_metric(scenario: Scenario, scenario_reference: Scenario) -> Wa
 
 
 def _filter_and_combine_waymo_metrics(metrics: Dict[int, List[float]]) -> Dict[int, float]:
+    """
+    Remove all 'nan' values from the metric lists and compute the mean of the filtered values.
+
+    :param metrics: The individual metric values indexed by their measurment time.
+    :returns: The mean metric values, indexed by their measurment time.
+    """
     filtered_metrics = {}
     for measurment_time, values in metrics.items():
         filtered_values = list(filter(lambda value: not math.isnan(value), values))
@@ -160,7 +155,16 @@ def _filter_and_combine_waymo_metrics(metrics: Dict[int, List[float]]) -> Dict[i
 def _compute_displacment_vector_between_two_dynamic_obstacle(
     dynamic_obstacle: DynamicObstacle, dynamic_obstacle_reference: DynamicObstacle
 ) -> Optional[np.ndarray]:
-    """ """
+    """
+    Compute the displacement of `dynamic_obstacle` compared to `dynamic_obstacle_reference`.
+
+    :param dynamic_obstacle: The obstacle for which the error should be calculated.
+    :param dynamic_obstacle_reference: The obstacle which represents the "ground truth".
+    :returns: The array of displacement errors, or None if tone of the dynamic obstacles does not have a trajectory prediction.
+
+    :raises: RuntimeError: If the displacement cannot be calculated, because the states
+        of the dynamic obstacles lack required attributes (e.g. position).
+    """
     if not isinstance(dynamic_obstacle.prediction, TrajectoryPrediction):
         return None
 
@@ -168,8 +172,8 @@ def _compute_displacment_vector_between_two_dynamic_obstacle(
         return None
 
     time_step_offset = (
-        dynamic_obstacle.prediction.trajectory.initial_time_step
-        - dynamic_obstacle_reference.prediction.trajectory.initial_time_step
+        dynamic_obstacle.prediction.initial_time_step
+        - dynamic_obstacle_reference.prediction.initial_time_step
     )
     if time_step_offset < 0:
         _LOGGER.warning(
@@ -191,6 +195,8 @@ def _compute_displacment_vector_between_two_dynamic_obstacle(
 
         reference_state = dynamic_obstacle_reference.state_at_time(time_step + time_step_offset)
         if reference_state is None:
+            # Because we iterate over the prediction length of `dynamic_obstacle` it is possible that `dynamic_obstacle_reference` has no state at the time step.
+            # This is valid, because the trajectories of the obstacles might diverge.
             continue
 
         if not is_state_with_position(reference_state):
@@ -256,6 +262,15 @@ def _compute_waymo_miss_rate_until_time_step(
     thresholds: Tuple[float, float],
     time_step: int,
 ) -> float:
+    """
+    Compute the percentage of states from the trajectory of `dynamic_obstacle` that do not match the trajectory of `dynamic_obstacle_reference` by a certain threshold.
+
+
+    :param dynamic_obstacle:
+    :param dynamic_obstacle_reference:
+    :param thresholds: A tuple of (lat, lon) thresholds.
+    :param time_step: The time step until which the miss rate should be calculated.
+    """
     if not isinstance(dynamic_obstacle.prediction, TrajectoryPrediction):
         return float("nan")
 

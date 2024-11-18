@@ -24,6 +24,8 @@ _LOGGER = logging.getLogger(__name__)
 
 @dataclass
 class SimulateScenarioArguments(PipelineStepArguments):
+    """Specify options for either `pipeline_simulate_scenario_with_sumo` or `pipeline_simulate_scenario_with_ots`."""
+
     config: SimulationConfig
 
 
@@ -61,6 +63,9 @@ def pipeline_simulate_scenario_with_sumo(
 def pipeline_simulate_scenario_with_ots(
     args: SimulateScenarioArguments, ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> Optional[ScenarioContainer]:
+    """
+    Simulate a scenario with OTS.
+    """
     commonroad_scenario = scenario_container.scenario
     seed = ctx.get_scenario_factory_config().seed
     simulated_scenario = simulate_commonroad_scenario_with_ots(

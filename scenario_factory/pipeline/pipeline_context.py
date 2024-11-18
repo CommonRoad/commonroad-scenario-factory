@@ -15,11 +15,7 @@ class PipelineContext:
         base_temp_path: Optional[Path] = None,
         scenario_factory_config: Optional[ScenarioFactoryConfig] = None,
     ):
-        if base_temp_path is None:
-            self._temp_dir_ref = TemporaryDirectory()
-            self._base_temp_path = Path(self._temp_dir_ref.name)
-        else:
-            self._base_temp_path = base_temp_path
+        self._base_temp_path = base_temp_path
 
         if scenario_factory_config is None:
             self._scenario_factory_config = ScenarioFactoryConfig()
@@ -30,6 +26,9 @@ class PipelineContext:
         """
         Get a path to a new temporary directory, that is guaranteed to exist.
         """
+        if self._base_temp_path is None:
+            self._temp_dir_ref = TemporaryDirectory()
+            self._base_temp_path = Path(self._temp_dir_ref.name)
         temp_folder = self._base_temp_path.joinpath(folder_name)
         temp_folder.mkdir(parents=True, exist_ok=True)
         return temp_folder

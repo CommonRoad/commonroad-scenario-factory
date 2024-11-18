@@ -30,7 +30,7 @@ from commonroad.scenario.scenario import Scenario, ScenarioID
 from typing_extensions import Self, Unpack
 
 from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
-from scenario_factory.metrics import CriticalityMetric, GeneralScenarioMetric, WaymoMetric
+from scenario_factory.metrics import CriticalityMetrics, GeneralScenarioMetric, WaymoMetric
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ ScenarioContainerAttachmentT = TypeVar(
     Solution,
     EgoVehicleManeuver,
     ReferenceScenario,
-    CriticalityMetric,
+    CriticalityMetrics,
     WaymoMetric,
     GeneralScenarioMetric,
 )
@@ -65,7 +65,7 @@ class ScenarioContainerArguments(TypedDict, total=False):
     planning_problem_set: PlanningProblemSet
     solution: Solution
     ego_vehicle_maneuver: EgoVehicleManeuver
-    criticality_metric: CriticalityMetric
+    criticality_metric: CriticalityMetrics
     reference_scenario: ReferenceScenario
     waymo_metric: WaymoMetric
     general_scenario_metric: GeneralScenarioMetric
@@ -420,7 +420,7 @@ def write_criticality_metrics_of_scenario_containers_to_csv(
     formatted_data = []
     all_measurments = set()
     for scenario_container in scenario_containers:
-        criticality_data = scenario_container.get_attachment(CriticalityMetric)
+        criticality_data = scenario_container.get_attachment(CriticalityMetrics)
         if criticality_data is None:
             raise ValueError(
                 f"Cannot write criticality metrics of scenario {scenario_container.scenario.scenario_id} to csv file at {csv_file_path}: Scenario does not have a `CriticalityMetric` attachment, but one is required!"
