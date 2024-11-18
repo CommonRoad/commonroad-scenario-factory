@@ -25,9 +25,7 @@ from scenario_factory.pipelines import (
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 from scenario_factory.simulation import SimulationConfig, SimulationMode
 from scenario_factory.utils import configure_root_logger
-from scenario_factory.visualization_steps.visualization_renderer import (
-    pipeline_render_commonroad_scenario,
-)
+from scenario_factory.pipeline_steps.visualization_renderer import (pipeline_render_commonroad_scenario,RenderCommonRoadScenarioArgs)
 
 # Set Matplotlib to a non-GUI backend to avoid GUI-related issues in threads
 matplotlib.use("Agg")
@@ -91,12 +89,17 @@ def generate(cities: str, coords: Optional[str], output: str, maps: str, radius:
     scenario_generation_pipeline = create_scenario_generation_pipeline(
         scenario_config.criterions, scenario_config.filters
     )
+    render_args = RenderCommonRoadScenarioArgs(
+        output_path=output_path,
+        fps=5,  # Example FPS
+        time_steps=25  # Example time steps
+    )
 
     pipeline = (
         base_pipeline.chain(scenario_generation_pipeline)
         .map(pipeline_assign_tags_to_scenario)
+        .map(pipeline_render_commonroad_scenario(render_args))
         .map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
-        .map(pipeline_render_commonroad_scenario(output_path, fps=5, time_steps=25))
     )
     inputs = None
     if coords is not None:
