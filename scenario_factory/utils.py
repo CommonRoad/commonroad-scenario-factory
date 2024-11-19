@@ -14,9 +14,11 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
     runtime_checkable,
 )
 
+import numpy as np
 from commonroad.common.solution import (
     CostFunction,
     PlanningProblemSolution,
@@ -68,6 +70,11 @@ class WithDiscreteTimeStep(Protocol):
 
 
 @runtime_checkable
+class WithDiscretePosition(Protocol):
+    position: np.ndarray
+
+
+@runtime_checkable
 class WithDiscreteVelocity(Protocol):
     velocity: float
 
@@ -100,6 +107,10 @@ def is_state_list_with_position(
     state_list: Sequence[TraceState],
 ) -> TypeGuard[Sequence[StateWithPosition]]:
     return all(is_state_with_position(state) for state in state_list)
+
+
+def is_state_with_discrete_position(state: TraceState) -> TypeGuard[WithDiscretePosition]:
+    return is_state_with_position(state) and isinstance(state.position, np.ndarray)
 
 
 def is_state_with_discrete_time_step(
@@ -735,3 +746,16 @@ def calculate_driven_distance_of_dynamic_obstacle(dynamic_obstacle: DynamicObsta
         state = dynamic_obstacle.state_at_time(time_step)
 
     return dist
+
+
+def calculate_deviation_between_states(state1: TraceState, state2: TraceState) -> float:
+    """
+    Calculates the deviation in the positions between `state1` and `state2`.
+    """
+    if not is_state_with_discrete_position(state1):
+        raise ValueError()
+
+    if not is_state_with_discrete_position(state2):
+        raise ValueError()
+
+    return cast(float, np.linalg.norm(state1.position - state2.position))
