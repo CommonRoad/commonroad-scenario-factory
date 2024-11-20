@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from commonroad.geometry.shape import Rectangle, Shape
 from commonroad.prediction.prediction import Prediction, TrajectoryPrediction
@@ -86,11 +86,18 @@ class DynamicObstacleBuilder(BuilderCore[DynamicObstacle]):
         self._prediction = prediction
         return self
 
-    def set_trajectory(self, trajectory: Trajectory) -> "DynamicObstacleBuilder":
-        self._trajectory = trajectory
+    def set_trajectory(
+        self, trajectory_or_builder: Union[Trajectory, TrajectoryBuilder]
+    ) -> "DynamicObstacleBuilder":
+        if isinstance(trajectory_or_builder, Trajectory):
+            self._trajectory = trajectory_or_builder
+        else:
+            self._trajectory_builder = trajectory_or_builder
         return self
 
-    def create_trajectory(self) -> "TrajectoryBuilder":
+    def create_trajectory(
+        self,
+    ) -> "TrajectoryBuilder":
         self._trajectory_builder = TrajectoryBuilder()
         return self._trajectory_builder
 

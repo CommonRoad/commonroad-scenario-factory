@@ -1,4 +1,3 @@
-import copy
 import logging
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from typing import AnyStr, Optional
@@ -15,6 +14,7 @@ from scenario_factory.utils import (
     crop_trajectory_to_time_frame,
     get_scenario_final_time_step,
 )
+from scenario_factory.utils._scenario import copy_scenario
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -215,7 +215,7 @@ def _execute_ots_simulation(
     simulation_mode: SimulationMode,
     seed: int,
     simulation_length: Optional[int] = None,
-) -> Optional[Scenario]:
+) -> Scenario:
     """
     Simulate :param:`input_scenario` in OTS with :param:`simulation_mode`.
 
@@ -228,6 +228,7 @@ def _execute_ots_simulation(
     """
     from crots.conversion.setup import setup_ots
 
+    # This sets up the java environment for OTS and starts OTS
     setup_ots()
     from crots.abstractions.simulation_execution import SimulationExecutor
 
@@ -271,34 +272,36 @@ def _execute_ots_simulation(
                     )
                     return new_scenario
                 except Exception as e:
+                    # Not optimal to catch all exceptions here, but OTS does not expose a consistent error type...
                     _LOGGER.error("Error while simulating %s: %s", input_scenario.scenario_id, e)
                     raise e
 
 
-def _can_simulate_scenario_with_simulation_config(
+def _check_can_simulate_scenario_with_simulation_config(
     scenario: Scenario, simulation_config: SimulationConfig
-) -> bool:
+) -> None:
     """
-    Check whether the :param:`scenario` has properties that could lead to exceptions in cr-ots-interface when simulated with :param:`simulation_config`.
+    Check whether the `scenario` has properties that could lead to exceptions in cr-ots-interface when simulated with `simulation_config`.
+
+    :param scenario: The scenario that should be simulated.
+    :param simulation_config: The simulation config for the scenario.
+
+    :raises RuntimeError: If the scenario cannot be simulated with the given simulation config.
     """
     if simulation_config.mode != SimulationMode.RANDOM_TRAFFIC_GENERATION:
         # All simulation modes except random traffic generation, need dynamic obstacles in the scenario
         if len(scenario.dynamic_obstacles) == 0:
-            _LOGGER.warning(
+            raise RuntimeError(
                 f"Cannot simulate scenario {scenario.scenario_id} in OTS with {simulation_config.mode}: The scenario does not contain any dynamic obstacles."
             )
-            return False
 
     if simulation_config.mode == SimulationMode.INFRASTRUCTURE_TRAFFIC_GENERATION:
         # The infrastructure simulation mode only considers obstacles that were not defined at the initial time step.
         # But if all obstacles are definied at the initial time step, the simulation is empty, which is not gracefully handled by cr-ots.
         if all(obstacle.initial_state.time_step <= 0 for obstacle in scenario.dynamic_obstacles):
-            _LOGGER.warning(
+            raise RuntimeError(
                 f"Cannot simulate scenario {scenario.scenario_id} in OTS with {simulation_config.mode}: The simulation mode only considers obstacles after the initial time step, but all obstacles start at the initial time step. So the simulation would be empty."
             )
-            return False
-
-    return True
 
 
 def _patch_scenario_metadata_after_simulation(simulated_scenario: Scenario):
@@ -323,7 +326,7 @@ def _patch_scenario_metadata_after_simulation(simulated_scenario: Scenario):
 
 def simulate_commonroad_scenario_with_ots(
     commonroad_scenario: Scenario, simulation_config: SimulationConfig, seed: int
-) -> Optional[Scenario]:
+) -> Scenario:
     """
     Use the microscopic traffic simulator OTS, to simulate the scenario according to the simulation mode in `simulation_config`.
 
@@ -334,15 +337,13 @@ def simulate_commonroad_scenario_with_ots(
     :returns: A new CommonRoad scenario with the simulated obstacles and None, if the simulation was unsuccessfull.
     """
 
-    if not _can_simulate_scenario_with_simulation_config(commonroad_scenario, simulation_config):
-        return None
+    _check_can_simulate_scenario_with_simulation_config(commonroad_scenario, simulation_config)
 
-    input_scenario = copy.deepcopy(commonroad_scenario)
+    # Scenario must be copied, because it might be modified during the simulation
+    input_scenario = copy_scenario(commonroad_scenario)
     new_scenario = _execute_ots_simulation(
         input_scenario, simulation_config.mode, seed, simulation_config.simulation_steps
     )
-    if new_scenario is None:
-        return None
 
     scenario_length = get_scenario_final_time_step(new_scenario)
 

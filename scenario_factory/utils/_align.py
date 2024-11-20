@@ -4,6 +4,7 @@ from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.lanelet import TrafficLight
 from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
+from commonroad.scenario.trajectory import Trajectory
 
 from scenario_factory.utils._types import WithTimeStep
 
@@ -17,7 +18,14 @@ def align_state_to_time_step(state: WithTimeStep, time_step: int) -> None:
 
     :return: The state object with the adjusted time step.
     """
-    state.time_step -= time_step
+    if time_step < 0:
+        raise ValueError(
+            f"Cannot align state to time step {time_step}: The reference time step must be positive!"
+        )
+    if state.time_step >= time_step:
+        state.time_step -= time_step
+    else:
+        state.time_step += time_step
 
 
 def align_state_list_to_time_step(states: Sequence[WithTimeStep], time_step: int) -> None:
@@ -27,8 +35,18 @@ def align_state_list_to_time_step(states: Sequence[WithTimeStep], time_step: int
     :param states: A list of states to align.
     :param time_step: The reference time step for alignment.
     """
-    for state in states:
-        align_state_to_time_step(state, time_step)
+    time_steps = [state.time_step for state in states]
+    if time_step > min(time_steps) and time_step < max(time_steps):
+        for state in states:
+            state.time_step += time_step
+    else:
+        for state in states:
+            align_state_to_time_step(state, time_step)
+
+
+def align_trajectory_to_time_step(trajectory: Trajectory, time_step: int) -> None:
+    align_state_list_to_time_step(trajectory.state_list, time_step)
+    trajectory.initial_time_step = trajectory.state_list[0].time_step
 
 
 def align_dynamic_obstacle_to_time_step(dynamic_obstacle: DynamicObstacle, time_step: int) -> None:

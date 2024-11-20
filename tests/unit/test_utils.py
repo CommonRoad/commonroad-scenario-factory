@@ -1,13 +1,48 @@
 import numpy as np
+import pytest
 from commonroad.scenario.state import CustomState, ExtendedPMState, InitialState
 
 from scenario_factory.builder import ScenarioBuilder
 from scenario_factory.utils import (
+    align_state_to_time_step,
     convert_state_to_state,
     copy_scenario,
     get_full_state_list_of_obstacle,
 )
+from scenario_factory.utils._align import align_state_list_to_time_step
 from tests.helpers import create_test_obstacle_with_trajectory
+
+
+class TestAlignStateToTimeStep:
+    @pytest.mark.parametrize(
+        ["state_time_step", "alignment_time_step", "expected_time_step"],
+        [(0, 0, 0), (10, 0, 10), (3, 3, 0), (14, 5, 9), (0, 17, 17), (20, 17, 3)],
+    )
+    def test_correctly_aligns_state_to_time_step(
+        self, state_time_step, alignment_time_step, expected_time_step
+    ) -> None:
+        state = CustomState(time_step=state_time_step)
+        align_state_to_time_step(state, alignment_time_step)
+        assert state.time_step == expected_time_step
+
+
+class TestAlignStateListToTimeStep:
+    @pytest.mark.parametrize(
+        ["state_time_steps", "alignment_time_step", "expected_time_steps"],
+        [
+            ([10, 11, 12, 13], 0, [10, 11, 12, 13]),
+            ([0, 1, 2, 5, 7], 17, [17, 18, 19, 22, 24]),
+            ([3, 4, 5, 6, 7, 8], 5, [8, 9, 10, 11, 12, 13]),
+        ],
+    )
+    def test_correctly_aligns_state_list_to_time_step(
+        self, state_time_steps, alignment_time_step, expected_time_steps
+    ) -> None:
+        state_list = [CustomState(time_step=time_step) for time_step in state_time_steps]
+        align_state_list_to_time_step(state_list, alignment_time_step)
+        print(state_list)
+        for i, expected_time_step in enumerate(expected_time_steps):
+            assert state_list[i].time_step == expected_time_step
 
 
 class TestCopyScenario:

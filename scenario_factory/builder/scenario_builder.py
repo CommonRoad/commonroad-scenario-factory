@@ -24,12 +24,14 @@ class ScenarioBuilder(BuilderCore[Scenario]):
         self._lanelet_network_builder = LaneletNetworkBuilder(self._id_allocator)
         return self._lanelet_network_builder
 
-    def create_dynamic_obstacle(self) -> DynamicObstacleBuilder:
+    def create_dynamic_obstacle(self, obstacle_id: Optional[int] = None) -> DynamicObstacleBuilder:
         """
         Create a new `DynamicObstacleBuilder`.
         If the scenario is build, the dynamic obstacle will also be build and added to the scenario.
         """
-        new_dynamic_obstacle_builder = DynamicObstacleBuilder(self._id_allocator.new_id())
+        if obstacle_id is None:
+            obstacle_id = self._id_allocator.new_id()
+        new_dynamic_obstacle_builder = DynamicObstacleBuilder(obstacle_id)
         self._dynamic_obstacle_builders.append(new_dynamic_obstacle_builder)
         return new_dynamic_obstacle_builder
 

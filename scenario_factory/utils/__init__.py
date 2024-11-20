@@ -22,6 +22,7 @@ __all__ = [
     "align_dynamic_obstacle_to_time_step",
     "align_traffic_light_to_time_step",
     "align_scenario_to_time_step",
+    "align_trajectory_to_time_step",
     # crop
     "crop_state_list_to_time_frame",
     "crop_trajectory_to_time_frame",
@@ -43,6 +44,7 @@ from ._align import (
     align_state_list_to_time_step,
     align_state_to_time_step,
     align_traffic_light_to_time_step,
+    align_trajectory_to_time_step,
 )
 from ._crop import (
     crop_dynamic_obstacle_to_time_frame,

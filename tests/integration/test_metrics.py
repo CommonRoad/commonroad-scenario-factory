@@ -3,8 +3,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from scenario_factory.metrics import WaymoMetric
-from scenario_factory.metrics._general_scenario_metric import GeneralScenarioMetric
+from scenario_factory.metrics import GeneralScenarioMetric, WaymoMetric
 from scenario_factory.pipeline.pipeline import Pipeline
 from scenario_factory.pipeline_steps.metrics import (
     ComputeSingleScenarioMetricsArguments,

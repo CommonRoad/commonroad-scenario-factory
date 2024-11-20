@@ -146,7 +146,7 @@ def simulate_commonroad_scenario_with_sumo(
 
     :returns: A new scenario with the simulated trajectories.
 
-    :raises ValueError: If the selected simulation mode is not supported.
+    :raises ValueError: If the selected simulation config is invalid.
     """
     sumo_config = _get_new_sumo_config_for_scenario(scenario, simulation_config, seed)
 

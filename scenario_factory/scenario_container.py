@@ -81,7 +81,10 @@ class ScenarioContainer:
     :param planning_problem_set: An optional planning problem set.
     :param solution: An optional planning problem solution, usually for the attached planning problem set.
     :param ego_vehicle_maneuver: An optional ego vehicle maneuver that happend in the scenario.
-    :param criticality_data: Optional criticality data for the scenario.
+    :param criticality_metric: Optional criticality metric for the scenario.
+    :param reference_scenario: An optional reference scenario.
+    :param waymo_metric: Optional waymo metrics for the scenario.
+    :param general_scenario_metric: Optional general scenario metrics.
     """
 
     def __init__(self, scenario: Scenario, **kwargs: Unpack[ScenarioContainerArguments]):

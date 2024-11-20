@@ -4,7 +4,6 @@ __all__ = [
 ]
 
 import logging
-from copy import deepcopy
 from dataclasses import dataclass
 from typing import Optional
 
@@ -18,6 +17,7 @@ from scenario_factory.scenario_container import ReferenceScenario, ScenarioConta
 from scenario_factory.simulation.config import SimulationConfig
 from scenario_factory.simulation.ots import simulate_commonroad_scenario_with_ots
 from scenario_factory.simulation.sumo import simulate_commonroad_scenario_with_sumo
+from scenario_factory.utils._scenario import copy_scenario
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,12 +51,13 @@ def pipeline_simulate_scenario_with_sumo(
         len(simulated_scenario.dynamic_obstacles),
     )
 
-    new_scenario = ScenarioContainer(simulated_scenario)
-    if (
-        commonroad_scenario
-    ):  # if there has been an input scenario, add it as the reference scenario.
-        new_scenario.add_attachment(ReferenceScenario(deepcopy(commonroad_scenario)))
-    return new_scenario
+    # Attach the original scenario as the reference scenario, so that downstream functionality
+    # can compare the original with the simulation.
+    reference_scenario = ReferenceScenario(copy_scenario(commonroad_scenario))
+    new_scenario_container = ScenarioContainer(
+        simulated_scenario, reference_scenario=reference_scenario
+    )
+    return new_scenario_container
 
 
 @pipeline_map_with_args(mode=PipelineStepExecutionMode.PARALLEL)
@@ -71,18 +72,14 @@ def pipeline_simulate_scenario_with_ots(
     simulated_scenario = simulate_commonroad_scenario_with_ots(
         commonroad_scenario, args.config, seed
     )
-    if simulated_scenario is None:
-        return None
-
     _LOGGER.debug(
         "Simulated scenario %s with OTS and created %s new obstacles",
         simulated_scenario.scenario_id,
         len(simulated_scenario.dynamic_obstacles),
     )
 
-    new_scenario = ScenarioContainer(simulated_scenario)
-    if (
-        commonroad_scenario
-    ):  # if there has been an input scenario, add it as the reference scenario.
-        new_scenario.add_attachment(ReferenceScenario(deepcopy(commonroad_scenario)))
+    # Attach the original scenario as the reference scenario, so that downstream functionality
+    # can compare the original with the simulation.
+    reference_scenario = ReferenceScenario(copy_scenario(commonroad_scenario))
+    new_scenario = ScenarioContainer(simulated_scenario, reference_scenario=reference_scenario)
     return new_scenario

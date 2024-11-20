@@ -5,8 +5,7 @@ from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 
-from scenario_factory.metrics import CriticalityMetrics
-from scenario_factory.metrics._general_scenario_metric import GeneralScenarioMetric
+from scenario_factory.metrics import CriticalityMetrics, GeneralScenarioMetric
 from scenario_factory.pipeline import PipelineContext
 from scenario_factory.pipeline_steps import (
     ComputeCriticalityMetricsArgs,

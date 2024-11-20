@@ -17,10 +17,12 @@ nav:
     - reference/scenario_generation.md
     - reference/pipeline.md
     - reference/ego_vehicle_selection.md
+    - reference/metrics.md
     - API:
       - reference/api/pipeline_steps.md
       - reference/api/pipelines.md
       - reference/api/pipeline.md
+      - reference/api/scenario_container.md
       - reference/api/simulation.md
       - reference/api/globetrotter.md
       - reference/api/builder.md

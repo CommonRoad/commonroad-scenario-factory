@@ -51,8 +51,8 @@ class TestPipelineInsertEgoVehicleSolutionsIntoScenario:
     def test_correctly_inserts_ego_vehicle_solution(self):
         trajectory = (
             TrajectoryBuilder()
-            .start(PMState(time_step=0, position=np.array([0.0, 0.0])))
-            .end(PMState(time_step=100, position=np.array([-10.0, 10.0])))
+            .start_state(PMState(time_step=0, position=np.array([0.0, 0.0])))
+            .end_state(PMState(time_step=100, position=np.array([-10.0, 10.0])))
             .build()
         )
         planning_problem_set_builder = PlanningProblemSetBuilder()
@@ -101,8 +101,8 @@ class TestPipelineExtractEgoVehicleSolutionsFromScenario:
     def test_correctly_extracts_ego_vehicle_solution_from_scenario(self):
         trajectory = (
             TrajectoryBuilder()
-            .start(PMState(time_step=0, position=np.array([0.0, 0.0])))
-            .end(PMState(time_step=100, position=np.array([-10.0, 10.0])))
+            .start_state(PMState(time_step=0, position=np.array([0.0, 0.0])))
+            .end_state(PMState(time_step=100, position=np.array([-10.0, 10.0])))
             .build()
         )
         scenario_builder = ScenarioBuilder()
@@ -137,15 +137,15 @@ class TestPipelineRemoveParkedDynamicObstacles:
     def test_only_removes_parked_and_keeps_driving_vehicles(self):
         scenario_builder = ScenarioBuilder()
         dynamic_obstacle_builder = scenario_builder.create_dynamic_obstacle()
-        dynamic_obstacle_builder.create_trajectory().start(
+        dynamic_obstacle_builder.create_trajectory().start_state(
             PMState(0, position=np.array([100.0, 0.0]))
-        ).end(PMState(100, np.array([100.0, 100.0])))
+        ).end_state(PMState(100, np.array([100.0, 100.0])))
         driving_obstacle = dynamic_obstacle_builder.build()
 
         dynamic_obstacle_builder = scenario_builder.create_dynamic_obstacle()
-        dynamic_obstacle_builder.create_trajectory().start(
+        dynamic_obstacle_builder.create_trajectory().start_state(
             PMState(0, position=np.array([0.0, 0.0]))
-        ).end(PMState(100, np.array([0.0, 0.0])))
+        ).end_state(PMState(100, np.array([0.0, 0.0])))
         parked_obstacle = dynamic_obstacle_builder.build()
 
         scenario = scenario_builder.build()

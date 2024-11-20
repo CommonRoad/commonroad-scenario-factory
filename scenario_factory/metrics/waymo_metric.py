@@ -44,14 +44,14 @@ class WaymoMetric:
         )
 
 
-def compute_waymo_metric(scenario: Scenario, scenario_reference: Scenario) -> WaymoMetric:
+def compute_waymo_metric(scenario: Scenario, reference_scenario: Scenario) -> WaymoMetric:
     """
     Compute the Waymo metrics for the scenario.
 
     :param scenario: The scenario for which the metrics should be computed.
-    :param scenario_reference: The reference scenario for the computation.
+    :param reference_scenario: The reference scenario for the computation.
     """
-    assert scenario.dt == scenario_reference.dt
+    assert scenario.dt == reference_scenario.dt
 
     measurment_times = [3, 5, 8]
 
@@ -61,9 +61,9 @@ def compute_waymo_metric(scenario: Scenario, scenario_reference: Scenario) -> Wa
     root_mean_squared_errors: List[float] = []
 
     for dynamic_obstacle, dynamic_obstacle_ref in iterate_zipped_dynamic_obstacles_from_scenarios(
-        scenario, scenario_reference
+        scenario, reference_scenario
     ):
-        displacement_vector = _compute_displacment_vector_between_two_dynamic_obstacle(
+        displacement_vector = compute_displacment_vector_between_two_dynamic_obstacles(
             dynamic_obstacle, dynamic_obstacle_ref
         )
         # The displacement vector is none, if the
@@ -152,7 +152,7 @@ def _filter_and_combine_waymo_metrics(metrics: Dict[int, List[float]]) -> Dict[i
     return filtered_metrics
 
 
-def _compute_displacment_vector_between_two_dynamic_obstacle(
+def compute_displacment_vector_between_two_dynamic_obstacles(
     dynamic_obstacle: DynamicObstacle, dynamic_obstacle_reference: DynamicObstacle
 ) -> Optional[np.ndarray]:
     """
@@ -180,6 +180,7 @@ def _compute_displacment_vector_between_two_dynamic_obstacle(
             "time step offset between %s and %s is %s, but must not be smaller then 0",
             dynamic_obstacle.obstacle_id,
             dynamic_obstacle_reference.obstacle_id,
+            time_step_offset,
         )
         return None
 
