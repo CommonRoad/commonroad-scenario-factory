@@ -11,9 +11,6 @@ from scenario_factory.globetrotter.clustering import (
     find_clusters_agglomerative,
     generate_intersections,
     get_distance_to_outer_point,
-    relevant_intersections,
-    relevant_traffic_lights,
-    relevant_traffic_signs,
 )
 from tests.resources.interface import (
     ResourceType,
@@ -284,76 +281,79 @@ class TestGlobals:
                 np.array(exp_cluster) == np.array(clusters[key])
             ), f"Expected matching member points for cluster {key} for entry {entry.label}."
 
-    @pytest.mark.parametrize("entry", _TRAFFIC_SIGNS_TEST_DATASET)
-    def test_relevant_traffic_signs(self, entry: TrafficSignsTestEntry):
-        lanelet_network = load_cr_lanelet_network_from_file(
-            ResourceType.CR_LANELET_NETWORK.get_folder() / entry.lanelet_network
-        )
-        input_traffic_signs = [
-            ts for ts in lanelet_network.traffic_signs if ts.traffic_sign_id in entry.traffic_signs
-        ]
-        expected_traffic_signs = {
-            ts.traffic_sign_id: ts
-            for ts in lanelet_network.traffic_signs
-            if ts.traffic_sign_id in entry.expected_traffic_signs
-        }
-        traffic_signs = relevant_traffic_signs(input_traffic_signs, lanelet_network.lanelets)
-        assert len(traffic_signs) == len(
-            expected_traffic_signs
-        ), f"Expected to result in correct number of traffic signs for entry {entry.label}."
-        for ts in traffic_signs:
-            assert (
-                ts is expected_traffic_signs[ts.traffic_sign_id]
-            ), f"Filter passed unexpected traffic sign for entry {entry.label}."
-
-    @pytest.mark.parametrize("entry", _TRAFFIC_LIGHTS_TEST_DATASET)
-    def test_relevant_traffic_lights(self, entry: TrafficLightsTestEntry):
-        lanelet_network = load_cr_lanelet_network_from_file(
-            ResourceType.CR_LANELET_NETWORK.get_folder() / entry.lanelet_network
-        )
-        input_traffic_lights = [
-            tl
-            for tl in lanelet_network.traffic_lights
-            if tl.traffic_light_id in entry.traffic_lights
-        ]
-        expected_traffic_lights = {
-            tl.traffic_light_id: tl
-            for tl in lanelet_network.traffic_lights
-            if tl.traffic_light_id in entry.expected_traffic_lights
-        }
-
-        traffic_lights = relevant_traffic_lights(input_traffic_lights, lanelet_network.lanelets)
-        assert len(traffic_lights) == len(
-            expected_traffic_lights
-        ), f"Expected to result in correct number of traffic lights for entry {entry.label}."
-        for tl in traffic_lights:
-            assert (
-                tl is expected_traffic_lights[tl.traffic_light_id]
-            ), f"Filter passed unexpected traffic light for entry {entry.label}."
-
-    @pytest.mark.parametrize("entry", _INTERSECTIONS_TEST_DATASET)
-    def test_relevant_intersections(self, entry: IntersectionsTestEntry):
-        lanelet_network = load_cr_lanelet_network_from_file(
-            ResourceType.CR_LANELET_NETWORK.get_folder() / entry.lanelet_network
-        )
-        input_intersections = [
-            ints
-            for ints in lanelet_network.intersections
-            if ints.intersection_id in entry.intersections
-        ]
-        expected_intersections = {
-            ints.intersection_id: ints
-            for ints in lanelet_network.intersections
-            if ints.intersection_id in entry.expected_intersections
-        }
-        intersections = relevant_intersections(input_intersections, lanelet_network.lanelets)
-        assert len(intersections) == len(
-            expected_intersections
-        ), f"Expected to result in correct number of intersections for entry {entry.label}."
-        for ints in intersections:
-            assert (
-                ints is expected_intersections[ints.intersection_id]
-            ), f"Filter passed unexpected intersection for entry {entry.label}."
+    # Seems like these functions were removed.
+    # TODO: Change / Remove commented tests
+    #
+    # @pytest.mark.parametrize("entry", _TRAFFIC_SIGNS_TEST_DATASET)
+    # def test_relevant_traffic_signs(self, entry: TrafficSignsTestEntry):
+    #     lanelet_network = load_cr_lanelet_network_from_file(
+    #         ResourceType.CR_LANELET_NETWORK.get_folder() / entry.lanelet_network
+    #     )
+    #     input_traffic_signs = [
+    #         ts for ts in lanelet_network.traffic_signs if ts.traffic_sign_id in entry.traffic_signs
+    #     ]
+    #     expected_traffic_signs = {
+    #         ts.traffic_sign_id: ts
+    #         for ts in lanelet_network.traffic_signs
+    #         if ts.traffic_sign_id in entry.expected_traffic_signs
+    #     }
+    #     traffic_signs = relevant_traffic_signs(input_traffic_signs, lanelet_network.lanelets)
+    #     assert len(traffic_signs) == len(
+    #         expected_traffic_signs
+    #     ), f"Expected to result in correct number of traffic signs for entry {entry.label}."
+    #     for ts in traffic_signs:
+    #         assert (
+    #             ts is expected_traffic_signs[ts.traffic_sign_id]
+    #         ), f"Filter passed unexpected traffic sign for entry {entry.label}."
+    #
+    # @pytest.mark.parametrize("entry", _TRAFFIC_LIGHTS_TEST_DATASET)
+    # def test_relevant_traffic_lights(self, entry: TrafficLightsTestEntry):
+    #     lanelet_network = load_cr_lanelet_network_from_file(
+    #         ResourceType.CR_LANELET_NETWORK.get_folder() / entry.lanelet_network
+    #     )
+    #     input_traffic_lights = [
+    #         tl
+    #         for tl in lanelet_network.traffic_lights
+    #         if tl.traffic_light_id in entry.traffic_lights
+    #     ]
+    #     expected_traffic_lights = {
+    #         tl.traffic_light_id: tl
+    #         for tl in lanelet_network.traffic_lights
+    #         if tl.traffic_light_id in entry.expected_traffic_lights
+    #     }
+    #
+    #     traffic_lights = relevant_traffic_lights(input_traffic_lights, lanelet_network.lanelets)
+    #     assert len(traffic_lights) == len(
+    #         expected_traffic_lights
+    #     ), f"Expected to result in correct number of traffic lights for entry {entry.label}."
+    #     for tl in traffic_lights:
+    #         assert (
+    #             tl is expected_traffic_lights[tl.traffic_light_id]
+    #         ), f"Filter passed unexpected traffic light for entry {entry.label}."
+    #
+    # @pytest.mark.parametrize("entry", _INTERSECTIONS_TEST_DATASET)
+    # def test_relevant_intersections(self, entry: IntersectionsTestEntry):
+    #     lanelet_network = load_cr_lanelet_network_from_file(
+    #         ResourceType.CR_LANELET_NETWORK.get_folder() / entry.lanelet_network
+    #     )
+    #     input_intersections = [
+    #         ints
+    #         for ints in lanelet_network.intersections
+    #         if ints.intersection_id in entry.intersections
+    #     ]
+    #     expected_intersections = {
+    #         ints.intersection_id: ints
+    #         for ints in lanelet_network.intersections
+    #         if ints.intersection_id in entry.expected_intersections
+    #     }
+    #     intersections = relevant_intersections(input_intersections, lanelet_network.lanelets)
+    #     assert len(intersections) == len(
+    #         expected_intersections
+    #     ), f"Expected to result in correct number of intersections for entry {entry.label}."
+    #     for ints in intersections:
+    #         assert (
+    #             ints is expected_intersections[ints.intersection_id]
+    #         ), f"Filter passed unexpected intersection for entry {entry.label}."
 
     @pytest.mark.parametrize("entry", _CUT_INTERSECTION_TEST_DATASET)
     def test_cut_intersections_from_scenario(self, entry: CutIntersectionTestEntry):
