@@ -1,0 +1,4 @@
+label,lanelet_network,expect_match
+"empty_network","empty_no_meta.xml",true
+"no_traffic_lights","single_lanelet_no_meta.xml",true
+"single_traffic_light","single_lanelet_traffic_light.xml",false

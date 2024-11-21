@@ -1,0 +1,20 @@
+[
+  {
+    "label": "no_intersection",
+    "lanelet_network": "empty_no_meta.xml",
+    "intersections": [1, 2, 3, 500],
+    "expected_intersections": []
+  },
+  {
+    "label": "intersection_not_in_source",
+    "lanelet_network": "single_intersection.xml",
+    "intersections": [1, 2, 3],
+    "expected_intersections": []
+  },
+  {
+    "label": "single_intersection",
+    "lanelet_network": "single_intersection.xml",
+    "intersections": [1, 2, 3, 500],
+    "expected_intersections": [500]
+  }
+]

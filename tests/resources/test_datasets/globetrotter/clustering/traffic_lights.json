@@ -1,0 +1,26 @@
+[
+  {
+    "label": "no_traffic_lights",
+    "lanelet_network": "empty_no_meta.xml",
+    "traffic_lights": [1, 2, 3, 500],
+    "expected_traffic_lights": []
+  },
+  {
+    "label": "traffic_light_not_in_source",
+    "lanelet_network": "single_lanelet_traffic_light.xml",
+    "traffic_lights": [1, 2, 3],
+    "expected_traffic_lights": []
+  },
+  {
+    "label": "single_traffic_light_no_successor",
+    "lanelet_network": "single_lanelet_traffic_light_no_successor.xml",
+    "traffic_lights": [1, 2, 3, 500],
+    "expected_traffic_lights": []
+  },
+  {
+    "label": "single_traffic_light",
+    "lanelet_network": "single_lanelet_traffic_light.xml",
+    "traffic_lights": [1, 2, 3, 500],
+    "expected_traffic_lights": [500]
+  }
+]

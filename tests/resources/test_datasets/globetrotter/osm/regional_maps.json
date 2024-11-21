@@ -1,0 +1,30 @@
+[
+  {
+    "label": "no_maps",
+    "map_files": [],
+    "region_map": null,
+    "country_code": "DE",
+    "region_name": "Aachen"
+  },
+  {
+    "label": "single_correct_map",
+    "map_files": ["aachen-latest.osm.pbf"],
+    "region_map": "aachen-latest.osm.pbf",
+    "country_code": "DE",
+    "region_name": "Aachen"
+  },
+  {
+    "label": "multiple_maps_with_correct",
+    "map_files": ["düren-latest.osm.pbf", "bonn-latest.osm.pbf", "aachen-latest.osm.pbf"],
+    "region_map": "bonn-latest.osm.pbf",
+    "country_code": "DE",
+    "region_name": "Bonn"
+  },
+  {
+    "label": "multiple_maps_without_correct",
+    "map_files": ["düren-latest.osm.pbf", "bonn-latest.osm.pbf", "aachen-latest.osm.pbf"],
+    "region_map": null,
+    "country_code": "DE",
+    "region_name": "Köln"
+  }
+]
