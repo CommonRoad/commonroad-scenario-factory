@@ -1,0 +1,13 @@
+[
+  {
+    "label": "generic1",
+    "map_files": ["aachen-latest.osm.pbf", "düren-latest.osm.pbf", "bonn-latest.osm.pbf"],
+    "country_code": "DE",
+    "region_name": "Düren",
+    "west": 6.445126,
+    "south": 51.015997,
+    "east": 6.451094,
+    "north": 51.018542,
+    "expected_excerpt": "düren-complete-excerpt.osm"
+  }
+]

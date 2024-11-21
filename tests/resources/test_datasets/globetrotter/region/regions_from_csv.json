@@ -1,0 +1,28 @@
+[
+  {
+    "label": "empty",
+    "csv_file": "empty_regions.csv",
+    "expected_regions": []
+  },
+  {
+    "label": "single_entry",
+    "csv_file": "single_entry_regions.csv",
+    "expected_regions": [
+      {
+        "coords": "40.4184,-3.6667",
+        "region_name": "retiro",
+        "country_code": "ESP"
+      }
+    ]
+  },
+  {
+    "label": "malformed_lowercase",
+    "csv_file": "malformed_regions_lowercase.csv",
+    "expected_regions": null
+  },
+  {
+    "label": "malformed_missing_column",
+    "csv_file": "malformed_regions_missing_column.csv",
+    "expected_regions": null
+  }
+]

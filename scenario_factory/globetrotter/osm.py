@@ -90,7 +90,7 @@ def configure_traffic_light_phase_lengths(phase_mapping: Mapping[TrafficLightSta
         _set_osm_traffic_light_phase_length(phase, length)
 
 
-def _get_canonical_region_name(region_name: str) -> str:
+def get_canonical_region_name(region_name: str) -> str:
     canonical_region_name = region_name.lower()
 
     # Special handling of regions consisting of multiple parts (e.g. New York)
@@ -101,16 +101,16 @@ def _get_canonical_region_name(region_name: str) -> str:
     return canonical_region_name
 
 
-def _find_osm_file_for_region(osm_map_path: Path, map_metadata: RegionMetadata) -> Optional[Path]:
+def find_osm_file_for_region(osm_map_path: Path, map_metadata: RegionMetadata) -> Optional[Path]:
     # Prefer country files, because they are unique
     country_name = iso3166.countries.get(map_metadata.country_code).name
-    canonical_country_name = _get_canonical_region_name(country_name)
+    canonical_country_name = get_canonical_region_name(country_name)
     for osm_file in osm_map_path.glob("*.osm.pbf"):
         if osm_file.name.startswith(canonical_country_name):
             return osm_file
 
     # Fallback to the region name. This step is not reliable as, region names can be duplicated...
-    canonical_region_name = _get_canonical_region_name(map_metadata.region_name)
+    canonical_region_name = get_canonical_region_name(map_metadata.region_name)
     for osm_file in osm_map_path.glob("*.osm.pbf"):
         if osm_file.name.startswith(canonical_region_name):
             return osm_file
@@ -181,7 +181,7 @@ class LocalFileMapProvider(MapProvider):
         self, region: RegionMetadata, bounding_box: BoundingBox, output_folder: Path
     ) -> Path:
         target_file = super().get_map(region, bounding_box, output_folder)
-        map_file = _find_osm_file_for_region(self._maps_folder, region)
+        map_file = find_osm_file_for_region(self._maps_folder, region)
         if map_file is None:
             raise ValueError(f"Could not find an OSM file for the region {region}")
         extract_bounding_box_from_osm_map(bounding_box, map_file, target_file)
@@ -208,7 +208,7 @@ class OsmApiMapProvider(MapProvider):
         return target_file
 
 
-def _fix_center_polylines(lanelet_network: LaneletNetwork) -> None:
+def fix_center_polylines(lanelet_network: LaneletNetwork) -> None:
     """
     Recalculate all center polylines in the :param:`lanelet_network`, to make sure they are all realy centered between the left and right polylines.
     """
@@ -231,7 +231,7 @@ def verify_and_repair_commonroad_scenario(scenario: Scenario) -> int:
         map_repairer = MapRepairer(scenario.lanelet_network)
         map_repairer.repair_map(invalid_states)
 
-    _fix_center_polylines(scenario.lanelet_network)
+    fix_center_polylines(scenario.lanelet_network)
 
     return len(invalid_states)
 

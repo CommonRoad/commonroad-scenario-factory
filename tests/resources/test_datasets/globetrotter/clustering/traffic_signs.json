@@ -1,0 +1,20 @@
+[
+  {
+    "label": "no_traffic_signs",
+    "lanelet_network": "empty_no_meta.xml",
+    "traffic_signs": [1, 2, 3, 500],
+    "expected_traffic_signs": []
+  },
+  {
+    "label": "traffic_sign_not_in_source",
+    "lanelet_network": "single_lanelet_traffic_sign.xml",
+    "traffic_signs": [1, 2, 3],
+    "expected_traffic_signs": []
+  },
+  {
+    "label": "single_traffic_sign",
+    "lanelet_network": "single_lanelet_traffic_sign.xml",
+    "traffic_signs": [1, 2, 3, 500],
+    "expected_traffic_signs": [500]
+  }
+]

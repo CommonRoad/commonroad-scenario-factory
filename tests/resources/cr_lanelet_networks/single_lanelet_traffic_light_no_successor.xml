@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<commonRoad timeStepSize="0.1" commonRoadVersion="2020a" author="Yannick Bers" benchmarkID="DEU_single_lanelet_traffic_light_no_successor" date="2024-11-20">
+  <lanelet id="1">
+    <leftBound>
+      <point>
+        <x>0</x>
+        <y>0</y>
+      </point>
+      <point>
+        <x>20</x>
+        <y>0</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>0</x>
+        <y>-10</y>
+      </point>
+      <point>
+        <x>20</x>
+        <y>-10</y>
+      </point>
+    </rightBound>
+    <trafficLightRef ref="500"/>
+  </lanelet>
+
+  <trafficLight id="500">
+    <position>
+      <point>
+        <x>20</x>
+        <y>20</y>
+      </point>
+    </position>
+    <cycle>
+
+    </cycle>
+  </trafficLight>
+</commonRoad>
