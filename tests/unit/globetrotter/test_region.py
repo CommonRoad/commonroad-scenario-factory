@@ -1,85 +1,41 @@
+from typing import Optional
+
 import pytest
-from pydantic import field_validator
 
 from scenario_factory.globetrotter import BoundingBox, load_regions_from_csv
 from scenario_factory.globetrotter.region import Coordinates, RegionMetadata
 from tests.automation.datasets import Dataset, DatasetFormat
 from tests.automation.marks import with_custom, with_dataset
-from tests.automation.validation import (
-    LabeledCase,
-    decorate_iter,
-    decorate_opt,
-    model_val_bool,
-    model_val_coordinates,
-    model_val_float,
-    model_val_region_metadata,
-)
+from tests.automation.validation import entry_model
 from tests.resources.interface import ResourceType
 
 
-class CoordinateParsingTestCase(LabeledCase):
+@entry_model
+class CoordinateParsingTestCase:
     string: str
     valid: bool
     lat: float
     lon: float
 
-    @field_validator("valid", mode="before")
-    @classmethod
-    def parse_valid(cls, v):
-        return model_val_bool(v)
 
-    @field_validator("lat", mode="before")
-    @classmethod
-    def parse_lat(cls, v):
-        return model_val_float(v)
-
-    @field_validator("lon", mode="before")
-    @classmethod
-    def parse_lon(cls, v):
-        return model_val_float(v)
-
-
-class RegionMetadataTestCase(LabeledCase):
+@entry_model
+class RegionMetadataTestCase:
     coordinates: Coordinates
     country_code: str
     region_name: str
 
-    @field_validator("coordinates", mode="before")
-    @classmethod
-    def parse_coordinates(cls, v):
-        return model_val_coordinates(v)
 
-
-class BoundingBoxToStringTestCase(LabeledCase):
-    label: str
+@entry_model
+class BoundingBoxToStringTestCase:
     west: float
     south: float
     east: float
     north: float
     expected_string: str
 
-    @field_validator("west", mode="before")
-    @classmethod
-    def parse_west(cls, v):
-        return model_val_float(v)
 
-    @field_validator("south", mode="before")
-    @classmethod
-    def parse_south(cls, v):
-        return model_val_float(v)
-
-    @field_validator("east", mode="before")
-    @classmethod
-    def parse_east(cls, v):
-        return model_val_float(v)
-
-    @field_validator("north", mode="before")
-    @classmethod
-    def parse_north(cls, v):
-        return model_val_float(v)
-
-
-class BoundingBoxFromCoordinatesTestCase(LabeledCase):
+@entry_model
+class BoundingBoxFromCoordinatesTestCase:
     coordinates: Coordinates
     radius: float
     expected_west: float
@@ -87,40 +43,11 @@ class BoundingBoxFromCoordinatesTestCase(LabeledCase):
     expected_east: float
     expected_north: float
 
-    @field_validator("coordinates", mode="before")
-    @classmethod
-    def parse_coordinates(cls, v):
-        return model_val_coordinates(v)
 
-    @field_validator("expected_west", mode="before")
-    @classmethod
-    def parse_expected_west(cls, v):
-        return model_val_float(v)
-
-    @field_validator("expected_south", mode="before")
-    @classmethod
-    def parse_expected_south(cls, v):
-        return model_val_float(v)
-
-    @field_validator("expected_east", mode="before")
-    @classmethod
-    def parse_expected_east(cls, v):
-        return model_val_float(v)
-
-    @field_validator("expected_north", mode="before")
-    @classmethod
-    def parse_expected_north(cls, v):
-        return model_val_float(v)
-
-
-class RegionsFromCsvTestCase(LabeledCase):
+@entry_model
+class RegionsFromCsvTestCase:
     csv_file: str
-    expected_regions: list[RegionMetadata] | None
-
-    @field_validator("expected_regions", mode="before")
-    @classmethod
-    def parse_expected_regions(cls, v):
-        return decorate_opt(decorate_iter(model_val_region_metadata))(v)
+    expected_regions: Optional[list[RegionMetadata]]
 
 
 _COORDINATE_PARSING_TEST_DATASET = Dataset(

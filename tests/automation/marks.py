@@ -3,9 +3,15 @@ import os
 import sys
 from pathlib import Path
 from typing import Any, Iterable
+
 from _pytest.mark import Mark
 
-from tests.automation.datasets import Dataset, DatasetFormat, get_test_dataset_csv, get_test_dataset_json
+from tests.automation.datasets import (
+    Dataset,
+    DatasetFormat,
+    get_test_dataset_csv,
+    get_test_dataset_json,
+)
 from tests.datasets.interface import get_test_dataset_root
 from tests.interface import get_test_root
 
@@ -37,7 +43,7 @@ def _select_marks(marks: list[Mark], param_spec: str) -> tuple[list[Mark], int]:
 
     merged_entries = []
     for m in selected:
-        if m.args[0] != param_spec: # TODO: Semantic check
+        if m.args[0] != param_spec:  # TODO: Semantic check
             raise ValueError("The test function has been marked with incompatible marks.")
         merged_entries.extend(m.args[1])
     result.append(Mark("parametrize", (param_spec, merged_entries), {}))
@@ -65,14 +71,15 @@ def _inspect_parameter_names(func: Any) -> list[str]:
         if name == "self":
             continue
         if p.kind == inspect.Parameter.VAR_POSITIONAL or p.kind == inspect.Parameter.VAR_KEYWORD:
-            raise RuntimeError("The with_... decorators do not support test functions with variadic parameters.")
+            raise RuntimeError(
+                "The with_... decorators do not support test functions with variadic parameters."
+            )
         names.append(name)
 
     return names
 
 
 class with_dataset:
-
     _dataset: Dataset
     _parameter_names: list[str] | None
 
@@ -132,7 +139,9 @@ class with_dataset:
         selected_format = self._dataset.dataset_format
         if selected_format is None:
             if csv_exists and json_exists:
-                raise RuntimeError(f"Cannot auto-detect the format of the test dataset: {str(rel)} because both a JSON and CSV file exist.")
+                raise RuntimeError(
+                    f"Cannot auto-detect the format of the test dataset: {str(rel)} because both a JSON and CSV file exist."
+                )
             if csv_exists:
                 selected_format = DatasetFormat.CSV
             if json_exists:
@@ -140,27 +149,33 @@ class with_dataset:
 
         if selected_format == DatasetFormat.CSV:
             dataset = get_test_dataset_csv(csv_ending, self._dataset.entry_model)
-        elif  selected_format == DatasetFormat.JSON:
+        elif selected_format == DatasetFormat.JSON:
             dataset = get_test_dataset_json(json_ending, self._dataset.entry_model)
         else:
-            raise RuntimeError(f"There is no corresponding dataset at: .../{str(rel)} with CSV or JSON ending.")
+            raise RuntimeError(
+                f"There is no corresponding dataset at: .../{str(rel)} with CSV or JSON ending."
+            )
 
         if self._parameter_names is None:
             raise RuntimeError("Could not resolve parameter names.")
         if self._dataset.entry_model is None:
             entries = [tuple(obj[pname] for pname in self._parameter_names) for obj in dataset]
         else:
-            entries = [tuple(getattr(obj, pname) for pname in self._parameter_names) for obj in dataset]
+            entries = [
+                tuple(getattr(obj, pname) for pname in self._parameter_names) for obj in dataset
+            ]
         return entries
 
 
 class with_custom:
-
     _entries: list[tuple | Any]
     _parameter_names: list[str] | None
 
-    def __init__(self, entries: Iterable[tuple] | list[Any] | None = None,
-                 parameter_names: Iterable[str] | str | None = None):
+    def __init__(
+        self,
+        entries: Iterable[tuple] | list[Any] | None = None,
+        parameter_names: Iterable[str] | str | None = None,
+    ):
         """
         Initializes a with_dataset decorator.
 
