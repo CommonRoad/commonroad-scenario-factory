@@ -9,7 +9,7 @@
     "csv_file": "single_entry_regions.csv",
     "expected_regions": [
       {
-        "coords": "40.4184,-3.6667",
+        "coordinates": "40.4184,-3.6667",
         "region_name": "retiro",
         "country_code": "ESP"
       }
