@@ -3,10 +3,9 @@ import json
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Iterable, Any
+from typing import Any, Iterable
 
 import pydantic
-
 
 
 class DatasetFormat(Enum):
@@ -20,8 +19,12 @@ class Dataset:
     entry_model: type | None
     dataset_format: DatasetFormat | None
 
-    def __init__(self, dataset_name: Iterable[str] | None = None,
-                 entry_model: type | None = None, dataset_format: DatasetFormat | None = None):
+    def __init__(
+        self,
+        dataset_name: Iterable[str] | None = None,
+        entry_model: type | None = None,
+        dataset_format: DatasetFormat | None = None,
+    ):
         """
         Initializes a test dataset.
 
