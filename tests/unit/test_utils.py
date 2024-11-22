@@ -4,12 +4,12 @@ from commonroad.scenario.state import CustomState, ExtendedPMState, InitialState
 
 from scenario_factory.builder import ScenarioBuilder
 from scenario_factory.utils import (
+    align_state_list_to_time_step,
     align_state_to_time_step,
     convert_state_to_state,
     copy_scenario,
     get_full_state_list_of_obstacle,
 )
-from scenario_factory.utils._align import align_state_list_to_time_step
 from tests.helpers import create_test_obstacle_with_trajectory
 
 

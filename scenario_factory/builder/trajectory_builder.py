@@ -6,7 +6,7 @@ from commonroad.scenario.trajectory import Trajectory
 from typing_extensions import Self, Unpack
 
 from scenario_factory.builder.core import BuilderCore
-from scenario_factory.utils._align import align_trajectory_to_time_step
+from scenario_factory.utils import align_trajectory_to_time_step
 
 
 class _StateArguments(TypedDict, total=False):

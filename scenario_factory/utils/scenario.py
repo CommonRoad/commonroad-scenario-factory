@@ -1,5 +1,5 @@
 import copy
-from typing import Iterator, Tuple
+from typing import Iterator, List, Tuple
 
 from commonroad.common.util import Interval
 from commonroad.scenario.lanelet import LaneletNetwork
@@ -9,11 +9,11 @@ from commonroad.scenario.scenario import Scenario
 
 def get_scenario_final_time_step(scenario: Scenario) -> int:
     """
-    Determines the total length of a scenario in time steps.
+    Determines the maximum time step in a scenario. This is usefull, to determine the length of a scenario.
 
     :param scenario: The scenario to analyze.
 
-    :return: The total number of time steps in the scenario.
+    :return: The final time step in the scenario, or 0 if no obstacles are in the scenario/
     """
     max_time_step = 0
     for dynamic_obstacle in scenario.dynamic_obstacles:
@@ -30,10 +30,20 @@ def get_scenario_final_time_step(scenario: Scenario) -> int:
 
 
 def get_scenario_start_time_step(scenario: Scenario) -> int:
-    min_time_step = 0
+    """
+    Determines the minimum time step in a scenario.
 
-    for obstacle in scenario.dynamic_obstacles:
-        min_time_step = min(min_time_step, obstacle.initial_state.time_step)
+    :param scenario: The scenario to analyze.
+
+    :return: The first time step in the scenario, or 0 if no obstacles are in the scenario.
+    """
+    time_steps = [
+        dynamic_obstacle.initial_state.time_step for dynamic_obstacle in scenario.dynamic_obstacles
+    ]
+    if len(time_steps) == 0:
+        return 0
+
+    min_time_step = min(time_steps)
 
     if isinstance(min_time_step, Interval):
         return int(min_time_step.start)
@@ -109,6 +119,10 @@ def copy_scenario(
     return new_scenario
 
 
+def get_dynamic_obstacle_ids_in_scenario(scenario: Scenario) -> List[int]:
+    return [dynamic_obstacle.obstacle_id for dynamic_obstacle in scenario.dynamic_obstacles]
+
+
 def iterate_zipped_dynamic_obstacles_from_scenarios(
     *scenarios: Scenario,
 ) -> Iterator[Tuple[DynamicObstacle, ...]]:
@@ -130,20 +144,30 @@ def iterate_zipped_dynamic_obstacles_from_scenarios(
     """
     # Simply use the first scenario as the "base" scenario. This way, it is implicitly assume that
     # all dynamic obstacles from this "base" scenario are also in the other scenarios.
+
     base_scenario = scenarios[0]
-    for dynamic_obstacle in base_scenario.dynamic_obstacles:
-        all_obstacles = [dynamic_obstacle]
-        for other_scenario in scenarios[1:]:
-            other_dynamic_obstacle = other_scenario.obstacle_by_id(dynamic_obstacle.obstacle_id)
-            if other_dynamic_obstacle is None:
+    common_obstacle_ids = set(get_dynamic_obstacle_ids_in_scenario(base_scenario))
+    for scenario in scenarios[1:]:
+        common_obstacle_ids.intersection_update(get_dynamic_obstacle_ids_in_scenario(scenario))
+
+    if len(common_obstacle_ids) == 0:
+        raise RuntimeError(
+            f"Cannot zip obstacles from the scenarios {', '.join([str(scenario.scenario_id) for scenario in scenarios])}: The scenarios do not have a single obstacle in common!"
+        )
+
+    for dynamic_obstacle_id in common_obstacle_ids:
+        all_obstacles = []
+        for scenario in scenarios:
+            dynamic_obstacle = scenario.obstacle_by_id(dynamic_obstacle_id)
+            if dynamic_obstacle is None:
                 raise RuntimeError(
-                    f"Cannot zip obstacles from scenario {other_scenario.scenario_id} with base scenario {base_scenario.scenario_id}: The obstacle {dynamic_obstacle.obstacle_id} from the base scenario is not part of the other scenario!"
+                    f"Cannot zip obstacles from scenario {scenario.scenario_id}: The obstacle {dynamic_obstacle_id} is not part of the scenario, but it was determined to be there. This is a bug!"
                 )
 
-            if not isinstance(other_dynamic_obstacle, DynamicObstacle):
+            if not isinstance(dynamic_obstacle, DynamicObstacle):
                 raise RuntimeError(
-                    f"Cannot zip obstacles from scenario {other_scenario.scenario_id} with base scenario {base_scenario.scenario_id}: The obstacle {dynamic_obstacle.obstacle_id} is part of the other scenario, but is not a dynamic obstacle!"
+                    f"Cannot zip obstacles from scenario {scenario.scenario_id}: The obstacle {dynamic_obstacle.obstacle_id} is part of the scenario, but is not a dynamic obstacle!"
                 )
 
-            all_obstacles.append(other_dynamic_obstacle)
+            all_obstacles.append(dynamic_obstacle)
         yield tuple(all_obstacles)

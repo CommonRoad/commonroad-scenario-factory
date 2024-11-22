@@ -17,7 +17,7 @@ from scenario_factory.scenario_container import ReferenceScenario, ScenarioConta
 from scenario_factory.simulation.config import SimulationConfig
 from scenario_factory.simulation.ots import simulate_commonroad_scenario_with_ots
 from scenario_factory.simulation.sumo import simulate_commonroad_scenario_with_sumo
-from scenario_factory.utils._scenario import copy_scenario
+from scenario_factory.utils import copy_scenario
 
 _LOGGER = logging.getLogger(__name__)
 

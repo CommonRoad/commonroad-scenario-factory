@@ -6,7 +6,7 @@ from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import Trajectory
 
-from scenario_factory.utils._types import WithTimeStep
+from scenario_factory.utils.types import WithTimeStep
 
 
 def align_state_to_time_step(state: WithTimeStep, time_step: int) -> None:

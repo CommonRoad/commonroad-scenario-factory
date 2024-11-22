@@ -11,10 +11,10 @@ from crots.abstractions.abstraction_level import AbstractionLevel
 
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 from scenario_factory.utils import (
+    copy_scenario,
     crop_trajectory_to_time_frame,
     get_scenario_final_time_step,
 )
-from scenario_factory.utils._scenario import copy_scenario
 
 _LOGGER = logging.getLogger(__name__)
 

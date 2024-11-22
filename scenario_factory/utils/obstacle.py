@@ -15,8 +15,8 @@ from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.state import CustomState, InitialState, KSState, State, TraceState
 from commonroad.scenario.trajectory import Trajectory
 
-from scenario_factory.utils._crop import crop_trajectory_to_time_frame
-from scenario_factory.utils._types import convert_state_to_state, convert_state_to_state_type
+from scenario_factory.utils.crop import crop_trajectory_to_time_frame
+from scenario_factory.utils.types import convert_state_to_state, convert_state_to_state_type
 
 
 def get_full_state_list_of_obstacle(

@@ -7,7 +7,7 @@ import numpy as np
 from commonroad.scenario.lanelet import Lanelet
 from commonroad.scenario.scenario import Scenario
 
-from scenario_factory.utils._scenario import (
+from scenario_factory.utils import (
     get_scenario_final_time_step,
     get_scenario_start_time_step,
 )

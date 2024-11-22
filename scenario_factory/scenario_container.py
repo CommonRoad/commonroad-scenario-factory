@@ -490,27 +490,25 @@ def write_general_scenario_metrics_of_scenario_containers_to_csv(
 def write_waymo_metrics_of_scenario_containers_to_csv(
     scenario_containers: Iterable[ScenarioContainer], csv_file_path: Path
 ) -> None:
-    assert all(
-        scenario_container.has_attachment(WaymoMetric) for scenario_container in scenario_containers
-    )
-
     formatted_data = []
     for scenario_container in scenario_containers:
         waymo_metrics = scenario_container.get_attachment(WaymoMetric)
+        if waymo_metrics is None:
+            raise RuntimeError()
         formatted_data.append(
             {
                 "scenario_id": str(scenario_container.scenario.scenario_id),
-                "ade3": waymo_metrics.ade3,  # type: ignore
-                "ade5": waymo_metrics.ade5,  # type: ignore
-                "ade8": waymo_metrics.ade8,  # type: ignore
-                "fde3": waymo_metrics.fde3,  # type: ignore
-                "fde5": waymo_metrics.fde5,  # type: ignore
-                "fde8": waymo_metrics.fde8,  # type: ignore
-                "mr3": waymo_metrics.mr3,  # type: ignore
-                "mr5": waymo_metrics.mr5,  # type: ignore
-                "mr8": waymo_metrics.mr8,  # type: ignore
-                "rmse_mean": waymo_metrics.rmse_mean,  # type: ignore
-                "rmse_stdev": waymo_metrics.rmse_stdev,  # type: ignore
+                "ade3": waymo_metrics.ade3,
+                "ade5": waymo_metrics.ade5,
+                "ade8": waymo_metrics.ade8,
+                "fde3": waymo_metrics.fde3,
+                "fde5": waymo_metrics.fde5,
+                "fde8": waymo_metrics.fde8,
+                "mr3": waymo_metrics.mr3,
+                "mr5": waymo_metrics.mr5,
+                "mr8": waymo_metrics.mr8,
+                "rmse_mean": waymo_metrics.rmse_mean,
+                "rmse_stdev": waymo_metrics.rmse_stdev,
             }
         )
 

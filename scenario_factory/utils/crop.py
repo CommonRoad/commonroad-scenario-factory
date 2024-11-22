@@ -12,8 +12,8 @@ from commonroad.scenario.state import (
 )
 from commonroad.scenario.trajectory import Trajectory
 
-from scenario_factory.utils._scenario import copy_scenario
-from scenario_factory.utils._types import WithTimeStep, convert_state_to_state_type
+from scenario_factory.utils.scenario import copy_scenario
+from scenario_factory.utils.types import WithTimeStep, convert_state_to_state_type
 
 
 def crop_state_list_to_time_frame(

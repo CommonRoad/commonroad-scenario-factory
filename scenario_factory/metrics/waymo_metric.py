@@ -9,12 +9,12 @@ import numpy as np
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
-from commonroad.scenario.state import State
+from commonroad.scenario.state import State, TraceState
 
-from scenario_factory.utils._scenario import iterate_zipped_dynamic_obstacles_from_scenarios
-from scenario_factory.utils._types import (
-    WithDiscreteVelocity,
+from scenario_factory.utils import (
+    get_dynamic_obstacle_ids_in_scenario,
     is_state_with_position,
+    iterate_zipped_dynamic_obstacles_from_scenarios,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,6 +53,18 @@ def compute_waymo_metric(scenario: Scenario, reference_scenario: Scenario) -> Wa
     """
     assert scenario.dt == reference_scenario.dt
 
+    # To compute waymo metrics, there needs to be at least some overlap between the obstacles in the scenarios.
+    # Espacially, it is important that the reference scenario contains all obstacles that are also in the scenario.
+    # The other way around is not so important, because it is possible that due to some cutting
+    # after simulation some obstacles are missing from the scenario.
+    dynamic_obstacle_ids_in_reference = set(
+        get_dynamic_obstacle_ids_in_scenario(reference_scenario)
+    )
+    dynamic_obstacle_ids_in_scenario = set(get_dynamic_obstacle_ids_in_scenario(scenario))
+    if not dynamic_obstacle_ids_in_scenario.issubset(dynamic_obstacle_ids_in_reference):
+        raise RuntimeError(
+            f"Cannot compute waymo metrics for scenario {scenario.scenario_id}: with reference scenario {reference_scenario.scenario_id}: The obstacles {dynamic_obstacle_ids_in_scenario.difference(dynamic_obstacle_ids_in_reference)} are in the scenario, but not in the reference scenario! This is usually the case, if you tried to compute wyamo metrics for a scenario after simulation but the simulation mode does not preserve obstacle IDs."
+        )
     measurment_times = [3, 5, 8]
 
     average_displacement_errors: Dict[int, List[float]] = defaultdict(list)
@@ -60,8 +72,8 @@ def compute_waymo_metric(scenario: Scenario, reference_scenario: Scenario) -> Wa
     miss_rates: Dict[int, List[float]] = defaultdict(list)
     root_mean_squared_errors: List[float] = []
 
-    for dynamic_obstacle, dynamic_obstacle_ref in iterate_zipped_dynamic_obstacles_from_scenarios(
-        scenario, reference_scenario
+    for dynamic_obstacle_ref, dynamic_obstacle in iterate_zipped_dynamic_obstacles_from_scenarios(
+        reference_scenario, scenario
     ):
         displacement_vector = compute_displacment_vector_between_two_dynamic_obstacles(
             dynamic_obstacle, dynamic_obstacle_ref
@@ -247,7 +259,7 @@ _MISS_RATE_BASE_THRESHOLDS = {3: (2, 1), 5: (3.6, 1.8), 8: (6, 3)}
 
 
 def _get_waymo_miss_rate_thresholds_for_state_and_time(
-    time_in_sec: int, state: WithDiscreteVelocity
+    time_in_sec: int, state: TraceState
 ) -> Tuple[float, float]:
     base_thresholds = _MISS_RATE_BASE_THRESHOLDS.get(time_in_sec)
     if base_thresholds is None:
