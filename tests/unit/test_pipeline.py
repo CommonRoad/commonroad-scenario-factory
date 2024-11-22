@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from scenario_factory.pipeline import Pipeline, PipelineContext
-from tests.utility import (
+from tests.helpers import (
     IsEvenFilter,
     pipeline_simple_filter,
     pipeline_simple_fold,

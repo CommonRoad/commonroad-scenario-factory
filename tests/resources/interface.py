@@ -1,7 +1,5 @@
-import csv
 import shutil
 from enum import Enum, auto
-from json import load
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -37,40 +35,6 @@ class ResourceType(Enum):
             return Path(__file__).parent / "csv_files"
         else:
             raise ValueError(f"Invalid resource type {self}")
-
-
-def get_test_dataset_csv(name: str, skip_first: bool = True) -> list:
-    """
-    Accesses a dataset from ./test_datasets/<name>.csv and returns it as a list of entries.
-
-    :param name: The name of the dataset.
-    :param skip_first: Determines whether the first (label) line of the csv file should be skipped.
-    :raises NameError: Invalid dataset name.
-    """
-    target = Path(__file__).parent / f"test_datasets/{name}.csv"
-    if not target.exists():
-        raise NameError("")
-    with open(target, "rt") as file:
-        reader = csv.reader(file)
-        if skip_first:
-            next(reader)
-        data = list(reader)
-    return data
-
-
-def get_test_dataset_json(name: str) -> list:
-    """
-    Accesses a dataset from ./test_datasets/<name>.json and returns it as a list of entries.
-
-    :param name: The name of the dataset.
-    :raises NameError: Invalid dataset name.
-    """
-    target = Path(__file__).parent / f"test_datasets/{name}.json"
-    if not target.exists():
-        raise NameError("")
-    with open(target, "rt") as file:
-        data = load(file)
-    return data
 
 
 class TmpResourceEntry:
@@ -149,10 +113,3 @@ def load_cr_lanelet_network_from_file(path: Path) -> LaneletNetwork:
     reader = CommonRoadFileReader(path, FileFormat.XML)
     network = reader.open_lanelet_network()
     return network
-
-
-if __name__ == "__main__":
-    network = load_cr_lanelet_network_from_file(
-        ResourceType.CR_LANELET_NETWORK.get_folder() / "single_intersection.xml"
-    )
-    pass

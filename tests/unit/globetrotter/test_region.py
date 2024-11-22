@@ -1,87 +1,148 @@
-import os
-
 import pytest
+from pydantic import field_validator
 
 from scenario_factory.globetrotter import BoundingBox, load_regions_from_csv
 from scenario_factory.globetrotter.region import Coordinates, RegionMetadata
-from tests.resources.interface import ResourceType, get_test_dataset_csv, get_test_dataset_json
+from tests.automation.datasets import Dataset, DatasetFormat
+from tests.automation.marks import with_custom, with_dataset
+from tests.automation.validation import (
+    LabeledCase,
+    decorate_iter,
+    decorate_opt,
+    model_val_bool,
+    model_val_coordinates,
+    model_val_float,
+    model_val_region_metadata,
+)
+from tests.resources.interface import ResourceType
 
 
-def get_coordinate_parsing_test_dataset():
-    return [
-        (entry[0], entry[1], entry[2].lower() == "true", float(entry[3]), float(entry[4]))
-        for entry in get_test_dataset_csv(
-            os.path.join("globetrotter", "region", "coordinate_parsing")
-        )
-    ]
+class CoordinateParsingTestCase(LabeledCase):
+    string: str
+    valid: bool
+    lat: float
+    lon: float
+
+    @field_validator("valid", mode="before")
+    @classmethod
+    def parse_valid(cls, v):
+        return model_val_bool(v)
+
+    @field_validator("lat", mode="before")
+    @classmethod
+    def parse_lat(cls, v):
+        return model_val_float(v)
+
+    @field_validator("lon", mode="before")
+    @classmethod
+    def parse_lon(cls, v):
+        return model_val_float(v)
 
 
-def get_region_metadata_test_dataset():
-    return [
-        (entry[0], Coordinates.from_str(entry[1]), entry[2], entry[3])
-        for entry in get_test_dataset_csv(os.path.join("globetrotter", "region", "region_metadata"))
-    ]
+class RegionMetadataTestCase(LabeledCase):
+    coordinates: Coordinates
+    country_code: str
+    region_name: str
+
+    @field_validator("coordinates", mode="before")
+    @classmethod
+    def parse_coordinates(cls, v):
+        return model_val_coordinates(v)
 
 
-def get_bounding_box_from_coords_test_dataset():
-    return [
-        (entry[0], Coordinates.from_str(entry[1]), float(entry[2]))
-        for entry in get_test_dataset_csv(
-            os.path.join("globetrotter", "region", "bounding_box_from_coords")
-        )
-    ]
-
-
-def get_bounding_box_to_string_test_dataset():
-    return [
-        (entry[0], float(entry[1]), float(entry[2]), float(entry[3]), float(entry[4]), entry[5])
-        for entry in get_test_dataset_csv(
-            os.path.join("globetrotter", "region", "bounding_box_to_string")
-        )
-    ]
-
-
-class RegionsFromCsvTestEntry:
+class BoundingBoxToStringTestCase(LabeledCase):
     label: str
+    west: float
+    south: float
+    east: float
+    north: float
+    expected_string: str
+
+    @field_validator("west", mode="before")
+    @classmethod
+    def parse_west(cls, v):
+        return model_val_float(v)
+
+    @field_validator("south", mode="before")
+    @classmethod
+    def parse_south(cls, v):
+        return model_val_float(v)
+
+    @field_validator("east", mode="before")
+    @classmethod
+    def parse_east(cls, v):
+        return model_val_float(v)
+
+    @field_validator("north", mode="before")
+    @classmethod
+    def parse_north(cls, v):
+        return model_val_float(v)
+
+
+class BoundingBoxFromCoordinatesTestCase(LabeledCase):
+    coordinates: Coordinates
+    radius: float
+    expected_west: float
+    expected_south: float
+    expected_east: float
+    expected_north: float
+
+    @field_validator("coordinates", mode="before")
+    @classmethod
+    def parse_coordinates(cls, v):
+        return model_val_coordinates(v)
+
+    @field_validator("expected_west", mode="before")
+    @classmethod
+    def parse_expected_west(cls, v):
+        return model_val_float(v)
+
+    @field_validator("expected_south", mode="before")
+    @classmethod
+    def parse_expected_south(cls, v):
+        return model_val_float(v)
+
+    @field_validator("expected_east", mode="before")
+    @classmethod
+    def parse_expected_east(cls, v):
+        return model_val_float(v)
+
+    @field_validator("expected_north", mode="before")
+    @classmethod
+    def parse_expected_north(cls, v):
+        return model_val_float(v)
+
+
+class RegionsFromCsvTestCase(LabeledCase):
     csv_file: str
     expected_regions: list[RegionMetadata] | None
 
-    def __init__(self, serial):
-        self.label = serial["label"]
-        self.csv_file = serial["csv_file"]
-        serial_regions = serial["expected_regions"]
-        if serial_regions is None:
-            self.expected_regions = None
-        else:
-            self.expected_regions = [
-                RegionMetadata(
-                    coordinates=Coordinates.from_str(serial_region["coords"]),
-                    country_code=serial_region["country_code"],
-                    region_name=serial_region["region_name"],
-                    geoname_id=0,
-                )
-                for serial_region in serial_regions
-            ]
+    @field_validator("expected_regions", mode="before")
+    @classmethod
+    def parse_expected_regions(cls, v):
+        return decorate_opt(decorate_iter(model_val_region_metadata))(v)
 
 
-def get_regions_from_csv_test_dataset():
-    return [
-        RegionsFromCsvTestEntry(serial)
-        for serial in get_test_dataset_json(
-            os.path.join("globetrotter", "region", "regions_from_csv")
-        )
-    ]
-
-
-_COORDINATE_PARSING_TEST_DATASET = get_coordinate_parsing_test_dataset()
-_REGION_METADATA_TEST_DATASET = get_region_metadata_test_dataset()
-_BOUNDING_BOX_FROM_COORDS_TEST_DATASET = get_bounding_box_from_coords_test_dataset()
-_BOUNDING_BOX_TO_STRING_TEST_DATASET = get_bounding_box_to_string_test_dataset()
-_REGIONS_FROM_CSV_TEST_DATASET = get_regions_from_csv_test_dataset()
+_COORDINATE_PARSING_TEST_DATASET = Dataset(
+    ["unit", "globetrotter", "region", "coordinate_parsing"],
+    entry_model=CoordinateParsingTestCase,
+    dataset_format=DatasetFormat.CSV,
+)
+_REGION_METADATA_TEST_DATASET = Dataset(
+    ["unit", "globetrotter", "region", "region_metadata"],
+    entry_model=RegionMetadataTestCase,
+    dataset_format=DatasetFormat.CSV,
+)
+_BOUNDING_BOX_TO_STRING_TEST_DATASET = Dataset(
+    ["unit", "globetrotter", "region", "bounding_box_to_string"],
+    entry_model=BoundingBoxToStringTestCase,
+    dataset_format=DatasetFormat.CSV,
+)
 
 
 class TestCoordinates:
-    @pytest.mark.parametrize("label, string, valid, lat, lon", _COORDINATE_PARSING_TEST_DATASET)
+    @with_dataset(_COORDINATE_PARSING_TEST_DATASET)
+    @with_custom([("showcase", "20.0,20.0", True, 20.0, 20.0)])
     def test_parse_from_string(self, label, string, valid, lat, lon):
         if valid:
             coords = Coordinates.from_str(string)
@@ -95,15 +156,15 @@ class TestCoordinates:
             except pytest.fail.Exception:
                 pytest.fail(f"Expected error parsing entry {label} from string.")
 
-    @pytest.mark.parametrize("label, string, valid, lat, lon", _COORDINATE_PARSING_TEST_DATASET)
-    def test_parse_from_tuple(self, label, string, valid, lat, lon):
+    @with_dataset(_COORDINATE_PARSING_TEST_DATASET)
+    def test_parse_from_tuple(self, label, valid, lat, lon):
         if not valid:
             return
         coords = Coordinates.from_tuple((lat, lon))
         assert coords.lat == lat and coords.lon == lon, f"Mismatch parsing entry {label} from tuple"
 
-    @pytest.mark.parametrize("label, string, valid, lat, lon", _COORDINATE_PARSING_TEST_DATASET)
-    def test_string_serialization_and_parsing_is_idempotent(self, label, string, valid, lat, lon):
+    @with_dataset(_COORDINATE_PARSING_TEST_DATASET)
+    def test_string_serialization_and_parsing_is_idempotent(self, label, valid, lat, lon):
         if not valid:
             return
         coords = Coordinates(lat=lat, lon=lon)
@@ -112,8 +173,8 @@ class TestCoordinates:
             coords.lat == comp.lat and coords.lon == comp.lon
         ), f"Expected indempotence for entry {label}"
 
-    @pytest.mark.parametrize("label, string, valid, lat, lon", _COORDINATE_PARSING_TEST_DATASET)
-    def test_tuple_serialization_and_parsing_is_idempotent(self, label, string, valid, lat, lon):
+    @with_dataset(_COORDINATE_PARSING_TEST_DATASET)
+    def test_tuple_serialization_and_parsing_is_idempotent(self, label, valid, lat, lon):
         if not valid:
             return
         coords = Coordinates(lat=lat, lon=lon)
@@ -124,10 +185,8 @@ class TestCoordinates:
 
 
 class TestRegionMetadata:
-    @pytest.mark.parametrize(
-        "label, coordinates, country_code, region_name", _REGION_METADATA_TEST_DATASET
-    )
-    def test_uses_provided_metadata(self, label, coordinates, country_code, region_name):
+    @with_dataset(_REGION_METADATA_TEST_DATASET)
+    def test_uses_provided_metadata(self, label, coordinates):
         # For all coordinates check whether country code and region name are set to the provided values.
         region = RegionMetadata.from_coordinates(
             coordinates, country_code="DEU", region_name="Somewhere"
@@ -139,9 +198,7 @@ class TestRegionMetadata:
             and region.region_name == "Somewhere"
         ), f"Construction using provided metadata failed for entry {label}."
 
-    @pytest.mark.parametrize(
-        "label, coordinates, country_code, region_name", _REGION_METADATA_TEST_DATASET
-    )
+    @with_dataset(_REGION_METADATA_TEST_DATASET)
     def test_generates_expected_metadata(self, label, coordinates, country_code, region_name):
         region = RegionMetadata.from_coordinates(coordinates)
         assert (
@@ -151,32 +208,31 @@ class TestRegionMetadata:
 
 
 class TestBoundingBox:
-    @pytest.mark.parametrize(
-        "label, coords, radius, expected_west, expected_south, expected_east, expected_north",
-        _BOUNDING_BOX_FROM_COORDS_TEST_DATASET,
+    @with_dataset(
+        Dataset(
+            dataset_name=["unit", "globetrotter", "region", "bounding_box_from_coordinates"],
+            entry_model=BoundingBoxFromCoordinatesTestCase,
+            dataset_format=DatasetFormat.CSV,
+        )
     )
     def test_from_coordinates(
         self,
         label: str,
-        coords: Coordinates,
+        coordinates: Coordinates,
         radius: float,
         expected_west: float,
         expected_south: float,
         expected_east: float,
         expected_north: float,
     ):
-        bbox = BoundingBox.from_coordinates(coords, radius)
+        bbox = BoundingBox.from_coordinates(coordinates, radius)
         assert expected_west == bbox.west, f"Expected correct west bound for entry: {label}."
         assert expected_south == bbox.south, f"Expected correct south bound for entry: {label}."
         assert expected_east == bbox.east, f"Expected correct east bound for entry: {label}."
         assert expected_north == bbox.north, f"Expected correct north bound for entry: {label}."
 
-    @pytest.mark.parametrize(
-        "label, west, south, east, north, expected_string", _BOUNDING_BOX_TO_STRING_TEST_DATASET
-    )
-    def test_constructor(
-        self, label: str, west: float, south: float, east: float, north: float, expected_string: str
-    ):
+    @with_dataset(_BOUNDING_BOX_TO_STRING_TEST_DATASET)
+    def test_constructor(self, label: str, west: float, south: float, east: float, north: float):
         # TODO: Create test examples
         bbox = BoundingBox(west, south, east, north)
         assert west == bbox.west, f"Expected correct west bound for entry: {label}."
@@ -184,9 +240,7 @@ class TestBoundingBox:
         assert east == bbox.east, f"Expected correct east bound for entry: {label}."
         assert north == bbox.north, f"Expected correct north bound for entry: {label}."
 
-    @pytest.mark.parametrize(
-        "label, west, south, east, north, expected_string", _BOUNDING_BOX_TO_STRING_TEST_DATASET
-    )
+    @with_dataset(_BOUNDING_BOX_TO_STRING_TEST_DATASET)
     def test_to_string(
         self, label: str, west: float, south: float, east: float, north: float, expected_string: str
     ):
@@ -197,29 +251,35 @@ class TestBoundingBox:
 
 
 class TestGlobals:
-    @pytest.mark.parametrize("entry", _REGIONS_FROM_CSV_TEST_DATASET)
-    def test_load_regions_from_csv(self, entry: RegionsFromCsvTestEntry):
-        csv_path = ResourceType.CSV_FILES.get_folder() / entry.csv_file
-        if entry.expected_regions is None:
+    @with_dataset(
+        Dataset(
+            dataset_name=["unit", "globetrotter", "region", "regions_from_csv"],
+            entry_model=RegionsFromCsvTestCase,
+            dataset_format=DatasetFormat.JSON,
+        )
+    )
+    def test_load_regions_from_csv(
+        self, label: str, csv_file: str, expected_regions: list[RegionMetadata] | None
+    ):
+        csv_path = ResourceType.CSV_FILES.get_folder() / csv_file
+        if expected_regions is None:
             try:
-                v = load_regions_from_csv(csv_path)
+                load_regions_from_csv(csv_path)
             except KeyError:
                 pass
             else:
-                assert False, f"Expected load_regions_from_csv to fail for entry: {entry.label}."
+                assert False, f"Expected load_regions_from_csv to fail for entry: {label}."
         else:
             idx = 0
             for region in load_regions_from_csv(csv_path):
-                expected_region = entry.expected_regions[idx]
+                expected_region = expected_regions[idx]
                 idx += 1
                 assert region.coordinates == expected_region.coordinates, (
-                    f"Expected correct region coordinates at "
-                    f"index {idx} for entry {entry.label}."
+                    f"Expected correct region coordinates at " f"index {idx} for entry {label}."
                 )
                 assert region.country_code == expected_region.country_code, (
-                    f"Expected correct region country code at "
-                    f"index {idx} for entry {entry.label}."
+                    f"Expected correct region country code at " f"index {idx} for entry {label}."
                 )
                 assert region.region_name == expected_region.region_name, (
-                    f"Expected correct region name at " f"index {idx} for entry {entry.label}."
+                    f"Expected correct region name at " f"index {idx} for entry {label}."
                 )
