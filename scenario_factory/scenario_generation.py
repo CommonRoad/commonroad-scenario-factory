@@ -7,15 +7,11 @@ __all__ = [
 import copy
 import logging
 import math
-from typing import List, Optional, Set, Tuple, Type
+from typing import List, Optional, Set, Tuple
 
 import numpy as np
 from commonroad.common.solution import (
-    CostFunction,
-    KSState,
     PlanningProblemSolution,
-    VehicleModel,
-    VehicleType,
 )
 from commonroad.common.util import Interval
 from commonroad.geometry.shape import Rectangle, Shape
@@ -24,8 +20,7 @@ from commonroad.planning.planning_problem import PlanningProblem, PlanningProble
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.scenario import DynamicObstacle, Scenario
-from commonroad.scenario.state import InitialState, PMState, State, TraceState
-from commonroad.scenario.trajectory import Trajectory
+from commonroad.scenario.state import InitialState, PMState, TraceState
 
 from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
 from scenario_factory.scenario_checker import get_colliding_dynamic_obstacles_in_scenario
@@ -34,8 +29,8 @@ from scenario_factory.utils import (
     align_dynamic_obstacle_to_time_step,
     align_scenario_to_time_step,
     copy_scenario,
+    create_planning_problem_solution_for_ego_vehicle,
     crop_dynamic_obstacle_to_time_frame,
-    get_full_state_list_of_obstacle,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -173,45 +168,6 @@ def _create_planning_problem_for_ego_vehicle(
     return planning_problem
 
 
-def _create_trajectory_for_planning_problem_solution(
-    ego_vehicle: DynamicObstacle, target_state_type: Type[State]
-) -> Trajectory:
-    """
-    Create a trajectory of the :param:`ego_vehicle`, that can be used in a planning problem solution.
-    """
-    state_list = get_full_state_list_of_obstacle(ego_vehicle, target_state_type)
-
-    trajectory = Trajectory(
-        initial_time_step=state_list[0].time_step,
-        state_list=state_list,
-    )
-    return trajectory
-
-
-def _create_planning_problem_solution_for_ego_vehicle(
-    ego_vehicle: DynamicObstacle, planning_problem: PlanningProblem
-) -> PlanningProblemSolution:
-    """
-    Create a planning problem solution for the :param:`planning_problem` with the trajectory of the :param:`ego_vehicle`. The solution always has the KS vehicle model.
-    """
-    # TODO: Enable different solution vehicle models, instead of only KS.
-    # It would be better, to select the vehicle model based on the trajectory state types.
-    # Currently, this is not possible easily because their are some discrepencies between
-    # the states used in trajectories and the state types for solutions.
-    # See https://gitlab.lrz.de/cps/commonroad/commonroad-io/-/issues/131 for more infos.
-    trajectory = _create_trajectory_for_planning_problem_solution(
-        ego_vehicle, target_state_type=KSState
-    )
-    planning_problem_solution = PlanningProblemSolution(
-        planning_problem_id=planning_problem.planning_problem_id,
-        vehicle_model=VehicleModel.KS,
-        vehicle_type=VehicleType.FORD_ESCORT,
-        cost_function=CostFunction.TR1,
-        trajectory=trajectory,
-    )
-    return planning_problem_solution
-
-
 def create_planning_problem_set_and_solution_for_ego_vehicle(
     scenario: Scenario, ego_vehicle: DynamicObstacle, planning_problem_with_lanelet: bool = True
 ) -> Tuple[PlanningProblemSet, PlanningProblemSolution]:
@@ -228,7 +184,7 @@ def create_planning_problem_set_and_solution_for_ego_vehicle(
         scenario.lanelet_network, ego_vehicle, planning_problem_with_lanelet
     )
     planning_problem_set = PlanningProblemSet([planning_problem])
-    planning_problem_solution = _create_planning_problem_solution_for_ego_vehicle(
+    planning_problem_solution = create_planning_problem_solution_for_ego_vehicle(
         ego_vehicle, planning_problem
     )
     # The planning problem solution is not wrapped in its container object like the planning problem is wrapped in a planning problem set,
@@ -269,7 +225,13 @@ def create_scenario_for_ego_vehicle_maneuver(
         if new_obstacle is not None:
             new_obstacles.append(new_obstacle)
 
-    new_scenario = copy_scenario(scenario, copy_lanelet_network=True)
+    new_scenario = copy_scenario(
+        scenario,
+        copy_dynamic_obstacles=False,
+        copy_static_obstacles=False,
+        copy_environment_obstacles=False,
+        copy_phantom_obstacles=False,
+    )
     new_scenario.add_objects(new_obstacles)
 
     # Make sure that the scenario starts at time step 0, and all obstacles and traffic lights

@@ -129,6 +129,7 @@ def cut_intersection_from_scenario(
     radius = max_distance + intersection_cut_margin
     cut_shape = Circle(radius, center)
 
+    # TODO: Cut static obstacles in circle and include in new scenario
     cut_lanelet_network = LaneletNetwork.create_from_lanelet_network(
         scenario.lanelet_network, cut_shape
     )
@@ -140,7 +141,14 @@ def cut_intersection_from_scenario(
     # Make sure that the center point is the new (0,0) of the scenario
     cut_lanelet_network.translate_rotate(-center, angle=0.0)
 
-    cut_scenario = copy_scenario(scenario)
+    cut_scenario = copy_scenario(
+        scenario,
+        copy_lanelet_network=False,
+        copy_dynamic_obstacles=False,
+        copy_static_obstacles=False,
+        copy_environment_obstacles=False,
+        copy_phantom_obstacles=False,
+    )
     cut_scenario.add_objects(cut_lanelet_network)
 
     if scenario.location is not None:

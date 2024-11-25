@@ -13,6 +13,7 @@ from pathlib import Path
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
 from commonroad.common.solution import CommonRoadSolutionWriter, Solution
 from commonroad.planning.planning_problem import PlanningProblemSet
+from commonroad.scenario.obstacle import DynamicObstacle
 
 from scenario_factory.pipeline import (
     PipelineContext,
@@ -28,7 +29,13 @@ from scenario_factory.tags import (
     find_applicable_tags_for_planning_problem_set,
     find_applicable_tags_for_scenario,
 )
-from scenario_factory.utils import calculate_driven_distance_of_dynamic_obstacle
+from scenario_factory.utils import (
+    calculate_deviation_between_states,
+    calculate_driven_distance_of_dynamic_obstacle,
+    copy_scenario,
+    create_dynamic_obstacle_from_planning_problem_solution,
+    create_planning_problem_solution_for_ego_vehicle,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -154,6 +161,113 @@ def pipeline_remove_colliding_dynamic_obstacles(
             commonroad_scenario.scenario_id,
         )
     return scenario_container
+
+
+@pipeline_map()
+def pipeline_insert_ego_vehicle_solutions_into_scenario(
+    ctx: PipelineContext, scenario_container: ScenarioContainer
+) -> ScenarioContainer:
+    """
+    Insert the ego vehicles from a solution into the scenario as new dynamic obstacles.
+
+    Counterpart of `pipeline_extract_ego_vehicle_from_scenario`.
+
+    :param scenario_container: A scenario container with a planning problem set and solution attachment.
+    :returns: A copy of the scenario in a new scenario container, with the ego vehicle from the solution as dynamic obstacle in the scenario.
+    """
+    planning_problem_set = scenario_container.get_attachment(PlanningProblemSet)
+    if planning_problem_set is None:
+        raise ValueError(
+            "Cannot insert ego vehicle trajectory into scenario: scenario container does not contain a planning problem set, but is required!"
+        )
+
+    solution = scenario_container.get_attachment(Solution)
+    if solution is None:
+        raise ValueError(
+            "Cannot insert ego vehicle trajectory into scenario: scenario container does not contain a solution, but is required!"
+        )
+
+    new_scenario = copy_scenario(
+        scenario_container.scenario,
+    )
+    for planning_problem_solution in solution.planning_problem_solutions:
+        dynamic_obstacle = create_dynamic_obstacle_from_planning_problem_solution(
+            planning_problem_solution
+        )
+
+        planning_problem_id = planning_problem_solution.planning_problem_id
+        if planning_problem_id not in planning_problem_set.planning_problem_dict:
+            planning_problem_ids = [
+                str(planning_problem_id)
+                for planning_problem_id in planning_problem_set.planning_problem_dict
+            ]
+            raise RuntimeError(
+                f"Mismatch between planning problem set and solution: planning problem {planning_problem_id} is not part of the planning problem set. Available planning problems are '{','.join(planning_problem_ids)}'."
+            )
+
+        new_scenario.add_objects(dynamic_obstacle)
+
+    return scenario_container.new_with_attachments(
+        new_scenario,
+    )
+
+
+@pipeline_map()
+def pipeline_extract_ego_vehicle_solutions_from_scenario(
+    ctx: PipelineContext, scenario_container: ScenarioContainer
+) -> ScenarioContainer:
+    """
+    Extract the ego vehicles from a solution from the scenario as new solutions.
+
+    Counterpart of `pipeline_insert_ego_vehicle_from_scenario`.
+
+    :param scenario_container: A scenario container with a planning problem set.
+    :returns: A copy of the scenario in a new scenario container, with the ego vehicle from the solution as dynamic obstacle in the scenario.
+    """
+    planning_problem_set = scenario_container.get_attachment(PlanningProblemSet)
+    if planning_problem_set is None:
+        raise ValueError(
+            "Cannot extract ego vehicle from scenario: scenario container does not contain a planning problem set, but is required!"
+        )
+
+    new_scenario = copy_scenario(
+        scenario_container.scenario,
+    )
+    planning_problem_solutions = []
+    for planning_problem in planning_problem_set.planning_problem_dict.values():
+        # The dynamic obstacles must have the same ID as the planning problem.
+        obstacle = new_scenario.obstacle_by_id(planning_problem.planning_problem_id)
+        if obstacle is None:
+            raise RuntimeError(
+                f"Cannot extract dynamic obstacle for planning problem {planning_problem.planning_problem_id} from scenario {scenario_container.scenario.scenario_id}: No dynamic obstacle with id {planning_problem.planning_problem_id} found!"
+            )
+
+        if not isinstance(obstacle, DynamicObstacle):
+            raise RuntimeError(
+                f"Cannot extract dynamic obstacle for planning problem {planning_problem.planning_problem_id} from scenario {scenario_container.scenario.scenario_id}: Obstacle with id {planning_problem.planning_problem_id} is not a dynamic obstacle but {type(obstacle)}."
+            )
+
+        # Sanity check if the initial states somewhat match
+        state_deviation = calculate_deviation_between_states(
+            planning_problem.initial_state, obstacle.initial_state
+        )
+        state_deviation_threshold = 2.0
+        if state_deviation > state_deviation_threshold:
+            raise RuntimeError(
+                f"Cannot extract dynamic obstacle for planning problem {planning_problem.planning_problem_id} from scenario {scenario_container.scenario}: The initial position of the corresponding dynamic obstacle deviates too much from the planning problem: Deviates by {round(state_deviation, 2)}m, but maximum deviation is {round(state_deviation_threshold, 2)}m!"
+            )
+
+        planning_problem_solution = create_planning_problem_solution_for_ego_vehicle(
+            obstacle, planning_problem
+        )
+        planning_problem_solutions.append(planning_problem_solution)
+        new_scenario.remove_obstacle(obstacle)
+
+    solution = Solution(scenario_container.scenario.scenario_id, planning_problem_solutions)
+
+    return scenario_container.new_with_attachments(
+        new_scenario, solution=solution, planning_problem_set=planning_problem_set
+    )
 
 
 @pipeline_map()

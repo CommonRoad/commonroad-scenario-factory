@@ -1,6 +1,7 @@
 from commonroad.geometry.shape import Rectangle, Shape
-from commonroad.prediction.prediction import Prediction
+from commonroad.prediction.prediction import Prediction, TrajectoryPrediction
 from commonroad.scenario.obstacle import DynamicObstacle, InitialState, ObstacleType
+from commonroad.scenario.trajectory import Trajectory
 
 from scenario_factory.builder.core import BuilderCore
 
@@ -18,9 +19,11 @@ class DynamicObstacleBuilder(BuilderCore[DynamicObstacle]):
 
         self._obstacle_type = ObstacleType.CAR
         self._obstacle_shape = Rectangle(length=3.0, width=2.0)
-        self._initial_state = InitialState()
+        # Important to set time_step=0, because otherwise it might become 0.0 with `fill_with_defaults`...
+        self._initial_state = InitialState(time_step=0)
         self._initial_state.fill_with_defaults()
         self._prediction = None
+        self._trajectory = None
         self._initial_signal_state = None
         self._signal_series = None
 
@@ -79,18 +82,26 @@ class DynamicObstacleBuilder(BuilderCore[DynamicObstacle]):
         self._prediction = prediction
         return self
 
+    def set_trajectory(self, trajectory: Trajectory) -> "DynamicObstacleBuilder":
+        self._trajectory = trajectory
+        return self
+
     def build(self) -> DynamicObstacle:
         """
         Constructs and returns a new `DynamicObstacle` instance based on the builder's current settings.
 
         :return: A `DynamicObstacle` instance with the specified properties.
         """
+        prediction = self._prediction
+        if self._prediction is None and self._trajectory is not None:
+            prediction = TrajectoryPrediction(self._trajectory, self._obstacle_shape)
+
         new_dynamic_obstacle = DynamicObstacle(
             self._dynamic_obstacle_id,
             obstacle_type=self._obstacle_type,
             obstacle_shape=self._obstacle_shape,
             initial_state=self._initial_state,
-            prediction=self._prediction,
+            prediction=prediction,
             initial_signal_state=self._initial_signal_state,
             signal_series=self._signal_series,  # type: ignore
         )

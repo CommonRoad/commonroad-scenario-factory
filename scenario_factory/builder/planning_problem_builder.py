@@ -1,4 +1,5 @@
-from typing import List, Literal, Optional, Tuple
+from collections import defaultdict
+from typing import Dict, List, Literal, Optional
 
 from commonroad.common.util import Interval
 from commonroad.geometry.shape import Rectangle
@@ -6,8 +7,11 @@ from commonroad.planning.goal import GoalRegion
 from commonroad.planning.planning_problem import PlanningProblem, PlanningProblemSet
 from commonroad.scenario.scenario import Lanelet
 from commonroad.scenario.state import InitialState, PMState, TraceState
+from commonroad.scenario.trajectory import Trajectory
+from typing_extensions import Self
 
 from scenario_factory.builder.core import BuilderCore, BuilderIdAllocator
+from scenario_factory.utils import convert_state_to_state_type
 
 
 class PlanningProblemBuilder(BuilderCore[PlanningProblem]):
@@ -22,13 +26,45 @@ class PlanningProblemBuilder(BuilderCore[PlanningProblem]):
 
         self._initial_state: Optional[InitialState] = None
 
-        # Store each goal state with its according goal lanelet.
-        # Note: A goal region could map one goal state to multiple lanelets. This is currently not supported.
-        self._goal_tuples: List[Tuple[TraceState, Lanelet]] = []
+        self._goal_dimensions = (6.0, 3.0)
 
-    def set_start(
-        self, lanelet: Lanelet, align: Literal["start", "end"] = "start"
-    ) -> "PlanningProblemBuilder":
+        self._goal_states: List[TraceState] = []
+        self._goal_states_idx = 0
+        self._goal_states_to_lanelet_ids: Dict[int, List[int]] = defaultdict(list)
+
+    def _add_goal_state(self, goal_state: TraceState, lanelet_id: Optional[int] = None) -> None:
+        if lanelet_id is not None:
+            self._goal_states_to_lanelet_ids[self._goal_states_idx].append(lanelet_id)
+        self._goal_states.append(goal_state)
+        self._goal_states_idx += 1
+
+    def from_trajectory(self, trajectory: Trajectory) -> Self:
+        if self._initial_state is not None:
+            raise RuntimeError(
+                "Cannot populate PlanningProblemBuilder from trajectory: The builder was already populated!"
+            )
+
+        initial_state = trajectory.state_at_time_step(trajectory.initial_time_step)
+        if initial_state is None:
+            raise RuntimeError("The first state of the trajectory is None. This is a bug!")
+
+        self._initial_state = convert_state_to_state_type(initial_state, InitialState)
+
+        final_state = trajectory.final_state
+        goal_state = PMState(
+            time_step=Interval(start=final_state.time_step - 1, end=final_state.time_step),
+            position=Rectangle(
+                self._goal_dimensions[0],
+                self._goal_dimensions[1],
+                center=final_state.position,
+                orientation=final_state.orientation if final_state.orientation is not None else 0,
+            ),
+        )
+        self._add_goal_state(goal_state)
+
+        return self
+
+    def set_start(self, lanelet: Lanelet, align: Literal["start", "end"] = "start") -> Self:
         """
         Define the start lanelet of this planning problem.
 
@@ -54,9 +90,7 @@ class PlanningProblemBuilder(BuilderCore[PlanningProblem]):
             self._initial_state.position = lanelet.center_vertices[-1]
         return self
 
-    def add_goal(
-        self, lanelet: Lanelet, align: Literal["start", "end"] = "end"
-    ) -> "PlanningProblemBuilder":
+    def add_goal(self, lanelet: Lanelet, align: Literal["start", "end"] = "end") -> Self:
         if align != "start" and align != "end":
             raise ValueError(f"Align must be either 'start' or 'end', but got '{align}'")
 
@@ -73,7 +107,7 @@ class PlanningProblemBuilder(BuilderCore[PlanningProblem]):
             position=Rectangle(length=5.0, width=5.0, center=goal_position_center),
         )
 
-        self._goal_tuples.append((goal_state, lanelet))
+        self._add_goal_state(goal_state, lanelet_id=lanelet.lanelet_id)
         return self
 
     def build(self) -> PlanningProblem:
@@ -85,17 +119,12 @@ class PlanningProblemBuilder(BuilderCore[PlanningProblem]):
                 f"Cannot build planning problem {self._planning_problem_id}: No initial state!"
             )
 
-        if len(self._goal_tuples) == 0:
+        if len(self._goal_states) == 0:
             raise ValueError(
                 f"Cannot build planning problem {self._planning_problem_id}: No goal state!"
             )
 
-        goal_states = [goal_tuple[0] for goal_tuple in self._goal_tuples]
-        # Although goal lanelets could theoretically be a multiple lanelets, we assume only one here
-        goal_lanelets = {
-            idx: [goal_tuple[1].lanelet_id] for idx, goal_tuple in enumerate(self._goal_tuples)
-        }
-        goal_region = GoalRegion(goal_states, goal_lanelets)
+        goal_region = GoalRegion(self._goal_states, self._goal_states_to_lanelet_ids)
         return PlanningProblem(self._planning_problem_id, self._initial_state, goal_region)
 
 
@@ -112,12 +141,17 @@ class PlanningProblemSetBuilder(BuilderCore[PlanningProblemSet]):
 
         self._planning_problem_builders: List[PlanningProblemBuilder] = []
 
-    def create_planning_problem(self) -> PlanningProblemBuilder:
+    def create_planning_problem(
+        self, planning_problem_id: Optional[int] = None
+    ) -> PlanningProblemBuilder:
         """
         Create a new `PlanningProblemBuilder` to construct a new `PlanningProblem`.
         If this `PlanningProblemSetBuilder` is built, the new `PlanningProblemBuilder` will also be built.
         """
-        planning_problem_builder = PlanningProblemBuilder(self._id_allocator.new_id())
+        planning_problem_id = (
+            planning_problem_id if planning_problem_id is not None else self._id_allocator.new_id()
+        )
+        planning_problem_builder = PlanningProblemBuilder(planning_problem_id)
         self._planning_problem_builders.append(planning_problem_builder)
         return planning_problem_builder
 
