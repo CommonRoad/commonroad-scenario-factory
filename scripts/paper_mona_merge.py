@@ -6,6 +6,7 @@ from crots.abstractions.warm_up_estimator import warm_up_estimator
 from sumocr.simulation import NonInteractiveSumoSimulation
 from sumocr.sumo_map.cr2sumo.converter import SumoTrafficGenerationMode
 
+from resources.paper.frame_factors import get_frame_factor_sim
 from scenario_factory.metrics import (
     compute_general_scenario_metric,
     compute_waymo_metric,
@@ -63,7 +64,8 @@ result = sim.run(simulation_steps=simulation_steps)
 cropped_scenario = crop_scenario_to_time_frame(result.scenario, min_time_step=warmup_time_steps)
 align_scenario_to_time_step(cropped_scenario, warmup_time_steps)
 
-metrics_general = compute_general_scenario_metric(cropped_scenario)
+frame_factor = get_frame_factor_sim(cropped_scenario)
+metrics_general = compute_general_scenario_metric(cropped_scenario, frame_factor)
 scenario_container = ScenarioContainer(cropped_scenario)
 scenario_container.add_attachment(metrics_general)
 write_general_scenario_metrics_of_scenario_containers_to_csv(

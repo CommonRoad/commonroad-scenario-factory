@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from resources.paper.frame_factors import get_frame_factor_sim
 from scenario_factory.pipeline import Pipeline
 from scenario_factory.pipeline_steps import (
     ComputeSingleScenarioMetricsArguments,
@@ -29,7 +30,11 @@ pipeline = (
     .map(pipeline_remove_parked_dynamic_obstacles)
     .map(pipeline_simulate_scenario_with_sumo(SimulateScenarioArguments(simulation_config)))
     .map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(path)))
-    .map(pipeline_compute_single_scenario_metrics(ComputeSingleScenarioMetricsArguments()))
+    .map(
+        pipeline_compute_single_scenario_metrics(
+            ComputeSingleScenarioMetricsArguments(frame_factor_callback=get_frame_factor_sim)
+        )
+    )
     .map(pipeline_compute_waymo_metrics)
 )
 
