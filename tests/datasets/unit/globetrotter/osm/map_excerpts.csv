@@ -1,4 +1,0 @@
-label,west,south,east,north,input_map,expected_excerpt
-"partial_excerpt",6.464703,51.025325,6.486954,51.035756,"düren-latest.osm.pbf","düren-partial-excerpt.osm"
-"complete_excerpt",6.445126,51.015997,6.451094,51.018542,"düren-latest.osm.pbf","düren-complete-excerpt.osm"
-"empty_excerpt",6.431527,51.047268,6.442585,51.053013,"düren-latest.osm.pbf","null"

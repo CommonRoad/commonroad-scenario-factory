@@ -9,7 +9,7 @@ from scenario_factory.utils import (
     copy_scenario,
     get_full_state_list_of_obstacle,
 )
-from tests.helpers import create_test_obstacle_with_trajectory
+from tests.helpers.obstacle import create_test_obstacle_with_trajectory
 
 
 class TestCopyScenario:

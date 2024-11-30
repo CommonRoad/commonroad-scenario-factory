@@ -13,7 +13,6 @@ class ResourceType(Enum):
     OSM_MAP = auto()
     OSM_SOURCE_MAP = auto()
     OSM_MAP_EXCERPT = auto()
-    CR_LANELET_NETWORK = auto()
     CR_MAP = auto()
     CR_SCENARIO = auto()
     CSV_FILES = auto()
@@ -25,8 +24,6 @@ class ResourceType(Enum):
             return Path(__file__).parent / "osm_source_maps"
         elif self == ResourceType.OSM_MAP_EXCERPT:
             return Path(__file__).parent / "osm_map_excerpts"
-        elif self == ResourceType.CR_LANELET_NETWORK:
-            return Path(__file__).parent / "cr_lanelet_networks"
         elif self == ResourceType.CR_MAP:
             return Path(__file__).parent / "cr_maps"
         elif self == ResourceType.CR_SCENARIO:
@@ -104,12 +101,3 @@ def load_cr_scenario_from_file(path: Path) -> Scenario:
     Loads a CommonRoad scenario from the XML file representation.
     """
     raise NotImplementedError()
-
-
-def load_cr_lanelet_network_from_file(path: Path) -> LaneletNetwork:
-    """
-    Loads a CommonRoad LaneletNetwork from a stripped down CommonRoad scenario-like XML file.
-    """
-    reader = CommonRoadFileReader(path, FileFormat.XML)
-    network = reader.open_lanelet_network()
-    return network

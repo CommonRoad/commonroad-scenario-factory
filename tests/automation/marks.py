@@ -8,7 +8,8 @@ from _pytest.mark import Mark
 
 from tests.automation.datasets import (
     Dataset,
-    DatasetFormat,
+    FileDataset,
+    FileDatasetFormat,
     get_test_dataset_csv,
     get_test_dataset_json,
 )
@@ -79,11 +80,11 @@ def _inspect_parameter_names(func: Any) -> list[str]:
     return names
 
 
-class with_dataset:
-    _dataset: Dataset
+class with_file_dataset:
+    _dataset: FileDataset
     _parameter_names: list[str] | None
 
-    def __init__(self, dataset: Dataset, parameter_names: Iterable[str] | str | None = None):
+    def __init__(self, dataset: FileDataset, parameter_names: Iterable[str] | str | None = None):
         """
         Initializes a with_dataset decorator.
 
@@ -91,6 +92,9 @@ class with_dataset:
 
         :param parameter_names: The names of the parameters of the test dataset in the order they should be inserted into the test function. If not provided the parameter names of the function declaration are used.
         """
+        if isinstance(dataset, Dataset):
+            raise TypeError("Use the @with_dynamic_dataset for dynamically created datasets.")
+
         self._dataset = dataset
         if parameter_names is None:
             self._parameter_names = parameter_names
@@ -143,13 +147,13 @@ class with_dataset:
                     f"Cannot auto-detect the format of the test dataset: {str(rel)} because both a JSON and CSV file exist."
                 )
             if csv_exists:
-                selected_format = DatasetFormat.CSV
+                selected_format = FileDatasetFormat.CSV
             if json_exists:
-                selected_format = DatasetFormat.JSON
+                selected_format = FileDatasetFormat.JSON
 
-        if selected_format == DatasetFormat.CSV:
+        if selected_format == FileDatasetFormat.CSV:
             dataset = get_test_dataset_csv(csv_ending, self._dataset.entry_model)
-        elif selected_format == DatasetFormat.JSON:
+        elif selected_format == FileDatasetFormat.JSON:
             dataset = get_test_dataset_json(json_ending, self._dataset.entry_model)
         else:
             raise RuntimeError(
@@ -164,6 +168,63 @@ class with_dataset:
             entries = [
                 tuple(getattr(obj, pname) for pname in self._parameter_names) for obj in dataset
             ]
+        return entries
+
+
+class with_dataset:
+    _dataset: Dataset
+    _parameter_names: list[str] | None
+
+    def __init__(self, dataset: Dataset, parameter_names: Iterable[str] | str | None = None):
+        """
+        Initializes a with_dataset decorator.
+
+        :param dataset: The dynamic dataset to use.
+
+        :param parameter_names: The names of the parameters of the test dataset in the order they should be inserted into the test function. If not provided the parameter names of the function declaration are used.
+        """
+        if isinstance(dataset, FileDataset):
+            raise TypeError("Use the @with_file_dataset for datasets stored in a file.")
+
+        self._dataset = dataset
+        if parameter_names is None:
+            self._parameter_names = parameter_names
+        elif isinstance(parameter_names, Iterable):
+            self._parameter_names = list(parameter_names)
+        elif isinstance(parameter_names, str):
+            self._parameter_names = list(map(lambda s: s.strip(), parameter_names.split(",")))
+        else:
+            raise ValueError()
+
+    def __call__(self, *args):
+        func = args[0]
+
+        # Resolve all names
+        self._resolve_parameter_names(func)
+
+        # This should stack so we have to check for previous marks
+        marks = _pop_marks(func)
+        param_spec = ", ".join(self._parameter_names)
+        marks, target = _select_marks(marks, param_spec)
+
+        # Extend with dataset
+        marks[target].args[1].extend(self._load_test_dataset())
+
+        # Put back marks
+        _put_marks(func, marks)
+        return func
+
+    def _resolve_parameter_names(self, func: Any):
+        if self._parameter_names is None:
+            self._parameter_names = _inspect_parameter_names(func)
+
+    def _load_test_dataset(self) -> list[tuple]:
+        if self._parameter_names is None:
+            raise RuntimeError("Could not resolve parameter names.")
+        entries = [
+            tuple(getattr(obj, pname) for pname in self._parameter_names)
+            for obj in self._dataset.entries
+        ]
         return entries
 
 

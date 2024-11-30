@@ -1,7 +1,9 @@
 from pathlib import Path
 
+import pytest
+
 from scenario_factory.pipeline import Pipeline, PipelineContext
-from tests.helpers import (
+from tests.helpers.pipeline import (
     IsEvenFilter,
     pipeline_simple_filter,
     pipeline_simple_fold,
@@ -24,12 +26,8 @@ class TestPipeline:
         pipeline.execute(inputs, context, None, None)
 
         # Want a second execution on the same context to throw.
-        try:
+        with pytest.raises(RuntimeError):
             pipeline.execute(inputs, context, None, None)
-        except RuntimeError:
-            pass
-        else:
-            assert False, "Expected runtime error and failure of execution."
 
     def test_repeated_execution_with_new_context(self):
         inputs = list(range(10))
