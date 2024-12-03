@@ -174,8 +174,14 @@ class with_file_dataset:
 class with_dataset:
     _dataset: Dataset
     _parameter_names: list[str] | None
+    _skip: list[str]
 
-    def __init__(self, dataset: Dataset, parameter_names: Iterable[str] | str | None = None):
+    def __init__(
+        self,
+        dataset: Dataset,
+        parameter_names: Iterable[str] | str | None = None,
+        skip: Iterable[str] | None = None,
+    ):
         """
         Initializes a with_dataset decorator.
 
@@ -195,6 +201,10 @@ class with_dataset:
             self._parameter_names = list(map(lambda s: s.strip(), parameter_names.split(",")))
         else:
             raise ValueError()
+        if skip is None:
+            self._skip = []
+        else:
+            self._skip = list(skip)
 
     def __call__(self, *args):
         func = args[0]
@@ -224,6 +234,7 @@ class with_dataset:
         entries = [
             tuple(getattr(obj, pname) for pname in self._parameter_names)
             for obj in self._dataset.entries
+            if getattr(obj, "label") not in self._skip
         ]
         return entries
 
