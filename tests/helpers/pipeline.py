@@ -1,7 +1,12 @@
 from typing import Sequence
 
-from scenario_factory.pipeline import pipeline_map, PipelineContext, pipeline_filter, PipelineFilterPredicate, \
-    pipeline_fold
+from scenario_factory.pipeline import (
+    PipelineContext,
+    PipelineFilterPredicate,
+    pipeline_filter,
+    pipeline_fold,
+    pipeline_map,
+)
 
 
 @pipeline_map()
@@ -24,5 +29,3 @@ def pipeline_simple_fold(ctx: PipelineContext, values: Sequence[int]) -> Sequenc
 class IsEvenFilter(PipelineFilterPredicate):
     def matches(self, value: int) -> bool:
         return value % 2 == 0
-
-

@@ -67,7 +67,7 @@ class TestGlobals:
                         bounding_box, input_map_path, output_path, True
                     )
             else:
-                expected_excerpt_path = ResourceType.OSM_MAP_EXCERPT.get_folder() / expected_excerpt
+                expected_excerpt_path = ResourceType.OSM_MAP.get_folder() / expected_excerpt
                 extract_bounding_box_from_osm_map(bounding_box, input_map_path, output_path, True)
 
                 assert os.path.exists(
@@ -120,7 +120,7 @@ class TestLocalFileMapProvider:
                     prov.get_map(region, bounding_box, folder.path)
             else:
                 output_path = prov.get_map(region, bounding_box, folder.path)
-                expected_excerpt_path = ResourceType.OSM_MAP_EXCERPT.get_folder() / expected_excerpt
+                expected_excerpt_path = ResourceType.OSM_MAP.get_folder() / expected_excerpt
                 # TODO: Check for required "similarity"
 
 

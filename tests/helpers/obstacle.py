@@ -3,7 +3,7 @@ from typing import Sequence
 from commonroad.geometry.shape import Rectangle
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
-from commonroad.scenario.state import TraceState, InitialState
+from commonroad.scenario.state import InitialState, TraceState
 from commonroad.scenario.trajectory import Trajectory
 
 

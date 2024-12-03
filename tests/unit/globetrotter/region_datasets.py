@@ -3,13 +3,13 @@ from typing import Any
 from pydantic import field_validator
 
 from scenario_factory.globetrotter import Coordinates, RegionMetadata
-from tests.automation.datasets import FileDataset, FileDatasetFormat, Dataset
+from tests.automation.datasets import Dataset, FileDataset, FileDatasetFormat
 from tests.automation.validation import TestCase
-
 
 # ---------------------------------
 # Entry Models
 # ---------------------------------
+
 
 class CoordinateParsingTestCase(TestCase):
     string: str
@@ -95,13 +95,21 @@ BOUNDING_BOX_FROM_COORDINATES_TEST_DATASET = FileDataset(
 REGIONS_FROM_CSV_TEST_DATASET = Dataset(
     initial_entries=[
         RegionsFromCsvTestCase(label="empty", csv_file="empty_regions.csv", expected_regions=[]),
-        RegionsFromCsvTestCase(label="single_entry", csv_file="single_entry_regions.csv", expected_regions=[
-                RegionMetadata("ESP", "retiro", 0, Coordinates(40.4184, -3.6667))
-        ]),
-        RegionsFromCsvTestCase(label="malformed_lowercase", csv_file="malformed_regions_lowercase.csv",
-                               expected_regions=None),
-        RegionsFromCsvTestCase(label="malformed_missing_column", csv_file="malformed_regions_missing_columns.csv",
-                               expected_regions=None)
+        RegionsFromCsvTestCase(
+            label="single_entry",
+            csv_file="single_entry_regions.csv",
+            expected_regions=[RegionMetadata("ESP", "retiro", 0, Coordinates(40.4184, -3.6667))],
+        ),
+        RegionsFromCsvTestCase(
+            label="malformed_lowercase",
+            csv_file="malformed_regions_lowercase.csv",
+            expected_regions=None,
+        ),
+        RegionsFromCsvTestCase(
+            label="malformed_missing_column",
+            csv_file="malformed_regions_missing_columns.csv",
+            expected_regions=None,
+        ),
     ],
-    entry_model=RegionsFromCsvTestCase
+    entry_model=RegionsFromCsvTestCase,
 )

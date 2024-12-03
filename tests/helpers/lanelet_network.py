@@ -1,5 +1,5 @@
 import numpy as np
-from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
+from commonroad.scenario.lanelet import Lanelet, LaneletNetwork
 
 from scenario_factory.builder import LaneletNetworkBuilder
 from scenario_factory.builder.core import BuilderIdAllocator
@@ -17,7 +17,7 @@ class UsefulLaneletNetworks:
 
     @staticmethod
     def malformed_one_split_no_meta() -> LaneletNetwork:
-        id_allocator = BuilderIdAllocator(seed=0) # TODO: Feels wrong to have to do this...
+        id_allocator = BuilderIdAllocator(seed=0)  # TODO: Feels wrong to have to do this...
         builder = LaneletNetworkBuilder(id_allocator)
         lanelet1 = builder.add_lanelet((0, -5), (20, -5), 10)
         lanelet2 = builder.add_lanelet((80, -5), (100, -5), 10)
@@ -31,7 +31,7 @@ class UsefulLaneletNetworks:
 
     @staticmethod
     def one_split_no_meta() -> LaneletNetwork:
-        id_allocator = BuilderIdAllocator(seed=0) # TODO: Feels wrong to have to do this...
+        id_allocator = BuilderIdAllocator(seed=0)  # TODO: Feels wrong to have to do this...
         builder = LaneletNetworkBuilder(id_allocator)
         lanelet1 = builder.add_lanelet((0, -5), (20, -5), 10)
         lanelet2 = builder.add_lanelet((20, -5), (40, -5), 10)
@@ -73,4 +73,3 @@ class UsefulLaneletNetworks:
     @staticmethod
     def single_lanelet_traffic_sign() -> LaneletNetwork:
         raise NotImplementedError()
-

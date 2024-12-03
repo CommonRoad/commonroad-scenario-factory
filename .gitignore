@@ -11,5 +11,3 @@ files/**/*.osm
 *.tar.gz
 *.mp4
 .coverage
-
-branch_local/

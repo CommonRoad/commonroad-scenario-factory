@@ -3,16 +3,12 @@ from enum import Enum, auto
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from commonroad.common.file_reader import CommonRoadFileReader
-from commonroad.common.util import FileFormat
-from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.scenario import Scenario
 
 
 class ResourceType(Enum):
     OSM_MAP = auto()
     OSM_SOURCE_MAP = auto()
-    OSM_MAP_EXCERPT = auto()
     CR_MAP = auto()
     CR_SCENARIO = auto()
     CSV_FILES = auto()
@@ -22,8 +18,6 @@ class ResourceType(Enum):
             return Path(__file__).parent / "osm_maps"
         elif self == ResourceType.OSM_SOURCE_MAP:
             return Path(__file__).parent / "osm_source_maps"
-        elif self == ResourceType.OSM_MAP_EXCERPT:
-            return Path(__file__).parent / "osm_map_excerpts"
         elif self == ResourceType.CR_MAP:
             return Path(__file__).parent / "cr_maps"
         elif self == ResourceType.CR_SCENARIO:
