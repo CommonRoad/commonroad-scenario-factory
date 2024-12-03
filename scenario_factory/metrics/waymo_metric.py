@@ -1,9 +1,11 @@
+import csv
 import logging
 import math
 import statistics
 from collections import defaultdict
 from dataclasses import dataclass, fields
-from typing import Dict, List, Optional, Tuple
+from pathlib import Path
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 from commonroad.prediction.prediction import TrajectoryPrediction
@@ -11,6 +13,7 @@ from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.state import State, TraceState
 
+from scenario_factory.metrics.base import BaseMetric, combine_metrics
 from scenario_factory.utils import (
     get_dynamic_obstacle_ids_in_scenario,
     is_state_with_position,
@@ -19,9 +22,11 @@ from scenario_factory.utils import (
 
 _LOGGER = logging.getLogger(__name__)
 
+_DEFAULT_WAYMO_METRIC_PRECISION = 3
+
 
 @dataclass
-class WaymoMetric:
+class WaymoMetric(BaseMetric):
     """
     Data class for the Waymo metrics.
     """
@@ -40,8 +45,64 @@ class WaymoMetric:
 
     def __str__(self) -> str:
         return "Waymo Metrics: " + ", ".join(
-            [f"{field.name}: {getattr(self, field.name):.4f}" for field in fields(self)]
+            [
+                f"{field.name}: {getattr(self, field.name):.4f}"
+                for field in fields(self)
+                if field.name != "scenario_id"
+            ]
         )
+
+
+def write_waymo_metrics_to_csv(
+    waymo_metric_collection: Sequence[WaymoMetric], csv_file_path: Path
+) -> None:
+    """
+    Write `waymo_metric_collection` in CSV format to `csv_file_path`. Metrics for the same scenario id will be combined automatically.
+
+    :param: Collection of `WaymoMetric`. May contain multiple metrics for the same scenario ID.
+    :param csv_file_path: File path, where CSV data will be written to.
+
+    :returns: Nothing.
+    """
+    formatted_data = []
+    for waymo_metric in combine_metrics(waymo_metric_collection):
+        formatted_data.append(
+            {
+                "scenario_id": str(waymo_metric.scenario_id),
+                "ade3": round(waymo_metric.ade3, _DEFAULT_WAYMO_METRIC_PRECISION),
+                "ade5": round(waymo_metric.ade5, _DEFAULT_WAYMO_METRIC_PRECISION),
+                "ade8": round(waymo_metric.ade8, _DEFAULT_WAYMO_METRIC_PRECISION),
+                "fde3": round(waymo_metric.fde3, _DEFAULT_WAYMO_METRIC_PRECISION),
+                "fde5": round(waymo_metric.fde5, _DEFAULT_WAYMO_METRIC_PRECISION),
+                "fde8": round(waymo_metric.fde8, _DEFAULT_WAYMO_METRIC_PRECISION),
+                "mr3": round(waymo_metric.mr3, _DEFAULT_WAYMO_METRIC_PRECISION),
+                "mr5": round(waymo_metric.mr5, _DEFAULT_WAYMO_METRIC_PRECISION),
+                "mr8": round(waymo_metric.mr8, _DEFAULT_WAYMO_METRIC_PRECISION),
+                "rmse_mean": round(waymo_metric.rmse_mean, _DEFAULT_WAYMO_METRIC_PRECISION),
+                "rmse_stdev": round(waymo_metric.rmse_stdev, _DEFAULT_WAYMO_METRIC_PRECISION),
+            }
+        )
+
+    with open(csv_file_path, "w") as csv_file:
+        csv_writer = csv.DictWriter(
+            csv_file,
+            fieldnames=[
+                "scenario_id",
+                "ade3",
+                "ade5",
+                "ade8",
+                "fde3",
+                "fde5",
+                "fde8",
+                "mr3",
+                "mr5",
+                "mr8",
+                "rmse_mean",
+                "rmse_stdev",
+            ],
+        )
+        csv_writer.writeheader()
+        csv_writer.writerows(formatted_data)
 
 
 def compute_waymo_metric(scenario: Scenario, reference_scenario: Scenario) -> WaymoMetric:
@@ -132,6 +193,7 @@ def compute_waymo_metric(scenario: Scenario, reference_scenario: Scenario) -> Wa
     )
 
     return WaymoMetric(
+        scenario_id=scenario.scenario_id,
         ade3=filtered_average_displacmenet_errors[3],
         ade5=filtered_average_displacmenet_errors[5],
         ade8=filtered_average_displacmenet_errors[8],
