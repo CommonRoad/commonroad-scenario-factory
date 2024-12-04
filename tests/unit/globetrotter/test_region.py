@@ -117,7 +117,7 @@ class TestGlobals:
     @with_dataset(
         REGIONS_FROM_CSV_TEST_DATASET,
         skips=[
-            # TODO: Is it okay malformed CSVs are read? (Issue: ??)
+            # TODO: Validation on CSV file (Issue: #59)
             "malformed_lowercase",
             "malformed_missing_column",
         ],

@@ -59,7 +59,7 @@ class TmpResourceFolder:
     _tempdir: TemporaryDirectory | None
     _temppath: Path | None
 
-    def __init__(self, *resources):
+    def __init__(self, *resources: TmpResourceEntry):
         self._resources = list(resources)
         self._tempdir = None
         self._temppath = None
@@ -88,10 +88,3 @@ class TmpResourceFolder:
 
     def get_path(self, relative: Path) -> Path:
         return self.path / relative
-
-
-def load_cr_scenario_from_file(path: Path) -> Scenario:
-    """
-    Loads a CommonRoad scenario from the XML file representation.
-    """
-    raise NotImplementedError()
