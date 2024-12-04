@@ -12,7 +12,7 @@ from scenario_factory.globetrotter.clustering import (
     generate_intersections,
     get_distance_to_outer_point,
 )
-from tests.automation.marks import with_dataset
+from tests.automation.mark import with_dataset
 from tests.unit.globetrotter.clustering_datasets import (
     CENTROID_TEST_DATASET,
     CLUSTERING_TEST_DATASET,
@@ -79,7 +79,7 @@ class TestGlobals:
 
     @with_dataset(
         FORKING_POINTS_TEST_DATASET,
-        skip=[
+        skips=[
             # TODO: Check for malformed intersections when generating forking points (Issue: ??)
             "malformed_one_split_network"
         ],

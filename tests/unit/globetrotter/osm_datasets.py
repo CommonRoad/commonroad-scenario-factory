@@ -45,9 +45,9 @@ class LocalProviderTestCase(TestCase):
 # ---------------------------------
 
 CANONICAL_NAMES_TEST_DATASET = FileDataset(
-    dataset_name=["unit", "globetrotter", "osm", "canonical_names"],
+    filename="unit/globetrotter/osm/canonical_names.csv",
     entry_model=CanonicalNamesTestCase,
-    dataset_format=FileDatasetFormat.CSV,
+    file_format=FileDatasetFormat.CSV,
 )
 
 
@@ -56,7 +56,7 @@ CANONICAL_NAMES_TEST_DATASET = FileDataset(
 # ---------------------------------
 
 REGIONAL_MAPS_TEST_DATASET = Dataset(
-    initial_entries=[
+    [
         RegionalMapsTestCase(
             label="no_maps",
             map_files=[],
@@ -81,12 +81,11 @@ REGIONAL_MAPS_TEST_DATASET = Dataset(
             region=RegionMetadata("DE", "Köln", 0, Coordinates(0, 0)),
             expected_region_map=None,
         ),
-    ],
-    entry_model=RegionalMapsTestCase,
+    ]
 )
 
 MAP_EXCERPTS_TEST_DATASET = Dataset(
-    initial_entries=[
+    [
         MapExcerptTestCase(
             label="partial_excerpt",
             bounding_box=BoundingBox(
@@ -111,12 +110,11 @@ MAP_EXCERPTS_TEST_DATASET = Dataset(
             input_map="düren-latest.osm.pbf",
             expected_excerpt=None,
         ),
-    ],
-    entry_model=MapExcerptTestCase,
+    ]
 )
 
 CENTER_POLYLINES_TEST_DATASET = Dataset(
-    initial_entries=[
+    [
         CenterPolylinesTestCase(
             label="single_lanelet",
             lanelet_network=UsefulLaneletNetworks.single_lanelet_no_meta(),
@@ -136,12 +134,11 @@ CENTER_POLYLINES_TEST_DATASET = Dataset(
                 3: np.array([[20, -5], [40, 15]]),
             },
         ),
-    ],
-    entry_model=CenterPolylinesTestCase,
+    ]
 )
 
 LOCAL_PROVIDER_TEST_DATASET = Dataset(
-    initial_entries=[
+    [
         LocalProviderTestCase(
             label="generic1",
             map_files=["aachen-latest.osm.pbf", "düren-latest.osm.pbf", "bonn-latest.osm.pbf"],
@@ -151,6 +148,5 @@ LOCAL_PROVIDER_TEST_DATASET = Dataset(
             ),
             expected_excerpt="düren-complete-excerpt.osm",
         )
-    ],
-    entry_model=LocalProviderTestCase,
+    ]
 )

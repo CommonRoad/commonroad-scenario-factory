@@ -2,7 +2,7 @@ import pytest
 
 from scenario_factory.globetrotter import BoundingBox, load_regions_from_csv
 from scenario_factory.globetrotter.region import Coordinates, RegionMetadata
-from tests.automation.marks import with_custom, with_dataset, with_file_dataset
+from tests.automation.mark import with_dataset
 from tests.resources.interface import ResourceType
 from tests.unit.globetrotter.region_datasets import (
     BOUNDING_BOX_FROM_COORDINATES_TEST_DATASET,
@@ -14,8 +14,7 @@ from tests.unit.globetrotter.region_datasets import (
 
 
 class TestCoordinates:
-    @with_file_dataset(COORDINATE_PARSING_TEST_DATASET)
-    @with_custom([("showcase", "20.0,20.0", True, 20.0, 20.0)])
+    @with_dataset(COORDINATE_PARSING_TEST_DATASET)
     def test_parse_from_string(self, label, string, valid, lat, lon):
         if valid:
             coords = Coordinates.from_str(string)
@@ -26,14 +25,14 @@ class TestCoordinates:
             with pytest.raises(ValueError):
                 Coordinates.from_str(string)
 
-    @with_file_dataset(COORDINATE_PARSING_TEST_DATASET)
+    @with_dataset(COORDINATE_PARSING_TEST_DATASET)
     def test_parse_from_tuple(self, label, valid, lat, lon):
         if not valid:
             return
         coords = Coordinates.from_tuple((lat, lon))
         assert coords.lat == lat and coords.lon == lon, f"Mismatch parsing entry {label} from tuple"
 
-    @with_file_dataset(COORDINATE_PARSING_TEST_DATASET)
+    @with_dataset(COORDINATE_PARSING_TEST_DATASET)
     def test_string_serialization_and_parsing_is_idempotent(self, label, valid, lat, lon):
         if not valid:
             return
@@ -43,7 +42,7 @@ class TestCoordinates:
             coords.lat == comp.lat and coords.lon == comp.lon
         ), f"Expected indempotence for entry {label}"
 
-    @with_file_dataset(COORDINATE_PARSING_TEST_DATASET)
+    @with_dataset(COORDINATE_PARSING_TEST_DATASET)
     def test_tuple_serialization_and_parsing_is_idempotent(self, label, valid, lat, lon):
         if not valid:
             return
@@ -55,7 +54,7 @@ class TestCoordinates:
 
 
 class TestRegionMetadata:
-    @with_file_dataset(REGION_METADATA_TEST_DATASET)
+    @with_dataset(REGION_METADATA_TEST_DATASET)
     def test_uses_provided_metadata(self, label, coordinates):
         # For all coordinates check whether country code and region name are set to the provided values.
         region = RegionMetadata.from_coordinates(
@@ -68,7 +67,7 @@ class TestRegionMetadata:
             and region.region_name == "Somewhere"
         ), f"Construction using provided metadata failed for entry {label}."
 
-    @with_file_dataset(REGION_METADATA_TEST_DATASET)
+    @with_dataset(REGION_METADATA_TEST_DATASET)
     def test_generates_expected_metadata(self, label, coordinates, country_code, region_name):
         region = RegionMetadata.from_coordinates(coordinates)
         assert (
@@ -78,7 +77,7 @@ class TestRegionMetadata:
 
 
 class TestBoundingBox:
-    @with_file_dataset(BOUNDING_BOX_FROM_COORDINATES_TEST_DATASET)
+    @with_dataset(BOUNDING_BOX_FROM_COORDINATES_TEST_DATASET)
     def test_from_coordinates(
         self,
         label: str,
@@ -95,7 +94,7 @@ class TestBoundingBox:
         assert expected_east == bbox.east, f"Expected correct east bound for entry: {label}."
         assert expected_north == bbox.north, f"Expected correct north bound for entry: {label}."
 
-    @with_file_dataset(BOUNDING_BOX_TO_STRING_TEST_DATASET)
+    @with_dataset(BOUNDING_BOX_TO_STRING_TEST_DATASET)
     def test_constructor(self, label: str, west: float, south: float, east: float, north: float):
         # TODO: Create test examples
         bbox = BoundingBox(west, south, east, north)
@@ -104,7 +103,7 @@ class TestBoundingBox:
         assert east == bbox.east, f"Expected correct east bound for entry: {label}."
         assert north == bbox.north, f"Expected correct north bound for entry: {label}."
 
-    @with_file_dataset(BOUNDING_BOX_TO_STRING_TEST_DATASET)
+    @with_dataset(BOUNDING_BOX_TO_STRING_TEST_DATASET)
     def test_to_string(
         self, label: str, west: float, south: float, east: float, north: float, expected_string: str
     ):
@@ -117,7 +116,7 @@ class TestBoundingBox:
 class TestGlobals:
     @with_dataset(
         REGIONS_FROM_CSV_TEST_DATASET,
-        skip=[
+        skips=[
             # TODO: Is it okay malformed CSVs are read? (Issue: ??)
             "malformed_lowercase",
             "malformed_missing_column",

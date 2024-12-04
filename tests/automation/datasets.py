@@ -1,45 +1,113 @@
+from __future__ import annotations
+
 import csv
 import json
-from dataclasses import dataclass
+from abc import abstractmethod, ABC
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Iterable
-
-import pydantic
+from typing import Generator, Iterable
 
 from tests.automation.validation import TestCase
+from tests.datasets.interface import get_test_dataset_root
 
 
-@dataclass
-class Dataset:
-    entries: list[Any]
-    entry_model: type
+class DatasetInterface(ABC):
+    """
+    Specifies the functionality that should be supported by a dataset containing test cases.
+    """
 
-    def __init__(self, entry_model: type, initial_entries: Iterable[Any] | None = None):
+    @abstractmethod
+    def iterate_entries(self) -> Generator[TestCase, None, None]:
         """
-        Initializes a test dataset with some dynamically created content.
+        Iterates over all test cases in the dataset.
+        :return: A generator of the test cases.
         """
-        self.entries = []
-        if issubclass(entry_model, TestCase):
-            self.entry_model = entry_model
-        else:
-            raise TypeError("The entry model has to inherit from TestCase.")
-        if initial_entries is not None:
-            for entry in initial_entries:
-                if isinstance(entry, entry_model):
-                    self.entries.append(entry)
-                else:
-                    raise ValueError(f"Each entry has to be an instance of {entry_model}.")
+        pass
 
-    def add(self, entry: Any):
-        if isinstance(entry, self.entry_model):
-            self.entries.append(entry)
-        else:
-            raise TypeError(f"Each entry has to be an instance of {self.entry_model}")
+    @abstractmethod
+    def create_extended(self, dataset: DatasetInterface) -> DatasetInterface:
+        """
+        Creates a new dataset referencing all entries from this and the given dataset.
+        :param dataset: The other source dataset.
+        :return: The newly created dataset with all entries.
+        :raises ValueError: If not all test case labels are distinct.
+        """
+        pass
 
-    def add_all(self, entries: Iterable[Any]):
-        for entry in entries:
-            self.add(entry)
+    @abstractmethod
+    def contains_entry(self, label: str) -> bool:
+        """
+        Indicated whether the dataset contains a test case with the given label.
+        :param label: The label to search for.
+        :return: True, if a test case in this dataset has the given label. False, otherwise.
+        """
+        pass
+
+
+class MergedDataset(DatasetInterface):
+    """
+    Utility dataset implementation that loads from multiple subsets.
+    """
+    _subsets: list[DatasetInterface]
+
+    def __init__(self, subsets: Iterable[DatasetInterface]):
+        self._subsets = []
+        for ds in subsets:
+            self.extend(ds)
+
+    def extend(self, subset: DatasetInterface):
+        """
+        Extends this dataset by adding all test cases from the given subset.
+        :param subset: The subset to add the cases from.
+        :raises ValueError: If there are duplicated labels.
+        """
+        for case in subset.iterate_entries():
+            if self.contains_entry(case.label):
+                raise ValueError("Cannot extend with a dataset that contains duplicated label names.")
+        self._subsets.append(subset)
+
+    def iterate_entries(self) -> Generator[TestCase, None, None]:
+        for ds in self._subsets:
+            for entry in ds.iterate_entries():
+                yield entry
+
+    def create_extended(self, dataset: DatasetInterface) -> DatasetInterface:
+        result = MergedDataset(self._subsets)
+        result.extend(dataset)
+        return result
+
+    def contains_entry(self, label: str) -> bool:
+        for ds in self._subsets:
+            if ds.contains_entry(label):
+                return True
+        return False
+
+
+class Dataset(DatasetInterface):
+    """
+    Implements the dataset interface for dynamically managed datasets.
+    """
+    _entries: dict[str, TestCase]
+
+    def __init__(self, entries: Iterable[TestCase]):
+        self._entries = {}
+        for case in entries:
+            self.add_entry(case)
+
+    def add_entry(self, case: TestCase):
+        if case.label in self._entries:
+            raise ValueError(f"Dataset already contains a test case with label: {case.label}")
+        self._entries[case.label] = case
+
+    def iterate_entries(self) -> Generator[TestCase, None, None]:
+        for entry in self._entries.values():
+            yield entry
+
+    def create_extended(self, dataset: DatasetInterface) -> DatasetInterface:
+        return MergedDataset([self, dataset])
+
+    def contains_entry(self, label: str) -> bool:
+        return label in self._entries
 
 
 class FileDatasetFormat(Enum):
@@ -47,72 +115,68 @@ class FileDatasetFormat(Enum):
     JSON = auto()
 
 
-@dataclass
-class FileDataset:
-    dataset_name: list[str] | None
-    entry_model: type | None
-    dataset_format: FileDatasetFormat | None
-    dataset_object: list[Any] | None
+class FileDataset(DatasetInterface):
+    """
+    Implements the dataset interface for dataset that are loaded from a file.
+    """
 
-    def __init__(
-        self,
-        dataset_name: Iterable[str] | None = None,
-        entry_model: type | None = None,
-        dataset_format: FileDatasetFormat | None = None,
-    ):
+    _filename: Path
+    _file_format: FileDatasetFormat
+    _entry_model: type
+    _cache: dict[str, TestCase] | None
+
+    def __init__(self, filename: Path | str, file_format: FileDatasetFormat, entry_model: type):
         """
-        Initializes a test dataset that is loaded from a file.
-
-        :param entry_model: The optional pydantic model to use for each entry from the dataset.
-
-        :param dataset_name: The name of the test dataset relative to the test_datasets folder (without ending). If not provided the name of the test function relative to the tests module is used e.g. ["unit", "globetrotter", "test_osm", "TestGlobals", "test_get_canonical_region_name"].
-
-        :param dataset_format: The file format to use. Auto-discovered if not provided.
+        Constructs a dataset that is loaded from a file in the tests/datasets/... folder.
+        :param filename: The path relative to the tests/datasets/ folder.
+        :param file_format: The format of the file (CSV or JSON).
+        :param entry_model: The pydantic model (inheriting from TestCase) that should be used to safely load the dataset.
         """
-        self.dataset_name = None if dataset_name is None else list(dataset_name)
-        if entry_model is None:
-            self.entry_model = None
-        elif issubclass(entry_model, TestCase):
-            self.entry_model = entry_model
+        if isinstance(filename, str):
+            self._filename = Path(filename)
+        elif isinstance(filename, Path):
+            self._filename = filename
         else:
-            raise TypeError("entry_model has to be a type inheriting from pydantic.BaseModel.")
-        self.dataset_format = dataset_format
+            raise ValueError("Unexpected type for filename argument.")
 
+        self._file_format = file_format
+        if not issubclass(entry_model, TestCase):
+            raise TypeError("Expected a subclass of TestCase for the entry model.")
+        self._entry_model = entry_model
+        self._cache = None
 
-def get_test_dataset_csv(path: Path, entry_model: type | None) -> list[Any]:
-    """
-    Loads a list of named entries from a CSV file that are optionally described by a pydantic model.
+    def iterate_entries(self) -> Generator[TestCase, None, None]:
+        """
+        Iterates over all entries by loading the dataset file.
+        :return: An iterator over the entries.
+        :raises FileNotFoundError: If the referenced file could not be found.
+        """
+        for case in self._get_entries().values():
+            yield case
 
-    :param path: The path of the dataset.
-    :param entry_model: A type that inherits from pydantic.BaseModel and describes the entries in the dataset.
-    """
-    if entry_model is not None:
-        if not issubclass(entry_model, pydantic.BaseModel):
-            raise TypeError("Models have to inherit from the pydantic.BaseModel.")
+    def create_extended(self, dataset: DatasetInterface) -> DatasetInterface:
+        return MergedDataset([self, dataset])
 
-    with open(path, "rt") as file:
-        reader = csv.DictReader(file)
-        data = list(reader)
-    if entry_model is not None:
-        data = [entry_model(**item) for item in data]
-    return data
+    def contains_entry(self, label: str) -> bool:
+        return label in self._get_entries()
 
+    def _get_entries(self) -> dict[str, TestCase]:
+        if self._cache is None:
+            self._cache = {case.label: case for case in self._load_from_file()}
+        return self._cache
 
-def get_test_dataset_json(path: Path, entry_model: type | None) -> list[Any]:
-    """
-    Loads a list of python objects from a JSON file that are optionally described by a pydantic model.
+    def _load_from_file(self) -> list[TestCase]:
+        complete_path = get_test_dataset_root() / self._filename
+        if not complete_path.exists():
+            raise FileNotFoundError(f"The dataset could not be loaded, because {complete_path} does not exist.")
 
-    :param path: The name of the dataset.
-    :param entry_model: A type that inherits from pydantic.BaseModel and describes the entries in the dataset.
-    """
-    if entry_model is not None:
-        if not issubclass(entry_model, pydantic.BaseModel):
-            raise TypeError("Models have to inherit from the pydantic.BaseModel.")
+        if self._file_format == FileDatasetFormat.JSON:
+            with open(complete_path, "rt") as file:
+                data = json.load(file)
+        elif self._file_format == FileDatasetFormat.CSV:
+            with open(complete_path, "rt") as file:
+                data = list(csv.DictReader(file))
+        else:
+            raise ValueError(f"Unknown file format: {self._file_format}.")
 
-    with open(path, "rt") as file:
-        data = json.load(file)
-    if not isinstance(data, list):
-        raise RuntimeError("A JSON Test-Dataset has to be list.")
-    if entry_model is not None:
-        data = [entry_model(**item) for item in data]
-    return data
+        return [self._entry_model(**item) for item in data]

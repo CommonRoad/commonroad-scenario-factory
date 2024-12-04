@@ -1,12 +1,9 @@
-import pydantic
+from pydantic import ConfigDict, BaseModel
 
 
-class TestCase(pydantic.BaseModel):
+class TestCase(BaseModel):
     """
-    Base class for all Test Case Models.
+    Pydantic model for test cases.
     """
-
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     label: str
-
-    class Config:
-        arbitrary_types_allowed = True

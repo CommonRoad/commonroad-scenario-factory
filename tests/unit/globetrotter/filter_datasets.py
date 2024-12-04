@@ -19,7 +19,7 @@ class NoTrafficLightsTestCase(TestCase):
 # ---------------------------------
 
 NO_TRAFFIC_LIGHTS_TEST_DATASET = Dataset(
-    initial_entries=[
+    [
         NoTrafficLightsTestCase(
             label="empty_network",
             lanelet_network=UsefulLaneletNetworks.empty_no_meta(),
@@ -31,10 +31,9 @@ NO_TRAFFIC_LIGHTS_TEST_DATASET = Dataset(
             expect_match=True,
         ),
         NoTrafficLightsTestCase(
-            label="empty_network",
+            label="single_traffic_light",
             lanelet_network=UsefulLaneletNetworks.single_lanelet_traffic_light(),
             expect_match=False,
         ),
-    ],
-    entry_model=NoTrafficLightsTestCase,
+    ]
 )

@@ -1,7 +1,7 @@
 from commonroad.scenario.lanelet import LaneletNetwork
 
 from scenario_factory.globetrotter.filter import NoTrafficLightsFilter
-from tests.automation.marks import with_dataset
+from tests.automation.mark import with_dataset
 from tests.unit.globetrotter.filter_datasets import NO_TRAFFIC_LIGHTS_TEST_DATASET
 
 

@@ -67,24 +67,24 @@ class RegionsFromCsvTestCase(TestCase):
 # ---------------------------------
 
 COORDINATE_PARSING_TEST_DATASET = FileDataset(
-    ["unit", "globetrotter", "region", "coordinate_parsing"],
+    filename="unit/globetrotter/region/coordinate_parsing.csv",
     entry_model=CoordinateParsingTestCase,
-    dataset_format=FileDatasetFormat.CSV,
+    file_format=FileDatasetFormat.CSV,
 )
 REGION_METADATA_TEST_DATASET = FileDataset(
-    ["unit", "globetrotter", "region", "region_metadata"],
+    filename="unit/globetrotter/region/region_metadata.csv",
     entry_model=RegionMetadataTestCase,
-    dataset_format=FileDatasetFormat.CSV,
+    file_format=FileDatasetFormat.CSV,
 )
 BOUNDING_BOX_TO_STRING_TEST_DATASET = FileDataset(
-    ["unit", "globetrotter", "region", "bounding_box_to_string"],
+    filename="unit/globetrotter/region/bounding_box_to_string.csv",
     entry_model=BoundingBoxToStringTestCase,
-    dataset_format=FileDatasetFormat.CSV,
+    file_format=FileDatasetFormat.CSV,
 )
 BOUNDING_BOX_FROM_COORDINATES_TEST_DATASET = FileDataset(
-    dataset_name=["unit", "globetrotter", "region", "bounding_box_from_coordinates"],
+    filename="unit/globetrotter/region/bounding_box_from_coordinates.csv",
     entry_model=BoundingBoxFromCoordinatesTestCase,
-    dataset_format=FileDatasetFormat.CSV,
+    file_format=FileDatasetFormat.CSV,
 )
 
 
@@ -93,7 +93,7 @@ BOUNDING_BOX_FROM_COORDINATES_TEST_DATASET = FileDataset(
 # ---------------------------------
 
 REGIONS_FROM_CSV_TEST_DATASET = Dataset(
-    initial_entries=[
+    [
         RegionsFromCsvTestCase(label="empty", csv_file="empty_regions.csv", expected_regions=[]),
         RegionsFromCsvTestCase(
             label="single_entry",
@@ -110,6 +110,5 @@ REGIONS_FROM_CSV_TEST_DATASET = Dataset(
             csv_file="malformed_regions_missing_columns.csv",
             expected_regions=None,
         ),
-    ],
-    entry_model=RegionsFromCsvTestCase,
+    ]
 )

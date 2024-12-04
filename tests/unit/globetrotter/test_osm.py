@@ -13,7 +13,7 @@ from scenario_factory.globetrotter.osm import (
     get_canonical_region_name,
 )
 from scenario_factory.globetrotter.region import BoundingBox
-from tests.automation.marks import with_dataset, with_file_dataset
+from tests.automation.mark import with_dataset
 from tests.resources.interface import (
     ResourceType,
     TmpResourceEntry,
@@ -29,7 +29,7 @@ from tests.unit.globetrotter.osm_datasets import (
 
 
 class TestGlobals:
-    @with_file_dataset(CANONICAL_NAMES_TEST_DATASET)
+    @with_dataset(CANONICAL_NAMES_TEST_DATASET)
     def test_get_canonical_region_name(self, label, name, canonical_name):
         assert (
             get_canonical_region_name(name) == canonical_name
