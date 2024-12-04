@@ -30,11 +30,6 @@ from scenario_factory.scenario_config import ScenarioFactoryConfig
 from scenario_factory.simulation import SimulationConfig, SimulationMode
 from scenario_factory.utils import configure_root_logger
 
-# Set Matplotlib to a non-GUI backend to avoid GUI-related issues in threads
-matplotlib.use("Agg")
-# Disable interactive mode to prevent GUI windows from opening
-plt.ioff()
-
 
 @click.command()
 @click.option(
