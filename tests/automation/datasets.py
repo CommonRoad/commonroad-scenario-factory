@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from enum import Enum, auto
 from pathlib import Path
 from typing import Generator, Iterable
@@ -48,6 +48,7 @@ class MergedDataset(DatasetInterface):
     """
     Utility dataset implementation that loads from multiple subsets.
     """
+
     _subsets: list[DatasetInterface]
 
     def __init__(self, subsets: Iterable[DatasetInterface]):
@@ -63,7 +64,9 @@ class MergedDataset(DatasetInterface):
         """
         for case in subset.iterate_entries():
             if self.contains_entry(case.label):
-                raise ValueError("Cannot extend with a dataset that contains duplicated label names.")
+                raise ValueError(
+                    "Cannot extend with a dataset that contains duplicated label names."
+                )
         self._subsets.append(subset)
 
     def iterate_entries(self) -> Generator[TestCase, None, None]:
@@ -87,6 +90,7 @@ class Dataset(DatasetInterface):
     """
     Implements the dataset interface for dynamically managed datasets.
     """
+
     _entries: dict[str, TestCase]
 
     def __init__(self, entries: Iterable[TestCase]):
@@ -168,7 +172,9 @@ class FileDataset(DatasetInterface):
     def _load_from_file(self) -> list[TestCase]:
         complete_path = get_test_dataset_root() / self._filename
         if not complete_path.exists():
-            raise FileNotFoundError(f"The dataset could not be loaded, because {complete_path} does not exist.")
+            raise FileNotFoundError(
+                f"The dataset could not be loaded, because {complete_path} does not exist."
+            )
 
         if self._file_format == FileDatasetFormat.JSON:
             with open(complete_path, "rt") as file:

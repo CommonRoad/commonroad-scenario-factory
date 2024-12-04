@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 import inspect
 import itertools
 from typing import Iterable, Sequence
+
 import pytest
 
 from tests.automation.datasets import DatasetInterface
@@ -62,34 +64,46 @@ class _DatasetMarker:
     """
     Utility object that is injected on a test function by the with_dataset attribute. Is handled by a pytest hook to load test cases.
     """
+
     dataset: DatasetInterface
     parameter_names: list[str]
     skips: dict[str, SkipNote]
 
-    def __init__(self, dataset: DatasetInterface, parameter_names: list[str], skips: dict[str, SkipNote]):
+    def __init__(
+        self, dataset: DatasetInterface, parameter_names: list[str], skips: dict[str, SkipNote]
+    ):
         self.dataset = dataset
         self.parameter_names = parameter_names
         self.skips = skips
 
     def create_extended(self, marker: _DatasetMarker) -> _DatasetMarker:
         if self.parameter_names != marker.parameter_names:
-            raise ValueError("Multiple with_dataset annotations are only allowed if the same parameter names are targeted.")
+            raise ValueError(
+                "Multiple with_dataset annotations are only allowed if the same parameter names are targeted."
+            )
         skips = {}
         for label, skip_note in itertools.chain(self.skips.items(), marker.skips.items()):
             skips[label] = skip_note
-        return _DatasetMarker(self.dataset.create_extended(marker.dataset), self.parameter_names, skips)
+        return _DatasetMarker(
+            self.dataset.create_extended(marker.dataset), self.parameter_names, skips
+        )
 
 
 class with_dataset:
     """
     Decorator to enable dynamically loading test cases from a Dataset.
     """
+
     _dataset: DatasetInterface
     _parameter_names: list[str] | None
     _skips: dict[str, SkipNote]
 
-    def __init__(self, dataset: DatasetInterface, parameter_names: Sequence[str] | None = None,
-                 skips: Iterable[SkipNote | str] | None = None):
+    def __init__(
+        self,
+        dataset: DatasetInterface,
+        parameter_names: Sequence[str] | None = None,
+        skips: Iterable[SkipNote | str] | None = None,
+    ):
         """
         Mark a test function to load cases from a dataset.
         :param dataset: The dataset containing the cases.
@@ -140,7 +154,9 @@ def _apply_parametrization(metafunc: pytest.Metafunc):
     for case in marker.dataset.iterate_entries():
         skip_note = marker.skips.get(case.label, None)
         marks = () if skip_note is None else pytest.mark.skip(reason=skip_note.reason)
-        param = pytest.param(*tuple(getattr(case, pname) for pname in marker.parameter_names), marks=marks)
+        param = pytest.param(
+            *tuple(getattr(case, pname) for pname in marker.parameter_names), marks=marks
+        )
         params.append(param)
     metafunc.parametrize(", ".join(marker.parameter_names), params)
 
