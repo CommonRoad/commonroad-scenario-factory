@@ -20,13 +20,13 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _get_new_sumo_config_for_scenario(
-    scenario: Scenario, simulation_config: SimulationConfig, seed: int
+    scenario: Scenario, simulation_config: SimulationConfig
 ) -> SumoConfig:
     new_sumo_config = SumoConfig()
     # TODO: make this cleaner and maybe also apply to OTS simulation?
 
-    new_sumo_config.random_seed = seed
-    new_sumo_config.random_seed_trip_generation = seed
+    new_sumo_config.random_seed = simulation_config.seed
+    new_sumo_config.random_seed_trip_generation = simulation_config.seed
     new_sumo_config.scenario_name = str(scenario.scenario_id)
     new_sumo_config.dt = scenario.dt
     # Disable highway mode so that intersections are not falsely identified as zipper junctions
@@ -134,7 +134,6 @@ def simulate_commonroad_scenario_with_sumo(
     scenario: Scenario,
     simulation_config: SimulationConfig,
     working_directory: Path,
-    seed: int,
 ) -> Scenario:
     """
     Simulate a CommonRoad scenario with the micrsocopic simulator SUMO. Currently, only random traffic generation is supported.
@@ -148,7 +147,7 @@ def simulate_commonroad_scenario_with_sumo(
 
     :raises ValueError: If the selected simulation config is invalid.
     """
-    sumo_config = _get_new_sumo_config_for_scenario(scenario, simulation_config, seed)
+    sumo_config = _get_new_sumo_config_for_scenario(scenario, simulation_config)
 
     traffic_generation_mode = _get_traffic_generation_mode_for_simulation_mode(
         simulation_config.mode

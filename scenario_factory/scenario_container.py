@@ -30,7 +30,13 @@ from commonroad.scenario.scenario import Scenario, ScenarioID
 from typing_extensions import Self, Unpack
 
 from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
-from scenario_factory.metrics import CriticalityMetrics, GeneralScenarioMetric, WaymoMetric
+from scenario_factory.metrics import (
+    CriticalityMetrics,
+    GeneralScenarioMetric,
+    WaymoMetric,
+    write_general_scenario_metrics_to_csv,
+    write_waymo_metrics_to_csv,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -453,82 +459,29 @@ def write_criticality_metrics_of_scenario_containers_to_csv(
 def write_general_scenario_metrics_of_scenario_containers_to_csv(
     scenario_containers: Iterable[ScenarioContainer], csv_file_path: Path
 ) -> None:
-    formatted_data = []
-
+    general_scenario_metrics = []
     for scenario_container in scenario_containers:
         general_scenario_metric = scenario_container.get_attachment(GeneralScenarioMetric)
         if general_scenario_metric is None:
             raise ValueError(
                 f"Cannot write scenario metrics of scenario {scenario_container.scenario.scenario_id} to csv file at {csv_file_path}: Scenario does not have a `GeneralScenarioMetric` attachment, but one is required!"
             )
-        formatted_data.append(
-            [
-                str(scenario_container.scenario.scenario_id),
-                general_scenario_metric.frequency,
-                general_scenario_metric.velocity_mean,
-                general_scenario_metric.velocity_stdev,
-                general_scenario_metric.traffic_density_mean,
-                general_scenario_metric.traffic_density_stdev,
-            ]
-        )
 
-    with open(csv_file_path, "w") as csv_file:
-        csv_writer = csv.writer(csv_file)
-        csv_writer.writerow(
-            [
-                "scenario_id",
-                "f [1/s]",
-                "v mean [m/s]",
-                "v stdev [m/s]",
-                "rho mean [1/km]",
-                "rho stdev [1/km]",
-            ]
-        )
-        csv_writer.writerows(formatted_data)
+        general_scenario_metrics.append(general_scenario_metric)
+
+    write_general_scenario_metrics_to_csv(general_scenario_metrics, csv_file_path)
 
 
 def write_waymo_metrics_of_scenario_containers_to_csv(
     scenario_containers: Iterable[ScenarioContainer], csv_file_path: Path
 ) -> None:
-    formatted_data = []
+    waymo_metrics = []
     for scenario_container in scenario_containers:
-        waymo_metrics = scenario_container.get_attachment(WaymoMetric)
-        if waymo_metrics is None:
-            raise RuntimeError()
-        formatted_data.append(
-            {
-                "scenario_id": str(scenario_container.scenario.scenario_id),
-                "ade3": waymo_metrics.ade3,
-                "ade5": waymo_metrics.ade5,
-                "ade8": waymo_metrics.ade8,
-                "fde3": waymo_metrics.fde3,
-                "fde5": waymo_metrics.fde5,
-                "fde8": waymo_metrics.fde8,
-                "mr3": waymo_metrics.mr3,
-                "mr5": waymo_metrics.mr5,
-                "mr8": waymo_metrics.mr8,
-                "rmse_mean": waymo_metrics.rmse_mean,
-                "rmse_stdev": waymo_metrics.rmse_stdev,
-            }
-        )
+        waymo_metric = scenario_container.get_attachment(WaymoMetric)
+        if waymo_metric is None:
+            raise ValueError(
+                f"Cannot write waymo metrics of scenario {scenario_container.scenario.scenario_id} to csv file at {csv_file_path}: Scenario does not have a `WaymoMetric` attachment, but one is required!"
+            )
+        waymo_metrics.append(waymo_metric)
 
-    with open(csv_file_path, "w") as csv_file:
-        csv_writer = csv.DictWriter(
-            csv_file,
-            fieldnames=[
-                "scenario_id",
-                "ade3",
-                "ade5",
-                "ade8",
-                "fde3",
-                "fde5",
-                "fde8",
-                "mr3",
-                "mr5",
-                "mr8",
-                "rmse_mean",
-                "rmse_stdev",
-            ],
-        )
-        csv_writer.writeheader()
-        csv_writer.writerows(formatted_data)
+    write_waymo_metrics_to_csv(waymo_metrics, csv_file_path)

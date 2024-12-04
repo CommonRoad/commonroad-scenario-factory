@@ -13,12 +13,12 @@ from tests.unit.simulation.simulator_test_base import SimulatorTestBase
 
 class TestSimulateCommonroadScenarioWithOts(SimulatorTestBase):
     def simulate(
-        self, scenario: Scenario, simulation_config: SimulationConfig, seed: int
+        self, scenario: Scenario, simulation_config: SimulationConfig
     ) -> Optional[Scenario]:
-        return simulate_commonroad_scenario_with_ots(scenario, simulation_config, seed)
+        return simulate_commonroad_scenario_with_ots(scenario, simulation_config)
 
     def test_refuses_to_resimulate_empty_scenario(self):
         scenario = Scenario(dt=0.1)
         simulation_config = SimulationConfig(mode=SimulationMode.RESIMULATION)
         with pytest.raises(RuntimeError):
-            simulate_commonroad_scenario_with_ots(scenario, simulation_config, 100)
+            simulate_commonroad_scenario_with_ots(scenario, simulation_config)

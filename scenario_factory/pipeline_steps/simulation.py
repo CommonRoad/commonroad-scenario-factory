@@ -41,9 +41,8 @@ def pipeline_simulate_scenario_with_sumo(
     intermediate_sumo_files_path = output_folder.joinpath(str(commonroad_scenario.scenario_id))
     intermediate_sumo_files_path.mkdir(parents=True, exist_ok=True)
 
-    seed = ctx.get_scenario_factory_config().seed
     simulated_scenario = simulate_commonroad_scenario_with_sumo(
-        commonroad_scenario, args.config, intermediate_sumo_files_path, seed
+        commonroad_scenario, args.config, intermediate_sumo_files_path
     )
     _LOGGER.debug(
         "Simulated scenario %s with SUMO and created %s new obstacles",
@@ -68,10 +67,7 @@ def pipeline_simulate_scenario_with_ots(
     Simulate a scenario with OTS.
     """
     commonroad_scenario = scenario_container.scenario
-    seed = ctx.get_scenario_factory_config().seed
-    simulated_scenario = simulate_commonroad_scenario_with_ots(
-        commonroad_scenario, args.config, seed
-    )
+    simulated_scenario = simulate_commonroad_scenario_with_ots(commonroad_scenario, args.config)
     _LOGGER.debug(
         "Simulated scenario %s with OTS and created %s new obstacles",
         simulated_scenario.scenario_id,

@@ -2,9 +2,9 @@ from commonroad.scenario.scenario import Scenario
 
 
 def get_frame_factor_sim(scenario: Scenario) -> float:
-    simulation_mode = int(str(scenario.scenario_id).split("_")[2])
-    if simulation_mode > 2:  # demand, infrastructure, or random
-        return 1.0
+    """
+    Use this to calculate the frame factor for simulations run with `SimulationMode.RESIMULATION` and `SimulationMode.DELAY`.
+    """
     scenario_id = str(scenario.scenario_id).split("-")[-3]
     match scenario_id:
         case "DEU_MONAEast":
