@@ -12,11 +12,15 @@ from scenario_factory.utils import align_trajectory_to_time_step
 class _StateArguments(TypedDict, total=False):
     position: Union[np.ndarray, Tuple[float, float], List[float]]
     velocity: float
+    orientation: float
 
 
 def _create_state_from_state_arguments(
     time_step: int, **kwargs: Unpack[_StateArguments]
 ) -> TraceState:
+    """
+    Helper to create a state. Handles automatic conversion of arguments.
+    """
     position = kwargs.get("position")
     if isinstance(position, tuple) or isinstance(position, list):
         if len(position) != 2:
@@ -25,7 +29,12 @@ def _create_state_from_state_arguments(
             )
         position = np.array(position)
 
-    state_attributes = {"time_step": time_step, "position": position}
+    state_attributes = {
+        "time_step": time_step,
+        "position": position,
+        "velocity": kwargs.get("velocity"),
+        "orientation": kwargs.get("orientation"),
+    }
     return CustomState(**state_attributes)
 
 

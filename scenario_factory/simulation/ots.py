@@ -325,7 +325,7 @@ def _patch_scenario_metadata_after_simulation(simulated_scenario: Scenario):
 
 
 def simulate_commonroad_scenario_with_ots(
-    commonroad_scenario: Scenario, simulation_config: SimulationConfig, seed: int
+    commonroad_scenario: Scenario, simulation_config: SimulationConfig
 ) -> Scenario:
     """
     Use the microscopic traffic simulator OTS, to simulate the scenario according to the simulation mode in `simulation_config`.
@@ -342,7 +342,10 @@ def simulate_commonroad_scenario_with_ots(
     # Scenario must be copied, because it might be modified during the simulation
     input_scenario = copy_scenario(commonroad_scenario)
     new_scenario = _execute_ots_simulation(
-        input_scenario, simulation_config.mode, seed, simulation_config.simulation_steps
+        input_scenario,
+        simulation_config.mode,
+        simulation_config.seed,
+        simulation_config.simulation_steps,
     )
 
     scenario_length = get_scenario_final_time_step(new_scenario)

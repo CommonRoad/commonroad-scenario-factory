@@ -7,14 +7,14 @@ __all__ = [
 import copy
 import logging
 import math
-from typing import List, Optional, Set, Tuple
+from typing import List, Set, Tuple
 
 import numpy as np
 from commonroad.common.solution import (
     PlanningProblemSolution,
 )
 from commonroad.common.util import Interval
-from commonroad.geometry.shape import Rectangle, Shape
+from commonroad.geometry.shape import Rectangle
 from commonroad.planning.goal import GoalRegion
 from commonroad.planning.planning_problem import PlanningProblem, PlanningProblemSet
 from commonroad.prediction.prediction import TrajectoryPrediction
@@ -31,25 +31,10 @@ from scenario_factory.utils import (
     copy_scenario,
     create_planning_problem_solution_for_ego_vehicle,
     crop_dynamic_obstacle_to_time_frame,
+    find_most_likely_lanelet_by_state,
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _find_most_likely_lanelet_by_state(
-    lanelet_network: LaneletNetwork, state: TraceState
-) -> Optional[int]:
-    if not isinstance(state.position, Shape):
-        return None
-
-    lanelet_ids = lanelet_network.find_lanelet_by_shape(state.position)
-    if len(lanelet_ids) == 0:
-        return None
-
-    if len(lanelet_ids) == 1:
-        return lanelet_ids[0]
-
-    return lanelet_ids[0]
 
 
 def _select_obstacles_in_sensor_range_of_ego_vehicle(
@@ -125,41 +110,63 @@ def _create_planning_problem_goal_state_for_ego_vehicle(
     return goal_state
 
 
-def _create_planning_problem_for_ego_vehicle(
+def create_planning_problem_for_ego_vehicle(
     lanelet_network: LaneletNetwork,
     ego_vehicle: DynamicObstacle,
     planning_problem_with_lanelet: bool = True,
 ) -> PlanningProblem:
     """
-    Create a new planning problem for the trajectory of the :param:`ego_vehicle`. The initial and final state will become the start and goal state of the planning problem, while the trajectory will be used as the solution trajectory.
+    Create a new planning problem for the trajectory of the `ego_vehicle`. The initial and final state will become the start and goal state of the planning problem.
 
-    :param lanelet_network: Lanelet network used to match the goal state to the final lanelets
+    :param lanelet_network: Lanelet network used to match the goal state to the final lanelets, if `planning_problem_with_lanelet` is set.
     :param ego_vehicle: The ego vehicle with a trajectory that will form the basis for the planning problem
-    :param planning_problem_with_lanelet: Whether the goal region should also contain references to the final lanelet
+    :param planning_problem_with_lanelet: Whether the goal region should also contain references to the final lanelet. If the intial state and goal region are on the same lanelet, the goal region will not contain a reference to the final lanelet.
 
-    :returns: A new PlanningProblem for the :param:`ego_vehicle`
+    :returns: A new PlanningProblem for the `ego_vehicle`
     """
     initial_state = _create_planning_problem_initial_state_for_ego_vehicle(ego_vehicle)
     goal_state = _create_planning_problem_goal_state_for_ego_vehicle(ego_vehicle)
 
     goal_region_lanelet_mapping = None
     if planning_problem_with_lanelet is True:
-        # We should create a planning problem goal region, that is associated with the lanelet on which the ego vehicle lands in its goal_state
-        lanelet_id_at_goal_state = _find_most_likely_lanelet_by_state(
-            lanelet_network=lanelet_network, state=goal_state
-        )
+        # We should create a planning problem with a goal region, that is associated with the lanelet on which the ego vehicle lands in its goal_state
+        lanelet_id_at_goal_state = find_most_likely_lanelet_by_state(lanelet_network, goal_state)
         if lanelet_id_at_goal_state is None:
             raise ValueError(
-                f"Tried to match ego vehicle {ego_vehicle} to the lanelet in its goal state, but no lanelet could be found for state: {goal_state}"
+                f"Tried to match ego vehicle {ego_vehicle.obstacle_id} to the lanelet in its goal state, but no lanelet could be found for state: {goal_state}."
             )
 
-        # Create the mapping to be used by the GoalRegion construction
-        goal_region_lanelet_mapping = {0: [lanelet_id_at_goal_state]}
+        # Also check the initial lanelet, to determine if the goal and initial lanelet are the same
+        lanelet_id_at_initial_state = find_most_likely_lanelet_by_state(
+            lanelet_network, initial_state
+        )
+        if lanelet_id_at_initial_state is None:
+            # We are sometimes not able to match the initial state to a lanelet,
+            # because the trajectories begin outside of the lanelet network.
+            # In such cases, we cannot guarantee that the goal state and initial state are
+            # not directly on the same lanelet and therefore do not associate
+            # the goal region with the goal lanelet.
+            _LOGGER.debug(
+                f"While creating planning problem for ego vehicle {ego_vehicle.obstacle_id} tried to match initial state of ego vehicle to a lanelet, but initial state is not on the lanelet network."
+            )
+        elif lanelet_id_at_initial_state == lanelet_id_at_goal_state:
+            # If the initial state and goal state happen on the same lanelet,
+            # the goal lanelet will not be associated with the goal region, because
+            # otherwise the planning problem would already be solved by the initial state.
+            _LOGGER.debug(
+                f"While creating planning problem for ego vehicle {ego_vehicle.obstacle_id} matched goal state and initial state to same lanelet. This configuration is invalid, therefore the planning problem will not have a goal lanelet set."
+            )
+        else:
+            # Create the mapping to be used by the GoalRegion construction.
+            # Generally, we could also set multiple lanelets per state, but then this would clash
+            # with the `position` of the goal state, which is set to the polygon of the
+            # associated lanelet.
+            goal_region_lanelet_mapping = {0: [lanelet_id_at_goal_state]}
 
-        # Patch the postion of the goal state to match the whole lanelet
-        # TODO: This was the behaviour of the original code. Is this the correct behaviour?
-        lanelet_at_goal_state = lanelet_network.find_lanelet_by_id(lanelet_id_at_goal_state)
-        goal_state.position = lanelet_at_goal_state.polygon
+            # Patch the postion of the goal state to match the whole lanelet
+            # TODO: This was the behaviour of the original code. Is this the correct behaviour?
+            lanelet_at_goal_state = lanelet_network.find_lanelet_by_id(lanelet_id_at_goal_state)
+            goal_state.position = lanelet_at_goal_state.polygon
 
     goal_region = GoalRegion([goal_state], goal_region_lanelet_mapping)
     planning_problem_id = ego_vehicle.obstacle_id
@@ -180,7 +187,7 @@ def create_planning_problem_set_and_solution_for_ego_vehicle(
 
     :returns: The planning problem set and its associated solution
     """
-    planning_problem = _create_planning_problem_for_ego_vehicle(
+    planning_problem = create_planning_problem_for_ego_vehicle(
         scenario.lanelet_network, ego_vehicle, planning_problem_with_lanelet
     )
     planning_problem_set = PlanningProblemSet([planning_problem])

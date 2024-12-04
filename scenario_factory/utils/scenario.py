@@ -1,10 +1,15 @@
 import copy
-from typing import Iterator, List, Tuple
+from typing import Iterator, List, Optional, Tuple
 
-from commonroad.common.util import Interval
+import numpy as np
+from commonroad.common.util import Interval, subtract_orientations
+from commonroad.geometry.shape import Circle, Polygon, Rectangle, Shape
 from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
+from commonroad.scenario.state import TraceState
+
+from scenario_factory.utils.types import is_state_with_orientation, is_state_with_position
 
 
 def get_scenario_final_time_step(scenario: Scenario) -> int:
@@ -171,3 +176,142 @@ def iterate_zipped_dynamic_obstacles_from_scenarios(
 
             all_obstacles.append(dynamic_obstacle)
         yield tuple(all_obstacles)
+
+
+def _get_position_point_from_state(state: TraceState) -> Optional[np.ndarray]:
+    """
+    Reliably get the position of `state` as a single point.
+
+    The position of a state can either be a point or a shape. This function either returns the position if it already is a point, or returns the center of the shape as the position point.
+
+    :param state: The state with a position attribute.
+
+    :returns: The position as a single point, or None if the state does not have the `position `attribute.
+
+    :raises ValueError: If the states position is not a valid shape or a numpy array.
+    """
+    if not is_state_with_position(state):
+        return None
+
+    if (
+        isinstance(state.position, Rectangle)
+        or isinstance(state.position, Circle)
+        or isinstance(state.position, Polygon)
+    ):
+        return state.position.center
+    elif isinstance(state.position, np.ndarray):
+        return state.position
+    else:
+        raise ValueError(
+            f"Cannot get position point from state {state}: states position is neither a supported shape nor a numpy arrary!"
+        )
+
+
+def _get_orientation_from_state(state: TraceState) -> Optional[float]:
+    """
+    Reliably determine the orientation of `state` as float.
+
+    :param state: The state from which the orientation should be retrived.
+
+    :returns: The orientation as a float, or None if no orientation is set.
+    """
+    if (
+        is_state_with_position(state)
+        and isinstance(state.position, Rectangle)
+        and state.position.orientation is not None
+    ):
+        return state.position.orientation
+
+    if is_state_with_orientation(state) and isinstance(state.orientation, float):
+        return state.orientation
+    return None
+
+
+def find_lanelets_by_state(lanelet_network: LaneletNetwork, state: TraceState) -> List[int]:
+    """
+    Find all lanelets in `lanelet_network` which match the position of `state`.
+
+    :param lanelet_network: The `LaneletNetwork` on which `state` will be matched.
+    :param state: The state to match to `lanelet_network`. Must have the `position` attribute.
+
+    :returns: A list of lanelet ids, which match `state`.
+
+    :raises ValueError: If state does not have a `position` attribute or if the `position` attribute is invalid.
+    """
+    if not is_state_with_position(state):
+        raise ValueError(
+            f"Cannot find lanelets for state {state}: state does not have required 'position' attribute!"
+        )
+
+    if isinstance(state.position, Shape):
+        lanelet_ids = lanelet_network.find_lanelet_by_shape(state.position)
+        return lanelet_ids
+    elif isinstance(state.position, np.ndarray):
+        position_lanelet_ids = lanelet_network.find_lanelet_by_position([state.position])
+        assert (
+            len(position_lanelet_ids) == 1
+        ), "`LaneletNetwork.find_lanelet_by_position` did not return anything for our input. This is a bug in commonroad-io!"
+        lanelet_ids = position_lanelet_ids[0]
+        return lanelet_ids
+    else:
+        raise ValueError(
+            f"Cannot find lanelets for state {state}: states' position is neither a valid shape nor a numpy array!"
+        )
+
+
+def find_most_likely_lanelet_by_state(
+    lanelet_network: LaneletNetwork, state: TraceState
+) -> Optional[int]:
+    """
+    Alternative implementation of `LaneletNetwork.find_most_likely_lanelet_by_state` which can handle different combinations of state attributes. Espacially, states whose position is a shape and not a single point.
+
+    :param lanelet_network: The `LaneletNetwork` to which `state` will be matched.
+    :param state: The state which should be matched. Must have at least the `position` attribute. Should have `orientation` attribute, for most likely lanelet matching to work.
+
+    :returns: None if no lanelet matches the state. Otherwise the ID of the most likely lanelet.
+
+    :raises ValueError: If `state` does not have the `position` or `orientation` attribute.
+    """
+    lanelet_ids = find_lanelets_by_state(lanelet_network, state)
+
+    if len(lanelet_ids) == 0:
+        return None
+    elif len(lanelet_ids) == 1:
+        return lanelet_ids[0]
+
+    # Multiple matching lanelets were found, so we need to determine the most likely one
+    position_point = _get_position_point_from_state(state)
+    if position_point is None:
+        raise ValueError(
+            f"Cannot find most likely lanelet for state {state}: state does not have required 'position' attribute!"
+        )
+
+    orientation = _get_orientation_from_state(state)
+    if orientation is None:
+        raise ValueError(
+            f"Cannot find most likely lanelet for state {state}: state does not have required 'orientation' attribute!"
+        )
+
+    lanelets = [lanelet_network.find_lanelet_by_id(lanelet_id) for lanelet_id in lanelet_ids]
+
+    try:
+        lanelet_orientations = [
+            lanelet.orientation_by_position(position_point) for lanelet in lanelets
+        ]
+    except AssertionError:
+        # It is possible that `Lanelet.orientation_by_position` fails with an `AssertionError`
+        # when the position point is located unfavourably inside the lanelet.
+        # Although not optimal, in this case it is possible to simply select the first lanelet as the
+        # most likely lanelet.
+        # TODO: In the future, it might make sense to fallback to another selection approach in this case.
+        return lanelet_ids[0]
+
+    relative_orientations = [
+        abs(subtract_orientations(lanelet_orientation, orientation))
+        for lanelet_orientation in lanelet_orientations
+    ]
+
+    sorted_indices = np.argsort(np.array(relative_orientations))
+    lanelet_id = np.array(lanelet_ids).astype(int)[sorted_indices][0]
+    # Must cast to int, because otherwise `lanelet_id` would be of some numpy int type
+    return int(lanelet_id)

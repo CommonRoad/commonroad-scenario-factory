@@ -38,6 +38,8 @@ __all__ = [
     "calculate_driven_distance_of_dynamic_obstacle",
     "get_dynamic_obstacle_ids_in_scenario",
     "iterate_zipped_dynamic_obstacles_from_scenarios",
+    "find_lanelets_by_state",
+    "find_most_likely_lanelet_by_state",
 ]
 
 from .align import (
@@ -63,6 +65,8 @@ from .obstacle import (
 )
 from .scenario import (
     copy_scenario,
+    find_lanelets_by_state,
+    find_most_likely_lanelet_by_state,
     get_dynamic_obstacle_ids_in_scenario,
     get_scenario_final_time_step,
     get_scenario_start_time_step,

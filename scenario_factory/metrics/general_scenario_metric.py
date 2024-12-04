@@ -1,20 +1,25 @@
-import logging
+import csv
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import List, Tuple
+from pathlib import Path
+from typing import List, Sequence, Tuple
 
 import numpy as np
+from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.lanelet import Lanelet
 from commonroad.scenario.scenario import Scenario
 
+from scenario_factory.metrics.base import BaseMetric, combine_metrics
 from scenario_factory.utils import (
     get_scenario_final_time_step,
     get_scenario_start_time_step,
 )
 
+_DEFAULT_GENERAL_SCENARIO_METRIC_PRECISION = 2
+
 
 @dataclass
-class GeneralScenarioMetric:
+class GeneralScenarioMetric(BaseMetric):
     """
     Data class for the initial submission metrics.
     """
@@ -27,6 +32,60 @@ class GeneralScenarioMetric:
 
     def __str__(self) -> str:
         return f"f: {self.frequency:.4f}, rho_mu: {self.traffic_density_mean:.4f}, rho_sigma: {self.traffic_density_stdev:.4f}, v_mu: {self.velocity_mean:.4f}, v_sigma: {self.velocity_stdev:.4f}"
+
+
+def write_general_scenario_metrics_to_csv(
+    general_scenario_metric_collection: Sequence[GeneralScenarioMetric], csv_file_path: Path
+) -> None:
+    """
+    Write `general_scenario_metric_collection` in CSV format to `csv_file_path`. Metrics for the same scenario id will be combined automatically.
+
+    :param: Collection of `GeneralScenarioMetric`. May contain multiple metrics for the same scenario ID.
+    :param csv_file_path: File path, where CSV data will be written to.
+
+    :returns: Nothing.
+    """
+
+    formatted_data = []
+    for general_scenario_metric in combine_metrics(general_scenario_metric_collection):
+        formatted_data.append(
+            [
+                str(general_scenario_metric.scenario_id),
+                round(
+                    general_scenario_metric.frequency, _DEFAULT_GENERAL_SCENARIO_METRIC_PRECISION
+                ),
+                round(
+                    general_scenario_metric.traffic_density_mean,
+                    _DEFAULT_GENERAL_SCENARIO_METRIC_PRECISION,
+                ),
+                round(
+                    general_scenario_metric.traffic_density_stdev,
+                    _DEFAULT_GENERAL_SCENARIO_METRIC_PRECISION,
+                ),
+                round(
+                    general_scenario_metric.velocity_mean,
+                    _DEFAULT_GENERAL_SCENARIO_METRIC_PRECISION,
+                ),
+                round(
+                    general_scenario_metric.velocity_stdev,
+                    _DEFAULT_GENERAL_SCENARIO_METRIC_PRECISION,
+                ),
+            ]
+        )
+
+    with open(csv_file_path, "w") as csv_file:
+        csv_writer = csv.writer(csv_file)
+        csv_writer.writerow(
+            [
+                "scenario_id",
+                "f [1/s]",
+                "rho mean [1/km]",
+                "rho stdev [1/km]",
+                "v mean [m/s]",
+                "v stdev [m/s]",
+            ]
+        )
+        csv_writer.writerows(formatted_data)
 
 
 def compute_general_scenario_metric(
@@ -45,13 +104,13 @@ def compute_general_scenario_metric(
     traffic_density_mean, traffic_density_stdev = _compute_traffic_density(scenario, frame_factor)
     velocity_mean, velocity_stdev = _compute_velocity(scenario)
 
-    precision = 3
     return GeneralScenarioMetric(
-        frequency=round(frequency, precision),
-        traffic_density_mean=round(traffic_density_mean, precision),
-        traffic_density_stdev=round(traffic_density_stdev, precision),
-        velocity_mean=round(velocity_mean, precision),
-        velocity_stdev=round(velocity_stdev, precision),
+        scenario_id=scenario.scenario_id,
+        frequency=frequency,
+        traffic_density_mean=traffic_density_mean,
+        traffic_density_stdev=traffic_density_stdev,
+        velocity_mean=velocity_mean,
+        velocity_stdev=velocity_stdev,
     )
 
 
@@ -68,10 +127,10 @@ def _compute_spawn_frequency(scenario: Scenario) -> float:
         return 0.0
 
     max_time_step = get_scenario_final_time_step(scenario)
-    if max_time_step == 0:
+    if max_time_step <= min_time_step:
         return 0.0
 
-    return number_of_spawned_vehicles / (scenario.dt * max_time_step)
+    return number_of_spawned_vehicles / (scenario.dt * (max_time_step - min_time_step))
 
 
 def _compute_velocity(scenario: Scenario) -> Tuple[float, float]:
@@ -79,10 +138,7 @@ def _compute_velocity(scenario: Scenario) -> Tuple[float, float]:
     velocities_at_k = defaultdict(list)
 
     for obs in scenario.dynamic_obstacles:
-        if not obs.prediction:
-            logging.warning(
-                f"Missing prediction for dynamic obstacle: {scenario.scenario_id}, {obs.obstacle_id}"
-            )  # TODO how?
+        if not isinstance(obs.prediction, TrajectoryPrediction):
             continue
         for state in obs.prediction.trajectory.state_list:
             velocities_at_k[state.time_step].append(state.velocity)
