@@ -1,3 +1,4 @@
+import builtins
 import collections.abc
 import logging
 import random
@@ -6,7 +7,9 @@ import time
 import traceback
 import warnings
 from concurrent.futures import Future, ThreadPoolExecutor
+from contextlib import contextmanager
 from typing import (
+    Callable,
     Iterable,
     List,
     Optional,
@@ -25,9 +28,24 @@ from scenario_factory.pipeline.pipeline_step import (
     PipelineStepResult,
     PipelineStepType,
 )
-from scenario_factory.utils import redirect_all_print_calls_to
 
 _LOGGER = logging.getLogger(__name__)
+
+
+@contextmanager
+def _redirect_all_print_calls_to(target: Optional[Callable] = None):
+    """
+    Patch out the python builtin `print` function so that it becomes a nop.
+    """
+    backup_print = builtins.print
+    if target is None:
+        builtins.print = lambda *args, **kwargs: None
+    else:
+        builtins.print = target
+    try:
+        yield
+    finally:
+        builtins.print = backup_print
 
 
 def _wrap_pipeline_step(
@@ -279,7 +297,7 @@ class PipelineExecutor:
             # the whole print function is replaced for the pipeline execution.
             # Generally, all functions should make use of the logging module...
             print_redirection_target = None if suppress_print else print
-            with redirect_all_print_calls_to(print_redirection_target):
+            with _redirect_all_print_calls_to(print_redirection_target):
                 for elem in input_values:
                     self._submit_step_for_execution(self._steps[0], 0, elem)
 

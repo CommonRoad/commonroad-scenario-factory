@@ -1,15 +1,25 @@
-import logging
+import csv
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict, Tuple
+from pathlib import Path
+from typing import List, Sequence, Tuple
 
 import numpy as np
+from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.lanelet import Lanelet
 from commonroad.scenario.scenario import Scenario
 
+from scenario_factory.metrics.base import BaseMetric, combine_metrics
+from scenario_factory.utils import (
+    get_scenario_final_time_step,
+    get_scenario_start_time_step,
+)
+
+_DEFAULT_GENERAL_SCENARIO_METRIC_PRECISION = 2
+
 
 @dataclass
-class GeneralScenarioMetric:
+class GeneralScenarioMetric(BaseMetric):
     """
     Data class for the initial submission metrics.
     """
@@ -24,20 +34,78 @@ class GeneralScenarioMetric:
         return f"f: {self.frequency:.4f}, rho_mu: {self.traffic_density_mean:.4f}, rho_sigma: {self.traffic_density_stdev:.4f}, v_mu: {self.velocity_mean:.4f}, v_sigma: {self.velocity_stdev:.4f}"
 
 
-def compute_general_scenario_metric(scenario: Scenario, is_orig: bool) -> GeneralScenarioMetric:
+def write_general_scenario_metrics_to_csv(
+    general_scenario_metric_collection: Sequence[GeneralScenarioMetric], csv_file_path: Path
+) -> None:
+    """
+    Write `general_scenario_metric_collection` in CSV format to `csv_file_path`. Metrics for the same scenario id will be combined automatically.
+
+    :param: Collection of `GeneralScenarioMetric`. May contain multiple metrics for the same scenario ID.
+    :param csv_file_path: File path, where CSV data will be written to.
+
+    :returns: Nothing.
+    """
+
+    formatted_data = []
+    for general_scenario_metric in combine_metrics(general_scenario_metric_collection):
+        formatted_data.append(
+            [
+                str(general_scenario_metric.scenario_id),
+                round(
+                    general_scenario_metric.frequency, _DEFAULT_GENERAL_SCENARIO_METRIC_PRECISION
+                ),
+                round(
+                    general_scenario_metric.traffic_density_mean,
+                    _DEFAULT_GENERAL_SCENARIO_METRIC_PRECISION,
+                ),
+                round(
+                    general_scenario_metric.traffic_density_stdev,
+                    _DEFAULT_GENERAL_SCENARIO_METRIC_PRECISION,
+                ),
+                round(
+                    general_scenario_metric.velocity_mean,
+                    _DEFAULT_GENERAL_SCENARIO_METRIC_PRECISION,
+                ),
+                round(
+                    general_scenario_metric.velocity_stdev,
+                    _DEFAULT_GENERAL_SCENARIO_METRIC_PRECISION,
+                ),
+            ]
+        )
+
+    with open(csv_file_path, "w") as csv_file:
+        csv_writer = csv.writer(csv_file)
+        csv_writer.writerow(
+            [
+                "scenario_id",
+                "f [1/s]",
+                "rho mean [1/km]",
+                "rho stdev [1/km]",
+                "v mean [m/s]",
+                "v stdev [m/s]",
+            ]
+        )
+        csv_writer.writerows(formatted_data)
+
+
+def compute_general_scenario_metric(
+    scenario: Scenario, frame_factor: float = 1.0
+) -> GeneralScenarioMetric:
     """
     Compute the initial submission metrics for the scenario.
 
     :param scenario: The scenario for which the metrics should be computed.
-    """
-    # frequency
-    frequency = _spawn_frequency(scenario)
+    :param frame_factor: Scaling factor to adjust the traffic densisty for recorded datasets.
 
-    # calculate traffic density
-    traffic_density_mean, traffic_density_stdev = _traffic_density(scenario, is_orig)
-    velocity_mean, velocity_stdev = _velocity(scenario)
+    :returns: The scenario metrics
+    """
+    frequency = _compute_spawn_frequency(scenario)
+
+    traffic_density_mean, traffic_density_stdev = _compute_traffic_density(scenario, frame_factor)
+    velocity_mean, velocity_stdev = _compute_velocity(scenario)
 
     return GeneralScenarioMetric(
+        scenario_id=scenario.scenario_id,
         frequency=frequency,
         traffic_density_mean=traffic_density_mean,
         traffic_density_stdev=traffic_density_stdev,
@@ -46,33 +114,31 @@ def compute_general_scenario_metric(scenario: Scenario, is_orig: bool) -> Genera
     )
 
 
-def _spawn_frequency(scenario: Scenario) -> float:
+def _compute_spawn_frequency(scenario: Scenario) -> float:
     # divide number of vehicles by scenario duration
     # do not count vehicles that already exist at 0
+    min_time_step = get_scenario_start_time_step(scenario)
 
     # number of vehicles with initial time > 0
     number_of_spawned_vehicles = sum(
-        [1 for obs in scenario.dynamic_obstacles if obs.initial_state.time_step > 2]
+        [1 for obs in scenario.dynamic_obstacles if obs.initial_state.time_step > min_time_step]
     )
-    max_time_step = 0
-    for obs in scenario.dynamic_obstacles:
-        if not obs.prediction:
-            logging.warning("Missing prediction for dynamic obstacle.")
-            continue  # TODO how can this be?
-        max_time_step = max(max_time_step, obs.prediction.trajectory.state_list[-1].time_step)
+    if number_of_spawned_vehicles == 0:
+        return 0.0
 
-    return number_of_spawned_vehicles / (scenario.dt * max_time_step)
+    max_time_step = get_scenario_final_time_step(scenario)
+    if max_time_step <= min_time_step:
+        return 0.0
+
+    return number_of_spawned_vehicles / (scenario.dt * (max_time_step - min_time_step))
 
 
-def _velocity(scenario: Scenario) -> Tuple[float, float]:
+def _compute_velocity(scenario: Scenario) -> Tuple[float, float]:
     # calculate mean velocity
     velocities_at_k = defaultdict(list)
 
     for obs in scenario.dynamic_obstacles:
-        if not obs.prediction:
-            logging.warning(
-                f"Missing prediction for dynamic obstacle: {scenario.scenario_id}, {obs.obstacle_id}"
-            )  # TODO how?
+        if not isinstance(obs.prediction, TrajectoryPrediction):
             continue
         for state in obs.prediction.trajectory.state_list:
             velocities_at_k[state.time_step].append(state.velocity)
@@ -84,26 +150,22 @@ def _velocity(scenario: Scenario) -> Tuple[float, float]:
     return np.mean(mean_velocity_over_time), np.std(mean_velocity_over_time)
 
 
-def _traffic_density(scenario: Scenario, is_orig: bool) -> Tuple[float, float]:
+def _compute_traffic_density(scenario: Scenario, frame_factor: float) -> Tuple[float, float]:
     # calculate traffic density
-    number_of_vehicles_at_k: Dict[int, int] = defaultdict(int)
-    max_time_step = 0
+    max_time_step = get_scenario_final_time_step(scenario)
+    if max_time_step == 0:
+        return float("nan"), float("nan")
 
-    for obs in scenario.dynamic_obstacles:
-        if not obs.prediction:
-            logging.warning("Missing prediction for dynamic obstacle.")  # TODO why?
-            continue
-        for state in obs.prediction.trajectory.state_list:
-            number_of_vehicles_at_k[state.time_step] += 1
-            max_time_step = max(max_time_step, state.time_step)
-
-    if is_orig:
-        frame_factor = _get_frame_factor_orig(scenario)
-    else:
-        frame_factor = _get_frame_factor_sim(scenario)
+    number_of_vehicles_at_time_step: List[int] = [0] * max_time_step
+    # By iterating over the time steps instead of the obstacle trajectories, no checks
+    # on the trajectories have to be performed here.
+    for time_step in range(max_time_step):
+        for dynamic_obstacle in scenario.dynamic_obstacles:
+            if dynamic_obstacle.state_at_time(time_step) is not None:
+                number_of_vehicles_at_time_step[time_step] += 1
 
     traffic_density_over_time = (
-        np.array([v for v in number_of_vehicles_at_k.values()])
+        np.array(number_of_vehicles_at_time_step)
         / _lanelet_network_length(scenario)
         / frame_factor
         * 1000
@@ -123,44 +185,3 @@ def _lanelet_network_length(scenario: Scenario) -> float:
 
 def _lanelet_length(lanelet: Lanelet) -> float:
     return np.sum(np.linalg.norm(np.diff(lanelet.center_vertices, axis=0), axis=1))
-
-
-def _get_frame_factor_sim(scenario: Scenario) -> float:
-    simulation_mode = int(str(scenario.scenario_id).split("_")[2])
-    if simulation_mode > 2:  # demand, infrastructure, or random
-        return 1.0
-    scenario_id = str(scenario.scenario_id).split("-")[-3]
-    match scenario_id:
-        case "DEU_MONAEast":
-            return 0.86
-        case "DEU_MONAMerge":
-            return 0.80
-        case "DEU_MONAWest":
-            return 0.96
-        case "DEU_AachenBendplatz":
-            return 0.85
-        case "DEU_AachenHeckstrasse":
-            return 0.90
-        case "DEU_LocationCLower4":
-            return 0.94
-        case _:
-            raise ValueError(f"Unknown scenario id: {scenario_id}")
-
-
-def _get_frame_factor_orig(scenario: Scenario) -> float:
-    scenario_id = str(scenario.scenario_id).split("-")[-3]
-    match scenario_id:
-        case "DEU_MONAEast":
-            return 0.75
-        case "DEU_MONAMerge":
-            return 0.6
-        case "DEU_MONAWest":
-            return 0.9
-        case "DEU_AachenBendplatz":
-            return 0.7
-        case "DEU_AachenHeckstrasse":
-            return 0.78
-        case "DEU_LocationCLower4":
-            return 0.87
-        case _:
-            raise ValueError(f"Unknown scenario id: {scenario_id}")

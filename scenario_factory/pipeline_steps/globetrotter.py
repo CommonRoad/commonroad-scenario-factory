@@ -46,6 +46,9 @@ def pipeline_extract_osm_map(
     region: RegionMetadata,
 ) -> Path:
     """
+
+    :param args: The arguments for this pipeline step, containing the map provider and the extraction radius.
+    :param ctx: The context for this pipeline execution.
     :param region: The region for which the map should be extracted.
     :returns: Path to the extracted OSM maps.
     """

@@ -13,20 +13,20 @@ from scenario_factory.utils import (
     align_scenario_to_time_step,
     copy_scenario,
     crop_scenario_to_time_frame,
-    get_scenario_length_in_time_steps,
+    get_scenario_final_time_step,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 
 def _get_new_sumo_config_for_scenario(
-    scenario: Scenario, simulation_config: SimulationConfig, seed: int
+    scenario: Scenario, simulation_config: SimulationConfig
 ) -> SumoConfig:
     new_sumo_config = SumoConfig()
     # TODO: make this cleaner and maybe also apply to OTS simulation?
 
-    new_sumo_config.random_seed = seed
-    new_sumo_config.random_seed_trip_generation = seed
+    new_sumo_config.random_seed = simulation_config.seed
+    new_sumo_config.random_seed_trip_generation = simulation_config.seed
     new_sumo_config.scenario_name = str(scenario.scenario_id)
     new_sumo_config.dt = scenario.dt
     # Disable highway mode so that intersections are not falsely identified as zipper junctions
@@ -61,7 +61,13 @@ def _convert_commonroad_scenario_to_sumo_scenario(
             f"Failed to convert CommonRoad scenario {commonroad_scenario.scenario_id} to SUMO"
         )
 
-    new_scenario = copy_scenario(commonroad_scenario, copy_lanelet_network=True)
+    new_scenario = copy_scenario(
+        commonroad_scenario,
+        copy_dynamic_obstacles=False,
+        copy_static_obstacles=False,
+        copy_environment_obstacles=False,
+        copy_phantom_obstacles=False,
+    )
     scenario_wrapper = SumoScenarioWrapper(new_scenario, sumo_config, cr2sumo.sumo_cfg_file)
     return scenario_wrapper
 
@@ -128,7 +134,6 @@ def simulate_commonroad_scenario_with_sumo(
     scenario: Scenario,
     simulation_config: SimulationConfig,
     working_directory: Path,
-    seed: int,
 ) -> Scenario:
     """
     Simulate a CommonRoad scenario with the micrsocopic simulator SUMO. Currently, only random traffic generation is supported.
@@ -140,9 +145,9 @@ def simulate_commonroad_scenario_with_sumo(
 
     :returns: A new scenario with the simulated trajectories.
 
-    :raises ValueError: If the selected simulation mode is not supported.
+    :raises ValueError: If the selected simulation config is invalid.
     """
-    sumo_config = _get_new_sumo_config_for_scenario(scenario, simulation_config, seed)
+    sumo_config = _get_new_sumo_config_for_scenario(scenario, simulation_config)
 
     traffic_generation_mode = _get_traffic_generation_mode_for_simulation_mode(
         simulation_config.mode
@@ -154,7 +159,7 @@ def simulate_commonroad_scenario_with_sumo(
                 f"Invalid simulation config for SUMO simulation with mode {simulation_config.mode}: option 'simulation_time_steps' must be set, but is 'None'!"
             )
         else:
-            simulation_steps = get_scenario_length_in_time_steps(scenario)
+            simulation_steps = get_scenario_final_time_step(scenario)
             _LOGGER.debug(
                 "Simulation step was not set for SUMO simulation with mode %s, so it was autodetermined to be %s",
                 simulation_config.mode,
@@ -181,7 +186,7 @@ def simulate_commonroad_scenario_with_sumo(
     _patch_scenario_metadata_after_simulation(new_scenario)
 
     if simulation_mode_requires_warmup:
-        original_scenario_length = get_scenario_length_in_time_steps(new_scenario)
+        original_scenario_length = get_scenario_final_time_step(new_scenario)
         new_scenario = crop_scenario_to_time_frame(new_scenario, min_time_step=warmup_time_steps)
         align_scenario_to_time_step(new_scenario, warmup_time_steps)
         _LOGGER.debug(
@@ -190,7 +195,7 @@ def simulate_commonroad_scenario_with_sumo(
             new_scenario.scenario_id,
             simulation_config.mode,
             original_scenario_length,
-            get_scenario_length_in_time_steps(new_scenario),
+            get_scenario_final_time_step(new_scenario),
         )
 
     return new_scenario

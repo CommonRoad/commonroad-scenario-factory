@@ -9,6 +9,7 @@ __all__ = [
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Union
 
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
 from commonroad.common.solution import CommonRoadSolutionWriter, Solution
@@ -44,7 +45,7 @@ _LOGGER = logging.getLogger(__name__)
 class WriteScenarioToFileArguments(PipelineStepArguments):
     """Arguments for the step `pipeline_write_scenario_to_file` to specify the output folder."""
 
-    output_folder: Path
+    output_folder: Union[str, Path]
 
 
 @pipeline_map_with_args()
@@ -56,6 +57,11 @@ def pipeline_write_scenario_to_file(
     """
     Write a CommonRoad scenario to a file in the `args.output_folder`. If the `scenario_container` also holds a planning problem set or a planning problem solution, they will also be written to disk.
     """
+    output_folder = (
+        args.output_folder if isinstance(args.output_folder, Path) else Path(args.output_folder)
+    )
+    output_folder.mkdir(exist_ok=True)
+
     optional_planning_problem_set = scenario_container.get_attachment(PlanningProblemSet)
     planning_problem_set = (
         optional_planning_problem_set
@@ -78,7 +84,7 @@ def pipeline_write_scenario_to_file(
         )
     tags = set() if commonroad_scenario.tags is None else commonroad_scenario.tags
 
-    scenario_file_path = args.output_folder.joinpath(f"{commonroad_scenario.scenario_id}.cr.xml")
+    scenario_file_path = output_folder.joinpath(f"{commonroad_scenario.scenario_id}.cr.xml")
     CommonRoadFileWriter(commonroad_scenario, planning_problem_set, tags=tags).write_to_file(
         str(scenario_file_path), overwrite_existing_file=OverwriteExistingFile.ALWAYS
     )
@@ -87,7 +93,7 @@ def pipeline_write_scenario_to_file(
     if solution is not None:
         solution_file_name = f"{solution.scenario_id}.solution.xml"
         CommonRoadSolutionWriter(solution).write_to_file(
-            str(args.output_folder), filename=solution_file_name, overwrite=True
+            str(output_folder), filename=solution_file_name, overwrite=True
         )
 
     return scenario_container
@@ -168,7 +174,7 @@ def pipeline_insert_ego_vehicle_solutions_into_scenario(
     ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> ScenarioContainer:
     """
-    Insert the ego vehicles from a solution into the scenario as new dynamic obstacles.
+    Insert the ego vehicles of a solution into the scenario as new dynamic obstacles.
 
     Counterpart of `pipeline_extract_ego_vehicle_from_scenario`.
 
@@ -217,7 +223,7 @@ def pipeline_extract_ego_vehicle_solutions_from_scenario(
     ctx: PipelineContext, scenario_container: ScenarioContainer
 ) -> ScenarioContainer:
     """
-    Extract the ego vehicles from a solution from the scenario as new solutions.
+    Extract the ego vehicles of a planning problem from the scenario as new solutions.
 
     Counterpart of `pipeline_insert_ego_vehicle_from_scenario`.
 

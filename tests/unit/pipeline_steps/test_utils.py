@@ -20,6 +20,7 @@ from scenario_factory.pipeline.pipeline_context import PipelineContext
 from scenario_factory.pipeline_steps import pipeline_insert_ego_vehicle_solutions_into_scenario
 from scenario_factory.pipeline_steps.utils import (
     pipeline_extract_ego_vehicle_solutions_from_scenario,
+    pipeline_remove_parked_dynamic_obstacles,
 )
 from scenario_factory.scenario_container import ScenarioContainer
 
@@ -50,8 +51,8 @@ class TestPipelineInsertEgoVehicleSolutionsIntoScenario:
     def test_correctly_inserts_ego_vehicle_solution(self):
         trajectory = (
             TrajectoryBuilder()
-            .start(PMState(time_step=0, position=np.array([0.0, 0.0])))
-            .end(PMState(time_step=100, position=np.array([-10.0, 10.0])))
+            .start_state(PMState(time_step=0, position=np.array([0.0, 0.0])))
+            .end_state(PMState(time_step=100, position=np.array([-10.0, 10.0])))
             .build()
         )
         planning_problem_set_builder = PlanningProblemSetBuilder()
@@ -100,8 +101,8 @@ class TestPipelineExtractEgoVehicleSolutionsFromScenario:
     def test_correctly_extracts_ego_vehicle_solution_from_scenario(self):
         trajectory = (
             TrajectoryBuilder()
-            .start(PMState(time_step=0, position=np.array([0.0, 0.0])))
-            .end(PMState(time_step=100, position=np.array([-10.0, 10.0])))
+            .start_state(PMState(time_step=0, position=np.array([0.0, 0.0])))
+            .end_state(PMState(time_step=100, position=np.array([-10.0, 10.0])))
             .build()
         )
         scenario_builder = ScenarioBuilder()
@@ -130,3 +131,33 @@ class TestPipelineExtractEgoVehicleSolutionsFromScenario:
         assert planning_problem.planning_problem_id in solution.planning_problem_ids
 
         assert new_scenario_container.scenario.obstacle_by_id(ego_vehicle.obstacle_id) is None
+
+
+class TestPipelineRemoveParkedDynamicObstacles:
+    def test_only_removes_parked_and_keeps_driving_vehicles(self):
+        scenario_builder = ScenarioBuilder()
+        dynamic_obstacle_builder = scenario_builder.create_dynamic_obstacle()
+        dynamic_obstacle_builder.create_trajectory().start_state(
+            PMState(0, position=np.array([100.0, 0.0]))
+        ).end_state(PMState(100, np.array([100.0, 100.0])))
+        driving_obstacle = dynamic_obstacle_builder.build()
+
+        dynamic_obstacle_builder = scenario_builder.create_dynamic_obstacle()
+        dynamic_obstacle_builder.create_trajectory().start_state(
+            PMState(0, position=np.array([0.0, 0.0]))
+        ).end_state(PMState(100, np.array([0.0, 0.0])))
+        parked_obstacle = dynamic_obstacle_builder.build()
+
+        scenario = scenario_builder.build()
+        scenario_container = ScenarioContainer(scenario)
+        ctx = PipelineContext()
+        result_scenario_container = pipeline_remove_parked_dynamic_obstacles(
+            ctx, scenario_container
+        )
+        assert (
+            result_scenario_container.scenario.obstacle_by_id(driving_obstacle.obstacle_id)
+            is not None
+        )
+        assert (
+            result_scenario_container.scenario.obstacle_by_id(parked_obstacle.obstacle_id) is None
+        )

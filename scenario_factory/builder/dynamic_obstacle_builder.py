@@ -1,9 +1,12 @@
+from typing import Optional, Union
+
 from commonroad.geometry.shape import Rectangle, Shape
 from commonroad.prediction.prediction import Prediction, TrajectoryPrediction
 from commonroad.scenario.obstacle import DynamicObstacle, InitialState, ObstacleType
 from commonroad.scenario.trajectory import Trajectory
 
 from scenario_factory.builder.core import BuilderCore
+from scenario_factory.builder.trajectory_builder import TrajectoryBuilder
 
 
 class DynamicObstacleBuilder(BuilderCore[DynamicObstacle]):
@@ -24,6 +27,7 @@ class DynamicObstacleBuilder(BuilderCore[DynamicObstacle]):
         self._initial_state.fill_with_defaults()
         self._prediction = None
         self._trajectory = None
+        self._trajectory_builder: Optional[TrajectoryBuilder] = None
         self._initial_signal_state = None
         self._signal_series = None
 
@@ -82,9 +86,20 @@ class DynamicObstacleBuilder(BuilderCore[DynamicObstacle]):
         self._prediction = prediction
         return self
 
-    def set_trajectory(self, trajectory: Trajectory) -> "DynamicObstacleBuilder":
-        self._trajectory = trajectory
+    def set_trajectory(
+        self, trajectory_or_builder: Union[Trajectory, TrajectoryBuilder]
+    ) -> "DynamicObstacleBuilder":
+        if isinstance(trajectory_or_builder, Trajectory):
+            self._trajectory = trajectory_or_builder
+        else:
+            self._trajectory_builder = trajectory_or_builder
         return self
+
+    def create_trajectory(
+        self,
+    ) -> "TrajectoryBuilder":
+        self._trajectory_builder = TrajectoryBuilder()
+        return self._trajectory_builder
 
     def build(self) -> DynamicObstacle:
         """
@@ -93,8 +108,13 @@ class DynamicObstacleBuilder(BuilderCore[DynamicObstacle]):
         :return: A `DynamicObstacle` instance with the specified properties.
         """
         prediction = self._prediction
-        if self._prediction is None and self._trajectory is not None:
-            prediction = TrajectoryPrediction(self._trajectory, self._obstacle_shape)
+        if self._prediction is None:
+            trajectory = self._trajectory
+            if self._trajectory_builder is not None:
+                trajectory = self._trajectory_builder.build()
+
+            if trajectory is not None:
+                prediction = TrajectoryPrediction(trajectory, self._obstacle_shape)
 
         new_dynamic_obstacle = DynamicObstacle(
             self._dynamic_obstacle_id,

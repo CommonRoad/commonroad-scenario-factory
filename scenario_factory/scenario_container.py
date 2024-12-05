@@ -1,4 +1,5 @@
 import copy
+import csv
 import logging
 import re
 import xml.etree.ElementTree as ET
@@ -9,6 +10,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Iterable,
     List,
     Optional,
     Tuple,
@@ -22,14 +24,19 @@ from xml.sax import SAXParseException
 
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.common.solution import CommonRoadSolutionReader, Solution
+from commonroad.common.util import FileFormat
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario, ScenarioID
-from commonroad_labeling.criticality.input_output.crime_output import ScenarioCriticalityData
 from typing_extensions import Self, Unpack
 
 from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
-from scenario_factory.metrics.general_scenario_metric import GeneralScenarioMetric
-from scenario_factory.metrics.waymo_metric import WaymoMetric
+from scenario_factory.metrics import (
+    CriticalityMetrics,
+    GeneralScenarioMetric,
+    WaymoMetric,
+    write_general_scenario_metrics_to_csv,
+    write_waymo_metrics_to_csv,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,9 +50,9 @@ ScenarioContainerAttachmentT = TypeVar(
     "ScenarioContainerAttachmentT",
     PlanningProblemSet,
     Solution,
-    ScenarioCriticalityData,
     EgoVehicleManeuver,
     ReferenceScenario,
+    CriticalityMetrics,
     WaymoMetric,
     GeneralScenarioMetric,
 )
@@ -64,7 +71,7 @@ class ScenarioContainerArguments(TypedDict, total=False):
     planning_problem_set: PlanningProblemSet
     solution: Solution
     ego_vehicle_maneuver: EgoVehicleManeuver
-    criticality_data: ScenarioCriticalityData
+    criticality_metric: CriticalityMetrics
     reference_scenario: ReferenceScenario
     waymo_metric: WaymoMetric
     general_scenario_metric: GeneralScenarioMetric
@@ -80,7 +87,10 @@ class ScenarioContainer:
     :param planning_problem_set: An optional planning problem set.
     :param solution: An optional planning problem solution, usually for the attached planning problem set.
     :param ego_vehicle_maneuver: An optional ego vehicle maneuver that happend in the scenario.
-    :param criticality_data: Optional criticality data for the scenario.
+    :param criticality_metric: Optional criticality metric for the scenario.
+    :param reference_scenario: An optional reference scenario.
+    :param waymo_metric: Optional waymo metrics for the scenario.
+    :param general_scenario_metric: Optional general scenario metrics.
     """
 
     def __init__(self, scenario: Scenario, **kwargs: Unpack[ScenarioContainerArguments]):
@@ -162,7 +172,7 @@ class ScenarioContainer:
         return new_scenario_container.with_attachments(**kwargs)
 
     def __str__(self) -> str:
-        return str(self.scenario.scenario_id)
+        return str(self._scenario.scenario_id)
 
 
 def _try_load_xml_file_as_commonroad_scenario(
@@ -179,9 +189,20 @@ def _try_load_xml_file_as_commonroad_scenario(
         )
         return None
     try:
-        scenario, planning_problem_set = CommonRoadFileReader(xml_file_path).open()
+        scenario, planning_problem_set = CommonRoadFileReader(
+            xml_file_path, file_format=FileFormat.XML
+        ).open()
         return scenario, planning_problem_set
     except ET.ParseError as e:
+        _LOGGER.warning(
+            "Failed to load CommonRoad scenario from file %s, because file does not contain valid XML: %s",
+            xml_file_path,
+            e,
+        )
+        return None
+    except AssertionError as e:
+        # Sadly, the CommonRoadFileReader does not expose a custom error type.
+        # Therefore, all AssertionErrors are captured here, because they represent most of the errors that occur.
         _LOGGER.warning("Failed to load CommonRoad scenario from file %s: %s", xml_file_path, e)
         return None
 
@@ -201,7 +222,22 @@ def _try_load_xml_file_as_commonroad_solution(xml_file_path: Path) -> Optional[S
         solution = CommonRoadSolutionReader().open(str(xml_file_path))
         return solution
     except ET.ParseError as e:
-        _LOGGER.warning("Failed to load CommonRoad solution from file %s: %s", xml_file_path, e)
+        _LOGGER.warning(
+            "Failed to load CommonRoad solution from file %s, because file does not contain valid XML: %s",
+            xml_file_path,
+            e,
+        )
+        return None
+    except AttributeError as e:
+        # Sadly, the CommonRoadSolutionReader does not expose a custom error type.
+        # Therefore, all AttributeErrors are captured here,
+        # because this is usually the error indicating that the file is indeed valid XML,
+        # but not a valid solution file.
+        _LOGGER.warning(
+            "Failed to load CommonRoad solution from file %s. The file is valid XML, but not a valid CommonRoad solution file: %s",
+            xml_file_path,
+            e,
+        )
         return None
 
 
@@ -276,6 +312,11 @@ def load_scenarios_from_folder(
     else:
         raise ValueError(
             f"Argument 'folder' must be either 'str' or 'Path', but instead is {type(folder)}"
+        )
+
+    if not folder_path.exists():
+        raise FileNotFoundError(
+            f"Cannot load scenarios from folder {folder_path}: folder does not exist!"
         )
 
     # Use a dict for containers and solution, so it is easier to merge them later on
@@ -372,3 +413,75 @@ def load_scenarios_with_reference_from_folders(
             _LOGGER.warning(f"Could not find reference scenario for {cr_scenario.scenario_id}: {e}")
 
     return scenarios_return
+
+
+def write_criticality_metrics_of_scenario_containers_to_csv(
+    scenario_containers: Iterable[ScenarioContainer], csv_file_path: Path
+) -> None:
+    """
+    Write the cricticality data that is attached to the scenario_containers as CSV to `csv_file_path`.
+
+    :param scenario_containers: Scenario containers with criticality data attached
+    :param csv_file_path: Path to the file to which the data should be written. The file will be created if it does not exist, otherwise it will be overwritten.
+
+    :returns: Nothing
+    """
+    formatted_data = []
+    all_measurments = set()
+    for scenario_container in scenario_containers:
+        criticality_data = scenario_container.get_attachment(CriticalityMetrics)
+        if criticality_data is None:
+            raise ValueError(
+                f"Cannot write criticality metrics of scenario {scenario_container.scenario.scenario_id} to csv file at {csv_file_path}: Scenario does not have a `CriticalityMetric` attachment, but one is required!"
+            )
+
+        all_measurments.update(criticality_data.get_metric_names())
+
+        for time_step, measurment in criticality_data.measurments_per_time_step():
+            row = {
+                "scenarioId": str(scenario_container.scenario.scenario_id),
+                "timeStep": time_step,
+            }
+            metrics = {}
+            for metric, value in measurment.items():
+                metrics[metric] = value
+            row.update(metrics)
+            formatted_data.append(row)
+
+    measurment_fields = sorted(list(all_measurments))
+    fieldnames = ["scenarioId", "timeStep"] + measurment_fields
+    with csv_file_path.open(mode="w") as csv_file:
+        csv_writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+        csv_writer.writeheader()
+        csv_writer.writerows(formatted_data)
+
+
+def write_general_scenario_metrics_of_scenario_containers_to_csv(
+    scenario_containers: Iterable[ScenarioContainer], csv_file_path: Path
+) -> None:
+    general_scenario_metrics = []
+    for scenario_container in scenario_containers:
+        general_scenario_metric = scenario_container.get_attachment(GeneralScenarioMetric)
+        if general_scenario_metric is None:
+            raise ValueError(
+                f"Cannot write scenario metrics of scenario {scenario_container.scenario.scenario_id} to csv file at {csv_file_path}: Scenario does not have a `GeneralScenarioMetric` attachment, but one is required!"
+            )
+
+        general_scenario_metrics.append(general_scenario_metric)
+
+    write_general_scenario_metrics_to_csv(general_scenario_metrics, csv_file_path)
+
+
+def write_waymo_metrics_of_scenario_containers_to_csv(
+    scenario_containers: Iterable[ScenarioContainer], csv_file_path: Path
+) -> None:
+    waymo_metrics = []
+    for scenario_container in scenario_containers:
+        waymo_metric = scenario_container.get_attachment(WaymoMetric)
+        if waymo_metric is None:
+            raise ValueError(
+                f"Cannot write waymo metrics of scenario {scenario_container.scenario.scenario_id} to csv file at {csv_file_path}: Scenario does not have a `WaymoMetric` attachment, but one is required!"
+            )
+        waymo_metrics.append(waymo_metric)
+
+    write_waymo_metrics_to_csv(waymo_metrics, csv_file_path)

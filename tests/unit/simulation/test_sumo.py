@@ -13,10 +13,10 @@ from tests.unit.simulation.simulator_test_base import SimulatorTestBase
 
 class TestSimulateCommonroadScenarioWithSumo(SimulatorTestBase):
     def simulate(
-        self, scenario: Scenario, simulation_config: SimulationConfig, seed: int
+        self, scenario: Scenario, simulation_config: SimulationConfig
     ) -> Optional[Scenario]:
         with TemporaryDirectory() as tempdir:
             simulated_scenario = simulate_commonroad_scenario_with_sumo(
-                scenario, simulation_config, Path(tempdir), seed=seed
+                scenario, simulation_config, Path(tempdir)
             )
             return simulated_scenario
