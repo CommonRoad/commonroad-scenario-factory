@@ -4,8 +4,6 @@ from pathlib import Path
 from typing import Optional
 
 import click
-import matplotlib
-import matplotlib.pyplot as plt
 
 from scenario_factory.globetrotter import Coordinates, RegionMetadata, load_regions_from_csv
 from scenario_factory.pipeline import PipelineContext
