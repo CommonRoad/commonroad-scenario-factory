@@ -31,6 +31,7 @@ from scenario_factory.tags import (
     find_applicable_tags_for_scenario,
 )
 from scenario_factory.utils import (
+    calculate_deviation_between_states,
     calculate_driven_distance_of_dynamic_obstacle,
     copy_scenario,
     create_dynamic_obstacle_from_planning_problem_solution,
@@ -240,7 +241,7 @@ def pipeline_extract_ego_vehicle_solutions_from_scenario(
     )
     planning_problem_solutions = []
     for planning_problem in planning_problem_set.planning_problem_dict.values():
-        # The dynamic obstacles always must have the same ID as the planning problem.
+        # The dynamic obstacles must have the same ID as the planning problem.
         obstacle = new_scenario.obstacle_by_id(planning_problem.planning_problem_id)
         if obstacle is None:
             raise RuntimeError(
@@ -250,6 +251,16 @@ def pipeline_extract_ego_vehicle_solutions_from_scenario(
         if not isinstance(obstacle, DynamicObstacle):
             raise RuntimeError(
                 f"Cannot extract dynamic obstacle for planning problem {planning_problem.planning_problem_id} from scenario {scenario_container.scenario.scenario_id}: Obstacle with id {planning_problem.planning_problem_id} is not a dynamic obstacle but {type(obstacle)}."
+            )
+
+        # Sanity check if the initial states somewhat match
+        state_deviation = calculate_deviation_between_states(
+            planning_problem.initial_state, obstacle.initial_state
+        )
+        state_deviation_threshold = 2.0
+        if state_deviation > state_deviation_threshold:
+            raise RuntimeError(
+                f"Cannot extract dynamic obstacle for planning problem {planning_problem.planning_problem_id} from scenario {scenario_container.scenario}: The initial position of the corresponding dynamic obstacle deviates too much from the planning problem: Deviates by {round(state_deviation, 2)}m, but maximum deviation is {round(state_deviation_threshold, 2)}m!"
             )
 
         planning_problem_solution = create_planning_problem_solution_for_ego_vehicle(

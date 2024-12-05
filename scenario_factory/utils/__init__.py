@@ -40,6 +40,7 @@ __all__ = [
     "iterate_zipped_dynamic_obstacles_from_scenarios",
     "find_lanelets_by_state",
     "find_most_likely_lanelet_by_state",
+    "calculate_deviation_between_states",
 ]
 
 from .align import (
@@ -58,6 +59,7 @@ from .crop import (
 )
 from .logging import configure_root_logger
 from .obstacle import (
+    calculate_deviation_between_states,
     calculate_driven_distance_of_dynamic_obstacle,
     create_dynamic_obstacle_from_planning_problem_solution,
     create_planning_problem_solution_for_ego_vehicle,

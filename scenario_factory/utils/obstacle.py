@@ -1,6 +1,7 @@
 import math
 from typing import Optional, Sequence, Type
 
+import numpy as np
 from commonroad.common.solution import (
     CostFunction,
     PlanningProblemSolution,
@@ -16,7 +17,11 @@ from commonroad.scenario.state import CustomState, InitialState, KSState, State,
 from commonroad.scenario.trajectory import Trajectory
 
 from scenario_factory.utils.crop import crop_trajectory_to_time_frame
-from scenario_factory.utils.types import convert_state_to_state, convert_state_to_state_type
+from scenario_factory.utils.types import (
+    convert_state_to_state,
+    convert_state_to_state_type,
+    is_state_with_position,
+)
 
 
 def get_full_state_list_of_obstacle(
@@ -160,3 +165,16 @@ def calculate_driven_distance_of_dynamic_obstacle(dynamic_obstacle: DynamicObsta
         state = dynamic_obstacle.state_at_time(time_step)
 
     return dist
+
+
+def calculate_deviation_between_states(state1: TraceState, state2: TraceState) -> float:
+    """
+    Calculates the deviation in the positions between `state1` and `state2`.
+    """
+    if not is_state_with_position(state1):
+        raise ValueError()
+
+    if not is_state_with_position(state2):
+        raise ValueError()
+
+    return float(np.linalg.norm(state1.position - state2.position))
