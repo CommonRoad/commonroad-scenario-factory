@@ -1,4 +1,5 @@
 import copy
+from collections import defaultdict
 from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
@@ -6,7 +7,7 @@ from commonroad.common.util import Interval, subtract_orientations
 from commonroad.geometry.shape import Circle, Polygon, Rectangle, Shape
 from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.obstacle import DynamicObstacle
-from commonroad.scenario.scenario import Scenario
+from commonroad.scenario.scenario import Scenario, ScenarioID
 from commonroad.scenario.state import TraceState
 
 from scenario_factory.utils.types import is_state_with_orientation, is_state_with_position
@@ -315,3 +316,99 @@ def find_most_likely_lanelet_by_state(
     lanelet_id = np.array(lanelet_ids).astype(int)[sorted_indices][0]
     # Must cast to int, because otherwise `lanelet_id` would be of some numpy int type
     return int(lanelet_id)
+
+
+class _UniqueIncrementalIdAllocatorHelper:
+    """
+    Helper class to ease the allocation of unique Ids. It assigns unique incremental Ids based
+    on a parent key, and makes sure to map equal keys to the same id.
+
+    E.g. for the map DEU_Test-1 we want to be able to create new configuration ids.
+    Different configuration ids should be mapped to new incremental ids like
+    DEU_Test-1_37 -> DEU_Test-1_1 and DEU_Test-1_85 -> DEU_Test-1_2.
+    But if the original configuration ids are equal those should also be mapped to the same
+    incremental id, because their id is further defined by their prediction id.
+    E.g. DEU_Test-1_37_T-4 -> DEU_Test-1_1_T-1 and DEU_Test-1_37_T-10 -> DEU_Test-1_1_T-2
+    """
+
+    def __init__(self):
+        self._counter = defaultdict(lambda: 1)
+        self._mapping = {}
+
+    def get_or_increment(self, key: Tuple) -> int:
+        """
+        Allocate a unique ID for a given key combination.
+        Only generate a new ID if the exact key hasn't been seen before.
+        """
+        if len(key) < 2:
+            raise ValueError(
+                "Key for `_UniqueIncrementalIdAllocatorHelper` must have at least 2 items."
+            )
+
+        if key in self._mapping:
+            return self._mapping[key]
+
+        # The parent key alows us to keep incrementing in the "parent" domain.
+        parent_key = key[:-1]
+        self._mapping[key] = self._counter[parent_key]
+        self._counter[parent_key] += 1
+        return self._mapping[key]
+
+
+class UniqueIncrementalIdAllocator:
+    """
+    A utility class for generating unique and incrementing scenario IDs across different dimensions.
+
+    This allocator provides a systematic way to create new scenario IDs while maintaining
+    uniqueness and incremental properties for map IDs, configuration IDs, and prediction IDs.
+
+    The allocator ensures that:
+    - Map IDs are unique and incremental per country, map name, and original map ID
+    - Configuration IDs are unique and incremental per country, map name, map ID, and original configuration ID
+    - Prediction IDs are incremental per unique combination of country, map name, map ID, and configuration ID
+    """
+
+    def __init__(self):
+        self._map_id_allocator = _UniqueIncrementalIdAllocatorHelper()
+        self._configuration_id_allocator = _UniqueIncrementalIdAllocatorHelper()
+        self._prediction_id_counter = defaultdict(lambda: 1)
+
+    def create_new_unique_id(self, scenario_id: ScenarioID) -> ScenarioID:
+        """
+        Create a new `ScenarioID`, which is unique and incrementing in the context of this allocator.
+
+        :param scenario_id: The original scenario ID to base the new ID on.
+
+        :returns: A new scenario ID which is unique with one part of the id
+            (e.g. map, configuration, prediction) being larger than the corresponding part of
+            any other `ScenarioID` that was previously passed to this method.
+        """
+
+        # TODO: handle duplicate input ids
+        new_s_id = ScenarioID()
+        new_s_id.country_id = scenario_id.country_id
+        new_s_id.obstacle_behavior = scenario_id.obstacle_behavior
+
+        # ScenarioID exposes wrong typing information for map_name.
+        # Actually, a ScenarioID must always have a map_name set.
+        assert scenario_id.map_name
+        new_s_id.map_name = scenario_id.map_name
+
+        map_allocator_key = (scenario_id.country_id, scenario_id.map_name, scenario_id.map_id)
+        new_s_id.map_id = self._map_id_allocator.get_or_increment(map_allocator_key)
+
+        if scenario_id.configuration_id is None:
+            return new_s_id
+        conf_allocator_key = map_allocator_key + (scenario_id.configuration_id,)
+        new_s_id.configuration_id = self._configuration_id_allocator.get_or_increment(
+            conf_allocator_key
+        )
+
+        if scenario_id.prediction_id is None:
+            return new_s_id
+        # For predictions we do not need the allocators as for map id and configuration id
+        # because
+        new_s_id.prediction_id = self._prediction_id_counter[conf_allocator_key]
+        self._prediction_id_counter[conf_allocator_key] += 1
+
+        return new_s_id

@@ -227,7 +227,7 @@ def create_scenario_for_ego_vehicle_maneuver(
         new_obstacle = crop_dynamic_obstacle_to_time_frame(
             obstacle,
             ego_vehicle_maneuver.start_time,
-            ego_vehicle_maneuver.start_time + scenario_config.cr_scenario_time_steps + 1,
+            ego_vehicle_maneuver.start_time + scenario_config.cr_scenario_time_steps,
         )
         if new_obstacle is not None:
             new_obstacles.append(new_obstacle)
@@ -290,7 +290,7 @@ def generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_man
     cropped_ego_vehicle = crop_dynamic_obstacle_to_time_frame(
         ego_vehicle_maneuver.ego_vehicle,
         min_time_step=ego_vehicle_maneuver.start_time,
-        max_time_step=ego_vehicle_maneuver.start_time + scenario_config.cr_scenario_time_steps + 1,
+        max_time_step=ego_vehicle_maneuver.start_time + scenario_config.cr_scenario_time_steps,
     )
     if cropped_ego_vehicle is None:
         raise RuntimeError(

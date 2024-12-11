@@ -6,12 +6,10 @@ import pytest
 from scenario_factory.metrics import GeneralScenarioMetric, WaymoMetric
 from scenario_factory.pipeline.pipeline import Pipeline
 from scenario_factory.pipeline_steps.metrics import (
-    ComputeSingleScenarioMetricsArguments,
     pipeline_compute_single_scenario_metrics,
     pipeline_compute_waymo_metrics,
 )
 from scenario_factory.pipeline_steps.simulation import (
-    SimulateScenarioArguments,
     pipeline_simulate_scenario_with_ots,
     pipeline_simulate_scenario_with_sumo,
 )
@@ -33,11 +31,7 @@ def test_can_compute_waymo_metrics_after_simulation(
 ):
     pipeline = (
         Pipeline()
-        .map(
-            simulation_step(
-                SimulateScenarioArguments(config=SimulationConfig(mode=simulation_mode))
-            )
-        )
+        .map(simulation_step(SimulationConfig(mode=simulation_mode)))
         .map(pipeline_compute_waymo_metrics)
     )
 
@@ -72,12 +66,8 @@ def test_can_compute_single_scenario_metrics_after_simulation(
 ):
     pipeline = (
         Pipeline()
-        .map(
-            simulation_step(
-                SimulateScenarioArguments(config=SimulationConfig(mode=simulation_mode))
-            )
-        )
-        .map(pipeline_compute_single_scenario_metrics(ComputeSingleScenarioMetricsArguments()))
+        .map(simulation_step(SimulationConfig(mode=simulation_mode)))
+        .map(pipeline_compute_single_scenario_metrics)
     )
 
     scenarios = load_scenarios_from_folder(ResourceType.COMMONROAD_SCENARIO.get_folder())

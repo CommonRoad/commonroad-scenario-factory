@@ -11,11 +11,9 @@ from scenario_factory.pipeline_steps.globetrotter import (
     pipeline_verify_and_repair_commonroad_scenario,
 )
 from scenario_factory.pipeline_steps.simulation import (
-    SimulateScenarioArguments,
     pipeline_simulate_scenario_with_ots,
 )
 from scenario_factory.pipeline_steps.utils import (
-    WriteScenarioToFileArguments,
     pipeline_add_metadata_to_scenario,
     pipeline_assign_tags_to_scenario,
     pipeline_write_scenario_to_file,
@@ -45,11 +43,7 @@ class TestGlobetrotterPipeline:
                 .map(pipeline_verify_and_repair_commonroad_scenario)
                 .map(pipeline_extract_intersections)
                 .map(pipeline_add_metadata_to_scenario)
-                .map(
-                    pipeline_write_scenario_to_file(
-                        WriteScenarioToFileArguments(output_folder=output_folder)
-                    )
-                )
+                .map(pipeline_write_scenario_to_file(output_folder))
             )
             ctx = PipelineContext(Path(tempdir))
             execution_result = globetrotter_pipeline.execute(
@@ -95,7 +89,7 @@ class TestScenarioGeneration:
             (
                 scenario_generation_pipeline.map(pipeline_add_metadata_to_scenario)
                 .map(pipeline_assign_tags_to_scenario)
-                .map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_folder)))
+                .map(pipeline_write_scenario_to_file(output_folder))
             )
 
             ctx = PipelineContext(Path(tempdir), scenario_factory_config)
@@ -121,20 +115,14 @@ class TestSimulationWithSumo:
             (
                 pipeline.map(
                     pipeline_simulate_scenario_with_sumo(
-                        SimulateScenarioArguments(
-                            config=SimulationConfig(
-                                mode=SimulationMode.RANDOM_TRAFFIC_GENERATION,
-                                simulation_steps=300,
-                            )
+                        SimulationConfig(
+                            mode=SimulationMode.RANDOM_TRAFFIC_GENERATION,
+                            simulation_steps=300,
                         )
                     )
                 )
                 .map(pipeline_add_metadata_to_scenario)
-                .map(
-                    pipeline_write_scenario_to_file(
-                        WriteScenarioToFileArguments(output_folder=output_folder)
-                    )
-                )
+                .map(pipeline_write_scenario_to_file(output_folder))
             )
             ctx = PipelineContext(Path(tempdir))
 
@@ -161,20 +149,14 @@ class TestSimulationWithOts:
             (
                 pipeline.map(
                     pipeline_simulate_scenario_with_ots(
-                        SimulateScenarioArguments(
-                            config=SimulationConfig(
-                                mode=SimulationMode.RANDOM_TRAFFIC_GENERATION,
-                                simulation_steps=300,
-                            )
+                        SimulationConfig(
+                            mode=SimulationMode.RANDOM_TRAFFIC_GENERATION,
+                            simulation_steps=300,
                         )
                     )
                 )
                 .map(pipeline_add_metadata_to_scenario)
-                .map(
-                    pipeline_write_scenario_to_file(
-                        WriteScenarioToFileArguments(output_folder=output_folder)
-                    )
-                )
+                .map(pipeline_write_scenario_to_file(output_folder))
             )
             ctx = PipelineContext(Path(tempdir))
 

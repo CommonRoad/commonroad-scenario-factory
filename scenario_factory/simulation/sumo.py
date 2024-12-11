@@ -29,6 +29,8 @@ def _get_new_sumo_config_for_scenario(
     new_sumo_config.random_seed_trip_generation = simulation_config.seed
     new_sumo_config.scenario_name = str(scenario.scenario_id)
     new_sumo_config.dt = scenario.dt
+    new_sumo_config.max_veh_per_km = 15
+    new_sumo_config.veh_per_second = 20
     # Disable highway mode so that intersections are not falsely identified as zipper junctions
     # TODO: this should be automatically determined for each scenario or it should be fixed in cr2sumo
     new_sumo_config.highway_mode = False

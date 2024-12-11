@@ -6,7 +6,6 @@ import pytest
 from scenario_factory.pipeline import (
     Pipeline,
     PipelineContext,
-    PipelineFilterPredicate,
     pipeline_filter,
     pipeline_fold,
     pipeline_map,
@@ -19,9 +18,7 @@ def pipeline_simple_map(ctx: PipelineContext, value: int) -> int:
 
 
 @pipeline_filter()
-def pipeline_simple_filter(
-    filter: PipelineFilterPredicate, ctx: PipelineContext, value: int
-) -> bool:
+def pipeline_simple_filter(ctx: PipelineContext, value: int, filter) -> bool:
     return filter.matches(value)
 
 
@@ -48,7 +45,7 @@ class TestPipeline:
         assert result.values != input_values
 
     def test_correctly_executes_filter(self):
-        class IsEvenFilter(PipelineFilterPredicate):
+        class IsEvenFilter:
             def matches(self, value: int) -> bool:
                 return value % 2 == 0
 

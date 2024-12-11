@@ -91,6 +91,17 @@ def configure_traffic_light_phase_lengths(phase_mapping: Mapping[TrafficLightSta
         _set_osm_traffic_light_phase_length(phase, length)
 
 
+# More sensible traffic light settings
+configure_traffic_light_phase_lengths(
+    {
+        TrafficLightState.RED: 120,
+        TrafficLightState.RED_YELLOW: 10,
+        TrafficLightState.GREEN: 90,
+        TrafficLightState.YELLOW: 15,
+    }
+)
+
+
 def _get_canonical_region_name(region_name: str) -> str:
     canonical_region_name = region_name.lower()
 
