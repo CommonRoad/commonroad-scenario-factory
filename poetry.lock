@@ -516,8 +516,8 @@ utm = "^0.7.0"
 [package.source]
 type = "git"
 url = "https://github.com/CommonRoad/commonroad-scenario-designer"
-reference = "4aaa19ad9d22a6a974144a46995c0078a324923f"
-resolved_reference = "4aaa19ad9d22a6a974144a46995c0078a324923f"
+reference = "5e8a17500e0d5cf3996bb6904876cb468e1ddb15"
+resolved_reference = "5e8a17500e0d5cf3996bb6904876cb468e1ddb15"
 
 [[package]]
 name = "commonroad-vehicle-models"
@@ -3655,4 +3655,4 @@ test = ["pytest (>=4.6.7)", "pytest-cov (>=2.6.1)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "31faccd70dba0b8f86650f6d89625822a84410f388ad4798f2f12c0c12c73552"
+content-hash = "16f3c8bd87c4d626a57406901f1e2f8c6b95a1896aff7da0ce42ed51b1252cb5"

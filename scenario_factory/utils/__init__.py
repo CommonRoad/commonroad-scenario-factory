@@ -41,6 +41,7 @@ __all__ = [
     "find_lanelets_by_state",
     "find_most_likely_lanelet_by_state",
     "calculate_deviation_between_states",
+    "UniqueIncrementalIdAllocator",
 ]
 
 from .align import (
@@ -66,6 +67,7 @@ from .obstacle import (
     get_full_state_list_of_obstacle,
 )
 from .scenario import (
+    UniqueIncrementalIdAllocator,
     copy_scenario,
     find_lanelets_by_state,
     find_most_likely_lanelet_by_state,

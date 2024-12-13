@@ -1,5 +1,4 @@
 __all__ = [
-    "WriteScenarioToFileArguments",
     "pipeline_write_scenario_to_file",
     "pipeline_assign_tags_to_scenario",
     "pipeline_add_metadata_to_scenario",
@@ -7,9 +6,8 @@ __all__ = [
 ]
 
 import logging
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Union
+from typing import Sequence, Union
 
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
 from commonroad.common.solution import CommonRoadSolutionWriter, Solution
@@ -18,9 +16,8 @@ from commonroad.scenario.obstacle import DynamicObstacle
 
 from scenario_factory.pipeline import (
     PipelineContext,
-    PipelineStepArguments,
+    pipeline_fold,
     pipeline_map,
-    pipeline_map_with_args,
 )
 from scenario_factory.scenario_container import (
     ScenarioContainer,
@@ -37,29 +34,19 @@ from scenario_factory.utils import (
     create_dynamic_obstacle_from_planning_problem_solution,
     create_planning_problem_solution_for_ego_vehicle,
 )
+from scenario_factory.utils.scenario import UniqueIncrementalIdAllocator
 
 _LOGGER = logging.getLogger(__name__)
 
 
-@dataclass
-class WriteScenarioToFileArguments(PipelineStepArguments):
-    """Arguments for the step `pipeline_write_scenario_to_file` to specify the output folder."""
-
-    output_folder: Union[str, Path]
-
-
-@pipeline_map_with_args()
+@pipeline_map()
 def pipeline_write_scenario_to_file(
-    args: WriteScenarioToFileArguments,
-    ctx: PipelineContext,
-    scenario_container: ScenarioContainer,
+    ctx: PipelineContext, scenario_container: ScenarioContainer, output_folder: Union[str, Path]
 ) -> ScenarioContainer:
     """
     Write a CommonRoad scenario to a file in the `args.output_folder`. If the `scenario_container` also holds a planning problem set or a planning problem solution, they will also be written to disk.
     """
-    output_folder = (
-        args.output_folder if isinstance(args.output_folder, Path) else Path(args.output_folder)
-    )
+    output_folder = output_folder if isinstance(output_folder, Path) else Path(output_folder)
     output_folder.mkdir(exist_ok=True)
 
     optional_planning_problem_set = scenario_container.get_attachment(PlanningProblemSet)
@@ -303,3 +290,28 @@ def pipeline_remove_parked_dynamic_obstacles(
     )
 
     return scenario_container
+
+
+@pipeline_fold()
+def pipeline_assign_unique_incremental_scenario_ids(
+    ctx: PipelineContext, scenario_containers: Sequence[ScenarioContainer]
+) -> Sequence[ScenarioContainer]:
+    """
+    Take a sequence of scenario containers and create new `ScenarioID`s for each scenario, such
+    that the new ids are unique and incrementing. E.g. DEU_Test-54 -> DEU_Test-1; DEU_Test-89 -> DEU_Test-2.
+
+    :param ctx: Context for this pipelien execution
+    :param scenario_containers: Sequence of scenario containers for which the unique ids should be allocated. Scenarios and attachments will be modified in place.
+
+    :returns: The modified sequence of scenario containers.
+    """
+    id_allocator = UniqueIncrementalIdAllocator()
+    for scenario_container in scenario_containers:
+        new_scenario_id = id_allocator.create_new_unique_id(scenario_container.scenario.scenario_id)
+
+        scenario_container.scenario.scenario_id = new_scenario_id
+        solution = scenario_container.get_attachment(Solution)
+        if solution is not None:
+            solution.scenario_id = new_scenario_id
+
+    return scenario_containers

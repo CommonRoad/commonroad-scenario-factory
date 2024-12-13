@@ -166,9 +166,9 @@ class TestPipelineAssignTagsToScenario:
         )
 
         input_scenario_container = ScenarioContainer(Scenario(dt=0.1))
-        result_scenario_container: ScenarioContainer = pipeline_assign_tags_to_scenario(
+        result_scenario_container: ScenarioContainer = pipeline_assign_tags_to_scenario()(
             PipelineContext(), input_scenario_container
-        )  # type: ignore
+        )
 
         assert len(result_scenario_container.scenario.tags) == 1
         scenario_factory.pipeline_steps.utils.find_applicable_tags_for_scenario.assert_called_once()
@@ -187,9 +187,9 @@ class TestPipelineAssignTagsToScenario:
         input_scenario_container = ScenarioContainer(
             Scenario(dt=0.1), planning_problem_set=PlanningProblemSet()
         )
-        result_scenario_container: ScenarioContainer = pipeline_assign_tags_to_scenario(
+        result_scenario_container: ScenarioContainer = pipeline_assign_tags_to_scenario()(
             PipelineContext(), input_scenario_container
-        )  # type: ignore
+        )
 
         assert len(result_scenario_container.scenario.tags) == 3
         scenario_factory.pipeline_steps.utils.find_applicable_tags_for_scenario.assert_called_once()

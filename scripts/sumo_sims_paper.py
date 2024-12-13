@@ -4,8 +4,6 @@ from typing import List
 from resources.paper.frame_factors import get_frame_factor_sim
 from scenario_factory.pipeline import Pipeline, PipelineContext
 from scenario_factory.pipeline_steps import (
-    ComputeSingleScenarioMetricsArguments,
-    SimulateScenarioArguments,
     pipeline_compute_single_scenario_metrics,
     pipeline_compute_waymo_metrics,
     pipeline_remove_parked_dynamic_obstacles,
@@ -43,13 +41,9 @@ for i in range(start_seed, start_seed + num_simulations):
         simulation_steps if simulation_mode == SimulationMode.RANDOM_TRAFFIC_GENERATION else None,
         seed=i,
     )
-    pipeline.map(pipeline_simulate_scenario_with_sumo(SimulateScenarioArguments(simulation_config)))
+    pipeline.map(pipeline_simulate_scenario_with_sumo(simulation_config))
 
-    pipeline.map(
-        pipeline_compute_single_scenario_metrics(
-            ComputeSingleScenarioMetricsArguments(frame_factor_callback=frame_factor_callback)
-        )
-    )
+    pipeline.map(pipeline_compute_single_scenario_metrics(frame_factor_callback))
     if is_resimulation:
         pipeline.map(pipeline_compute_waymo_metrics)
 

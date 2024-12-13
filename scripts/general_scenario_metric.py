@@ -3,7 +3,6 @@ from pathlib import Path
 from resources.paper.frame_factors import get_frame_factor_orig
 from scenario_factory.pipeline import Pipeline
 from scenario_factory.pipeline_steps import (
-    ComputeSingleScenarioMetricsArguments,
     pipeline_compute_single_scenario_metrics,
     pipeline_remove_parked_dynamic_obstacles,
 )
@@ -14,9 +13,7 @@ from scenario_factory.scenario_container import (
 
 pipeline = Pipeline()
 pipeline.map(pipeline_remove_parked_dynamic_obstacles).map(
-    pipeline_compute_single_scenario_metrics(
-        ComputeSingleScenarioMetricsArguments(frame_factor_callback=get_frame_factor_orig)
-    )
+    pipeline_compute_single_scenario_metrics(get_frame_factor_orig)
 )
 
 scenario_containers = load_scenarios_from_folder(

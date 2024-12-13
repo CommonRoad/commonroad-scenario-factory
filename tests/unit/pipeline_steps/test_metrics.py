@@ -8,11 +8,7 @@ from commonroad.scenario.scenario import Scenario
 from scenario_factory.metrics import CriticalityMetrics, GeneralScenarioMetric
 from scenario_factory.pipeline import PipelineContext
 from scenario_factory.pipeline_steps import (
-    ComputeCriticalityMetricsArgs,
     pipeline_compute_criticality_metrics,
-)
-from scenario_factory.pipeline_steps.metrics import (
-    ComputeSingleScenarioMetricsArguments,
     pipeline_compute_single_scenario_metrics,
 )
 from scenario_factory.scenario_container import ScenarioContainer
@@ -25,9 +21,7 @@ class TestPipelineComputeCriticalityMetrics:
         scenario_container = ScenarioContainer(scenario)
         ctx = PipelineContext()
         with pytest.raises(ValueError):
-            pipeline_compute_criticality_metrics(ComputeCriticalityMetricsArgs())(
-                ctx, scenario_container
-            )
+            pipeline_compute_criticality_metrics()(ctx, scenario_container)
 
     @pytest.mark.parametrize(
         argnames="scenario_file", argvalues=RESOURCES[ResourceType.COMMONROAD_SCENARIO]
@@ -40,9 +34,9 @@ class TestPipelineComputeCriticalityMetrics:
         scenario_container = ScenarioContainer(scenario, planning_problem_set=planning_problem_set)
 
         ctx = PipelineContext()
-        scenario_container_with_criticality_metrics = pipeline_compute_criticality_metrics(
-            ComputeCriticalityMetricsArgs()
-        )(ctx, scenario_container)
+        scenario_container_with_criticality_metrics = pipeline_compute_criticality_metrics()(
+            ctx, scenario_container
+        )
 
         criticality_metric = scenario_container_with_criticality_metrics.get_attachment(
             CriticalityMetrics
@@ -64,9 +58,9 @@ class TestPipelineComputeSingleScenarioMetrics:
         scenario_container = ScenarioContainer(scenario, planning_problem_set=planning_problem_set)
 
         ctx = PipelineContext()
-        scenario_container_with_single_scenario_metrics = pipeline_compute_single_scenario_metrics(
-            ComputeSingleScenarioMetricsArguments()
-        )(ctx, scenario_container)
+        scenario_container_with_single_scenario_metrics = (
+            pipeline_compute_single_scenario_metrics()(ctx, scenario_container)
+        )
 
         general_scenario_metrics = scenario_container_with_single_scenario_metrics.get_attachment(
             GeneralScenarioMetric

@@ -1,5 +1,4 @@
 __all__ = [
-    "ExtractOsmMapArguments",
     "pipeline_extract_osm_map",
     "pipeline_convert_osm_map_to_commonroad_scenario",
     "pipeline_verify_and_repair_commonroad_scenario",
@@ -7,7 +6,6 @@ __all__ = [
     "pipeline_filter_lanelet_network",
 ]
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
@@ -21,29 +19,15 @@ from scenario_factory.globetrotter.osm import MapProvider, verify_and_repair_com
 from scenario_factory.globetrotter.region import BoundingBox
 from scenario_factory.pipeline import (
     PipelineContext,
-    PipelineStepArguments,
     pipeline_filter,
     pipeline_map,
-    pipeline_map_with_args,
 )
 from scenario_factory.scenario_container import ScenarioContainer
 
 
-@dataclass
-class ExtractOsmMapArguments(PipelineStepArguments):
-    """
-    Arguments for `pipeline_extract_osm_map`.
-    """
-
-    map_provider: MapProvider
-    radius: float
-
-
-@pipeline_map_with_args()
+@pipeline_map()
 def pipeline_extract_osm_map(
-    args: ExtractOsmMapArguments,
-    ctx: PipelineContext,
-    region: RegionMetadata,
+    ctx: PipelineContext, region: RegionMetadata, map_provider: MapProvider, radius: float
 ) -> Path:
     """
 
@@ -53,8 +37,8 @@ def pipeline_extract_osm_map(
     :returns: Path to the extracted OSM maps.
     """
     output_folder = ctx.get_temporary_folder("extracted_maps")
-    bounding_box = BoundingBox.from_coordinates(region.coordinates, args.radius)
-    return args.map_provider.get_map(region, bounding_box, output_folder)
+    bounding_box = BoundingBox.from_coordinates(region.coordinates, radius)
+    return map_provider.get_map(region, bounding_box, output_folder)
 
 
 @pipeline_map()
@@ -107,9 +91,9 @@ def pipeline_extract_intersections(
 
 @pipeline_filter()
 def pipeline_filter_lanelet_network(
-    filter: LaneletNetworkFilter,
     ctx: PipelineContext,
     scenario_container: ScenarioContainer,
+    filter: LaneletNetworkFilter,
 ) -> bool:
     """
     Filter the lanelet network in the given scenario according to the filter predicate.

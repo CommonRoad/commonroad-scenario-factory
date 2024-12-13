@@ -15,7 +15,7 @@ priority = "explicit"
 python = "~3.10" # Constraint is given by commonroad-labeling
 commonroad-io = { git = "https://github.com/CommonRoad/commonroad-io.git", rev = "a0577190e8e9df3abe2dd097179484037e1e79e0"}
 commonroad-drivability-checker = "^2024.1"
-commonroad-scenario-designer = { git = "https://github.com/CommonRoad/commonroad-scenario-designer", rev="4aaa19ad9d22a6a974144a46995c0078a324923f"}
+commonroad-scenario-designer = { git = "https://github.com/CommonRoad/commonroad-scenario-designer", rev="5e8a17500e0d5cf3996bb6904876cb468e1ddb15"}
 commonroad-labeling = { git = "git@gitlab.lrz.de:cps/commonroad/automatic-scenario-labeling.git", rev="64985b953da3fdc3a0c3046a64478a040ff17bf1"}
 opentrafficsim = { version = "1.7.5", source = "test" }
 crots = { git = "git@gitlab.lrz.de:cps/commonroad/cr-ots-interface.git", rev = "be47509ebbda0a225d1faa0de2e32d4f68109873"}

@@ -7,8 +7,6 @@ from commonroad_crime.measure import TTC
 
 from scenario_factory.globetrotter import Coordinates, OsmApiMapProvider, RegionMetadata
 from scenario_factory.pipeline_steps import (
-    SimulateScenarioArguments,
-    WriteScenarioToFileArguments,
     pipeline_add_metadata_to_scenario,
     pipeline_assign_tags_to_scenario,
     pipeline_simulate_scenario_with_sumo,
@@ -37,7 +35,7 @@ globetrotter_pipeline = (
     create_globetrotter_pipeline(0.2, OsmApiMapProvider())
     .map(pipeline_add_metadata_to_scenario)
     # .map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
-    .map(pipeline_simulate_scenario_with_sumo(SimulateScenarioArguments(config=simulation_config)))
+    .map(pipeline_simulate_scenario_with_sumo(simulation_config))
 )
 globetrotter_inputs = [RegionMetadata.from_coordinates(Coordinates.from_str(coords))]
 
@@ -48,7 +46,7 @@ scenario_generation_pipeline = create_scenario_generation_pipeline(
 ).map(pipeline_assign_tags_to_scenario)
 
 pipeline = globetrotter_pipeline.chain(scenario_generation_pipeline).map(
-    pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path))
+    pipeline_write_scenario_to_file(output_path)
 )
 result = pipeline.execute(globetrotter_inputs)
 result.print_cum_time_per_step()

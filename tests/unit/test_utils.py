@@ -1,6 +1,14 @@
+import copy
+
 import numpy as np
 import pytest
 from commonroad.scenario.state import CustomState, ExtendedPMState, InitialState
+from commonroad.scenario.traffic_light import (
+    TrafficLight,
+    TrafficLightCycle,
+    TrafficLightCycleElement,
+    TrafficLightState,
+)
 
 from scenario_factory.builder import ScenarioBuilder
 from scenario_factory.utils import (
@@ -10,6 +18,7 @@ from scenario_factory.utils import (
     copy_scenario,
     get_full_state_list_of_obstacle,
 )
+from scenario_factory.utils.align import align_traffic_light_to_time_step
 from tests.helpers import create_test_obstacle_with_trajectory
 
 
@@ -43,6 +52,107 @@ class TestAlignStateListToTimeStep:
         print(state_list)
         for i, expected_time_step in enumerate(expected_time_steps):
             assert state_list[i].time_step == expected_time_step
+
+
+class TestAlignTrafficLightToTimeStep:
+    @pytest.mark.parametrize(
+        ["cycle", "alignment_time_step", "expected_offset"],
+        [
+            (
+                TrafficLightCycle(
+                    time_offset=0,
+                    cycle_elements=[
+                        TrafficLightCycleElement(TrafficLightState.RED, 30),
+                        TrafficLightCycleElement(TrafficLightState.GREEN, 15),
+                    ],
+                ),
+                0,
+                0,
+            ),
+            (
+                TrafficLightCycle(
+                    time_offset=50,
+                    cycle_elements=[
+                        TrafficLightCycleElement(TrafficLightState.RED, 60),
+                        TrafficLightCycleElement(TrafficLightState.GREEN, 30),
+                        TrafficLightCycleElement(TrafficLightState.YELLOW, 15),
+                    ],
+                ),
+                50,
+                0,
+            ),
+            (
+                TrafficLightCycle(
+                    time_offset=0,
+                    cycle_elements=[
+                        TrafficLightCycleElement(TrafficLightState.RED, 60),
+                        TrafficLightCycleElement(TrafficLightState.GREEN, 30),
+                        TrafficLightCycleElement(TrafficLightState.YELLOW, 15),
+                    ],
+                ),
+                50,
+                55,
+            ),
+            (
+                TrafficLightCycle(
+                    time_offset=150,
+                    cycle_elements=[
+                        TrafficLightCycleElement(TrafficLightState.RED, 60),
+                        TrafficLightCycleElement(TrafficLightState.RED_YELLOW, 15),
+                        TrafficLightCycleElement(TrafficLightState.GREEN, 30),
+                        TrafficLightCycleElement(TrafficLightState.YELLOW, 15),
+                    ],
+                ),
+                200,
+                70,
+            ),
+            (
+                TrafficLightCycle(
+                    time_offset=100,
+                    cycle_elements=[
+                        TrafficLightCycleElement(TrafficLightState.RED, 60),
+                        TrafficLightCycleElement(TrafficLightState.RED_YELLOW, 15),
+                        TrafficLightCycleElement(TrafficLightState.GREEN, 30),
+                        TrafficLightCycleElement(TrafficLightState.YELLOW, 15),
+                    ],
+                ),
+                550,
+                30,
+            ),
+            (
+                TrafficLightCycle(
+                    time_offset=100,
+                    cycle_elements=[
+                        TrafficLightCycleElement(TrafficLightState.RED, 60),
+                        TrafficLightCycleElement(TrafficLightState.RED_YELLOW, 15),
+                        TrafficLightCycleElement(TrafficLightState.GREEN, 30),
+                        TrafficLightCycleElement(TrafficLightState.YELLOW, 15),
+                    ],
+                ),
+                50,
+                50,
+            ),
+        ],
+    )
+    def test_correctly_aligns_already_aligned_traffic_light(
+        self, cycle, alignment_time_step, expected_offset
+    ):
+        traffic_light = TrafficLight(
+            traffic_light_id=1,
+            position=np.array([0.0, 0.0]),
+            traffic_light_cycle=copy.deepcopy(cycle),
+        )
+        align_traffic_light_to_time_step(traffic_light, alignment_time_step)
+        assert traffic_light.traffic_light_cycle is not None
+        assert traffic_light.traffic_light_cycle.time_offset == expected_offset
+
+        cycle_length = sum([elem.duration for elem in cycle.cycle_elements])
+        for i in range(0, 2 * cycle_length):
+            original_state = cycle.get_state_at_time_step(i + alignment_time_step)
+            aligned_state = traffic_light.get_state_at_time_step(i)
+            assert (
+                original_state == aligned_state
+            ), f"Original state {original_state} at time step {i + alignment_time_step} does not match aligned state {aligned_state} at time step {i}"
 
 
 class TestCopyScenario:

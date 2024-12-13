@@ -92,10 +92,23 @@ def align_traffic_light_to_time_step(traffic_light: TrafficLight, time_step: int
     :param traffic_light: The traffic light to align. Modified in place.
     :param time_step: The reference time step that will serve as the zero point.
     """
-    if traffic_light.traffic_light_cycle is not None:
-        traffic_light.traffic_light_cycle.time_offset = (
-            traffic_light.traffic_light_cycle.time_offset - time_step
-        ) % (traffic_light.traffic_light_cycle.cycle_init_timesteps[-1])
+    if traffic_light.traffic_light_cycle is None:
+        return
+
+    current_cycle = traffic_light.traffic_light_cycle
+    cycle_length = sum([cycle_el.duration for cycle_el in current_cycle.cycle_elements])
+
+    if traffic_light.traffic_light_cycle.time_offset < time_step:
+        cycle_index = (time_step - current_cycle.time_offset) % cycle_length
+        current_cycle.time_offset = cycle_length - cycle_index
+    else:
+        current_cycle.time_offset = current_cycle.time_offset - time_step
+
+    # The traffic light cycles keeps track of its init timesteps.
+    # This property is computed once with the intial time offset and cached, but not invalidate on change.
+    # Therefore, if the time offset changes we have to invalidate it manually.
+    if hasattr(traffic_light.traffic_light_cycle, "_cycle_init_timesteps"):
+        del traffic_light.traffic_light_cycle._cycle_init_timesteps
 
 
 def align_scenario_to_time_step(scenario: Scenario, time_step: int) -> None:

@@ -34,7 +34,7 @@ class ScenarioFactoryConfig:
     # Tags in cr scenario file
     author = "Florian Finkeldei"
     affiliation = "TUM - Cyber-Physical Systems"
-    source = "OpenStreetMap, SUMO Traffic Simulator"
+    source: str = "Scenario Factory 2.0"
     tags = {Tag.SIMULATED}
 
     # EGO VEHICLE SELECTION ############################################################################################

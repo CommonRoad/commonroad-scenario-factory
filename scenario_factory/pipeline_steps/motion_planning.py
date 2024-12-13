@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 from commonroad.common.solution import (
     CostFunction,
     PlanningProblemSolution,
@@ -11,22 +9,15 @@ from commonroad.planning.planner_interface import TrajectoryPlannerInterface
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad_route_planner.route_planner import RoutePlanner
 
-from scenario_factory.pipeline import PipelineContext, PipelineStepArguments, pipeline_map_with_args
+from scenario_factory.pipeline import PipelineContext, pipeline_map
 from scenario_factory.scenario_container import ScenarioContainer
 
 
-@dataclass
-class SolvePlanningProblemWithMotionPlannerArgs(PipelineStepArguments):
-    """Arguments for `pipeline_solve_planning_problem_with_motion_planner`. Used to specify the motion planner."""
-
-    motion_planner: TrajectoryPlannerInterface
-
-
-@pipeline_map_with_args()
+@pipeline_map()
 def pipeline_solve_planning_problem_with_motion_planner(
-    args: SolvePlanningProblemWithMotionPlannerArgs,
     ctx: PipelineContext,
     scenario_container: ScenarioContainer,
+    motion_planner: TrajectoryPlannerInterface,
 ) -> ScenarioContainer:
     """
     Solve the planning problems attached to the scenario container with the motion planner from `args`.
@@ -48,7 +39,7 @@ def pipeline_solve_planning_problem_with_motion_planner(
         route_planner = RoutePlanner(scenario_container.scenario.lanelet_network, planning_problem)
         route = route_planner.plan_routes().retrieve_first_route()
 
-        trajectory = args.motion_planner.plan(
+        trajectory = motion_planner.plan(
             scenario_container.scenario, planning_problem, ref_path=route.reference_path
         )
         planning_problem_solution = PlanningProblemSolution(

@@ -1,5 +1,4 @@
 __all__ = [
-    "FindEgoVehicleManeuversArguments",
     "pipeline_find_ego_vehicle_maneuvers",
     "pipeline_filter_ego_vehicle_maneuver",
     "pipeline_select_one_maneuver_per_ego_vehicle",
@@ -8,7 +7,6 @@ __all__ = [
 
 import logging
 from collections import defaultdict
-from dataclasses import dataclass
 from typing import Iterable, List, Sequence
 
 from commonroad.common.solution import Solution
@@ -22,11 +20,9 @@ from scenario_factory.ego_vehicle_selection.selection import (
 )
 from scenario_factory.pipeline import (
     PipelineContext,
-    PipelineStepArguments,
     pipeline_filter,
     pipeline_fold,
     pipeline_map,
-    pipeline_map_with_args,
 )
 from scenario_factory.scenario_container import (
     ScenarioContainer,
@@ -38,18 +34,11 @@ from scenario_factory.scenario_generation import (
 _LOGGER = logging.getLogger(__name__)
 
 
-@dataclass
-class FindEgoVehicleManeuversArguments(PipelineStepArguments):
-    """Arguments for `pipeline_find_ego_vehicle_maneuvers`"""
-
-    criterions: Iterable[EgoVehicleSelectionCriterion]
-
-
-@pipeline_map_with_args()
+@pipeline_map()
 def pipeline_find_ego_vehicle_maneuvers(
-    args: FindEgoVehicleManeuversArguments,
     ctx: PipelineContext,
     scenario_container: ScenarioContainer,
+    criterions: Iterable[EgoVehicleSelectionCriterion],
 ) -> List[ScenarioContainer]:
     """
     Find vehicles in the scenario that perform a maneuver that could qualify them as an ego vehicle.
@@ -59,7 +48,7 @@ def pipeline_find_ego_vehicle_maneuvers(
     :param scenario_container: The scenario in which maneuvers should be detected. Will not be modified.
     """
     ego_vehicle_maneuvers = find_ego_vehicle_maneuvers_in_scenario(
-        scenario_container.scenario, args.criterions
+        scenario_container.scenario, criterions
     )
     _LOGGER.debug(
         "Identified %s maneuvers in scenario %s that could qualify for an ego vehicle",
@@ -74,9 +63,9 @@ def pipeline_find_ego_vehicle_maneuvers(
 
 @pipeline_filter()
 def pipeline_filter_ego_vehicle_maneuver(
-    filter: EgoVehicleManeuverFilter,
     ctx: PipelineContext,
     scenario_container: ScenarioContainer,
+    filter: EgoVehicleManeuverFilter,
 ) -> bool:
     """
     Only include ego vehicle maneuvers that match the given filter predicate.

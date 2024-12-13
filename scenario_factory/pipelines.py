@@ -1,13 +1,14 @@
 from pathlib import Path
 from typing import Iterable
 
-from scenario_factory.ego_vehicle_selection.criterions import EgoVehicleSelectionCriterion
-from scenario_factory.ego_vehicle_selection.filters import EgoVehicleManeuverFilter
+from scenario_factory.ego_vehicle_selection import (
+    EgoVehicleManeuverFilter,
+    EgoVehicleSelectionCriterion,
+)
 from scenario_factory.globetrotter import LocalFileMapProvider, MapProvider, OsmApiMapProvider
 from scenario_factory.pipeline import Pipeline
 from scenario_factory.pipeline_steps import (
-    ExtractOsmMapArguments,
-    FindEgoVehicleManeuversArguments,
+    pipeline_assign_unique_incremental_scenario_ids,
     pipeline_convert_osm_map_to_commonroad_scenario,
     pipeline_extract_intersections,
     pipeline_extract_osm_map,
@@ -35,7 +36,7 @@ def create_globetrotter_pipeline(radius: float, map_provider: MapProvider) -> Pi
     """
     pipeline = Pipeline()
     (
-        pipeline.map(pipeline_extract_osm_map(ExtractOsmMapArguments(map_provider, radius=radius)))
+        pipeline.map(pipeline_extract_osm_map(map_provider, radius=radius))
         .map(pipeline_convert_osm_map_to_commonroad_scenario)
         .map(pipeline_verify_and_repair_commonroad_scenario)
         .map(pipeline_extract_intersections)
@@ -54,14 +55,13 @@ def create_scenario_generation_pipeline(
 
     pipeline.map(pipeline_remove_colliding_dynamic_obstacles)
     pipeline.map(
-        pipeline_find_ego_vehicle_maneuvers(
-            FindEgoVehicleManeuversArguments(criterions=ego_vehicle_selection_criterions)
-        ),
+        pipeline_find_ego_vehicle_maneuvers(criterions=ego_vehicle_selection_criterions),
     )
     for filter in ego_vehicle_filters:
         pipeline.filter(pipeline_filter_ego_vehicle_maneuver(filter))
 
     pipeline.fold(pipeline_select_one_maneuver_per_ego_vehicle)
     pipeline.map(pipeline_generate_scenario_for_ego_vehicle_maneuver)
+    pipeline.fold(pipeline_assign_unique_incremental_scenario_ids)
 
     return pipeline
