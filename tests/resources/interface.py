@@ -1,9 +1,8 @@
 import shutil
+from contextlib import contextmanager
 from enum import Enum, auto
 from pathlib import Path
 from tempfile import TemporaryDirectory
-
-from commonroad.scenario.scenario import Scenario
 
 
 class ResourceType(Enum):
@@ -45,46 +44,18 @@ class TmpResourceEntry:
         self.tmp_path = tmp_path if tmp_path is not None else Path(resource_name)
 
 
-class TmpResourceFolder:
+@contextmanager
+def make_tmp_resource_folder(*resources: TmpResourceEntry):
     """
-    Context for a temporary folder populated with resources.
+    Functional context manager that produces a temporary folder populated with the specified resources.
     """
-
-    @property
-    def path(self) -> Path:
-        if self._temppath is None:
-            raise RuntimeError("The context has not been created.")
-        return self._temppath
-
-    _tempdir: TemporaryDirectory | None
-    _temppath: Path | None
-
-    def __init__(self, *resources: TmpResourceEntry):
-        self._resources = list(resources)
-        self._tempdir = None
-        self._temppath = None
-
-    def __enter__(self):
-        if self._tempdir is not None:
-            raise RuntimeError("Cannot create a new context before exiting.")
-        self._tempdir = TemporaryDirectory()
-        self._temppath = Path(self._tempdir.name)
-        for res in self._resources:
+    with TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        for res in resources:
             resource_path = res.resource_type.get_folder() / res.resource_name
             if not resource_path.exists():
-                self._tempdir.cleanup()
-                self._tempdir = None
-                raise NameError(f"The resource {resource_path.name} does not exist.")
-            target_path = self._temppath / res.tmp_path
+                raise RuntimeError(...)
+            target_path = temp_path / res.tmp_path
             target_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(resource_path, target_path)
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._tempdir is None:
-            raise RuntimeError("Cannot exit before creating a context.")
-        self._tempdir.cleanup()
-        return False
-
-    def get_path(self, relative: Path) -> Path:
-        return self.path / relative
+        yield temp_path

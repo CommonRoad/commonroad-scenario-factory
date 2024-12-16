@@ -39,7 +39,7 @@ class SkipNote:
     @property
     def label(self) -> str:
         """
-        Accesses the label of the test case to be skipped.
+        Accesses the label of the test case to be skipped. Must match the label provided in the test dataset.
         :return: The label.
         """
         return self._label
@@ -115,9 +115,8 @@ class with_dataset:
             self._parameter_names = None
         else:
             self._parameter_names = list(parameter_names)
-        if skips is None:
-            self._skips = {}
-        else:
+        self._skips = {}
+        if skips is not None:
             self._skips = {}
             for s in skips:
                 if isinstance(s, str):

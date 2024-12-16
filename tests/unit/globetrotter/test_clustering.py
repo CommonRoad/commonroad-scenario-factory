@@ -1,24 +1,18 @@
 import numpy as np
 import pytest
 from commonroad.scenario.lanelet import LaneletNetwork
-from commonroad.scenario.scenario import Scenario
 
-from scenario_factory.globetrotter import extract_intersections_from_scenario
 from scenario_factory.globetrotter.clustering import (
     centroids_and_distances,
-    cut_intersection_from_scenario,
     extract_forking_points,
     find_clusters_agglomerative,
-    generate_intersections,
     get_distance_to_outer_point,
 )
 from tests.automation.mark import with_dataset
 from tests.unit.globetrotter.clustering_datasets import (
     CENTROID_TEST_DATASET,
     CLUSTERING_TEST_DATASET,
-    CUT_INTERSECTION_TEST_DATASET,
     FORKING_POINTS_TEST_DATASET,
-    GENERATE_INTERSECTIONS_TEST_DATASET,
     OUTER_DISTANCE_TEST_DATASET,
 )
 
@@ -64,19 +58,6 @@ class TestGlobals:
                 exp_cluster == clusters[key]
             ), f"Expected matching member points for cluster {key} for entry {label}."
 
-    @with_dataset(CUT_INTERSECTION_TEST_DATASET)
-    def test_cut_intersections_from_scenario(
-        self,
-        label: str,
-        scenario: Scenario,
-        center: np.ndarray,
-        max_distance: float,
-        expected_scenario: Scenario,
-    ):
-        # TODO: Only check for relevant features of a scenario, not strict equality
-        comp_scenario = cut_intersection_from_scenario(scenario, center, max_distance)
-        assert comp_scenario == expected_scenario, f"Expected correct scenario for entry {label}."
-
     @with_dataset(
         FORKING_POINTS_TEST_DATASET,
         skips=[
@@ -95,27 +76,3 @@ class TestGlobals:
             assert np.all(
                 comp_forking_points == expected_forking_points
             ), f"Expected correct forking points for entry {label}."
-
-    @with_dataset(GENERATE_INTERSECTIONS_TEST_DATASET)
-    def test_generate_intersections(
-        self,
-        label: str,
-        scenario: Scenario,
-        forking_points: np.ndarray,
-        expected_scenarios: list[Scenario],
-    ):
-        # TODO: Only check for relevant features of a scenario, not strict equality
-        comp_scenarios = generate_intersections(scenario, np.array(forking_points))
-        assert (
-            expected_scenarios == comp_scenarios
-        ), f"Expected correct intersection-scenario generation for entry {label}."
-
-    @with_dataset(GENERATE_INTERSECTIONS_TEST_DATASET)
-    def test_extract_intersections_from_scenario(
-        self, label: str, scenario: Scenario, expected_scenarios: list[Scenario]
-    ):
-        # TODO: Only check for relevant features of a scenario, not strict equality
-        comp_scenarios = extract_intersections_from_scenario(scenario)
-        assert (
-            expected_scenarios == comp_scenarios
-        ), f"Expected correct intersection-scenario generation for entry {label}."

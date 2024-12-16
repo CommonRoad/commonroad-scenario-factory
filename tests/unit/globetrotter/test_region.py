@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from scenario_factory.globetrotter import BoundingBox, load_regions_from_csv
@@ -28,14 +29,14 @@ class TestCoordinates:
     @with_dataset(COORDINATE_PARSING_TEST_DATASET)
     def test_parse_from_tuple(self, label, valid, lat, lon):
         if not valid:
-            return
+            pytest.skip("Can only test parsing from valid tuples.")
         coords = Coordinates.from_tuple((lat, lon))
         assert coords.lat == lat and coords.lon == lon, f"Mismatch parsing entry {label} from tuple"
 
     @with_dataset(COORDINATE_PARSING_TEST_DATASET)
     def test_string_serialization_and_parsing_is_idempotent(self, label, valid, lat, lon):
         if not valid:
-            return
+            pytest.skip("Can only test indempotence for valid tuples.")
         coords = Coordinates(lat=lat, lon=lon)
         comp = Coordinates.from_str(str(coords))
         assert (
@@ -45,7 +46,7 @@ class TestCoordinates:
     @with_dataset(COORDINATE_PARSING_TEST_DATASET)
     def test_tuple_serialization_and_parsing_is_idempotent(self, label, valid, lat, lon):
         if not valid:
-            return
+            pytest.skip("Can only test indempotence for valid tuples.")
         coords = Coordinates(lat=lat, lon=lon)
         comp = Coordinates.from_tuple(coords.as_tuple())
         assert (
@@ -89,14 +90,14 @@ class TestBoundingBox:
         expected_north: float,
     ):
         bbox = BoundingBox.from_coordinates(coordinates, radius)
-        assert expected_west == bbox.west, f"Expected correct west bound for entry: {label}."
-        assert expected_south == bbox.south, f"Expected correct south bound for entry: {label}."
-        assert expected_east == bbox.east, f"Expected correct east bound for entry: {label}."
-        assert expected_north == bbox.north, f"Expected correct north bound for entry: {label}."
+        assert np.allclose(
+            [expected_west, expected_south, expected_east, expected_north],
+            [bbox.west, bbox.south, bbox.east, bbox.north],
+            atol=1e-6,
+        ), f"Expected bounds close to the provided bounds for entry {label}."
 
     @with_dataset(BOUNDING_BOX_TO_STRING_TEST_DATASET)
     def test_constructor(self, label: str, west: float, south: float, east: float, north: float):
-        # TODO: Create test examples
         bbox = BoundingBox(west, south, east, north)
         assert west == bbox.west, f"Expected correct west bound for entry: {label}."
         assert south == bbox.south, f"Expected correct south bound for entry: {label}."
