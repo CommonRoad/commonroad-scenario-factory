@@ -7,10 +7,11 @@ __all__ = [
 
 import logging
 from pathlib import Path
-from typing import Sequence, Union
+from typing import Optional, Sequence, Union
 
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
 from commonroad.common.solution import CommonRoadSolutionWriter, Solution
+from commonroad.common.util import Interval
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.obstacle import DynamicObstacle
 
@@ -34,7 +35,10 @@ from scenario_factory.utils import (
     create_dynamic_obstacle_from_planning_problem_solution,
     create_planning_problem_solution_for_ego_vehicle,
 )
-from scenario_factory.utils.scenario import UniqueIncrementalIdAllocator
+from scenario_factory.utils.scenario import (
+    UniqueIncrementalIdAllocator,
+    get_scenario_final_time_step,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -300,7 +304,7 @@ def pipeline_assign_unique_incremental_scenario_ids(
     Take a sequence of scenario containers and create new `ScenarioID`s for each scenario, such
     that the new ids are unique and incrementing. E.g. DEU_Test-54 -> DEU_Test-1; DEU_Test-89 -> DEU_Test-2.
 
-    :param ctx: Context for this pipelien execution
+    :param ctx: Context for this pipeline execution.
     :param scenario_containers: Sequence of scenario containers for which the unique ids should be allocated. Scenarios and attachments will be modified in place.
 
     :returns: The modified sequence of scenario containers.
@@ -315,3 +319,37 @@ def pipeline_assign_unique_incremental_scenario_ids(
             solution.scenario_id = new_scenario_id
 
     return scenario_containers
+
+
+@pipeline_map()
+def pipeline_extend_planning_problem_time_interval(
+    ctx: PipelineContext,
+    scenario_container: ScenarioContainer,
+    scenario_length: Optional[int] = None,
+) -> ScenarioContainer:
+    """
+    Extend the planning problem interval to cover the whole scenario duration.
+
+    :param ctx: Context for this pipeline execution.
+    :param scenario_container: `ScenarioContainer` with a `PlanningProblemSet` attachment. The `PlanningProblemSet` attachment will be modified in place.
+    :param scenario_length: Optionally specify the length of the scenario. This length will be used to determine the end of the planning problem time interval. If it is not provided, it will be automatically determined from the scenario.
+
+    :returns: The `ScenarioContainer` with the modified `PlanningProblemSet` attachment.
+    """
+    planning_problem_set = scenario_container.get_attachment(PlanningProblemSet)
+    if planning_problem_set is None:
+        raise ValueError(
+            f"Cannot extend goal time interval for planning problem for scenario {scenario_container.scenario.scenario_id}: The scenario container does not have a `PlanningProblemSet` attachment!"
+        )
+
+    if scenario_length is None:
+        scenario_length = get_scenario_final_time_step(scenario_container.scenario)
+    for planning_problem in planning_problem_set.planning_problem_dict.values():
+        for state in planning_problem.goal.state_list:
+            assert isinstance(
+                state.time_step, Interval
+            ), "The time step of a planning problem goal state must be an Interval. This is a bug!"
+            final_time_step = max(scenario_length, state.time_step.end)
+            state.time_step = Interval(0, final_time_step)
+
+    return scenario_container

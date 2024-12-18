@@ -1,4 +1,5 @@
 import numpy as np
+from commonroad.common.util import Interval
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.state import ExtendedPMState
 
@@ -54,7 +55,9 @@ class TestCreatePlanningPorlbmeForEgoVehicle:
             )
             .build()
         )
-        planning_problem = create_planning_problem_for_ego_vehicle(lanelet_network, ego_vehicle)
+        planning_problem = create_planning_problem_for_ego_vehicle(
+            lanelet_network, ego_vehicle, Interval(0, 150)
+        )
         assert planning_problem.planning_problem_id == ego_vehicle.obstacle_id
         assert len(planning_problem.goal.state_list) == 1
         assert planning_problem.goal.lanelets_of_goal_position is None
@@ -77,7 +80,7 @@ class TestCreatePlanningPorlbmeForEgoVehicle:
         )
 
         planning_problem = create_planning_problem_for_ego_vehicle(
-            lanelet_network, ego_vehicle, planning_problem_with_lanelet=True
+            lanelet_network, ego_vehicle, Interval(30, 40), planning_problem_with_lanelet=True
         )
         assert planning_problem.planning_problem_id == ego_vehicle.obstacle_id
         assert len(planning_problem.goal.state_list) == 1
@@ -103,6 +106,7 @@ class TestCreatePlanningProblemSetAndSolutionForEgoVehicle:
         )
         planning_problem_set, planning_problem_solution = (
             create_planning_problem_set_and_solution_for_ego_vehicle(
-                scenario, ego_vehicle, planning_problem_with_lanelet=False
+                scenario, ego_vehicle, 150, planning_problem_with_lanelet=False
             )
         )
+        # TODO: missing asserts
