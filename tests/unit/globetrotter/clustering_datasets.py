@@ -101,12 +101,6 @@ CENTROID_TEST_DATASET = Dataset(
     ]
 )
 
-CUT_INTERSECTION_TEST_DATASET = Dataset(
-    [
-        # TODO
-    ]
-)
-
 FORKING_POINTS_TEST_DATASET = Dataset(
     [
         ForkingPointsTestCase(
@@ -124,11 +118,5 @@ FORKING_POINTS_TEST_DATASET = Dataset(
             lanelet_network=UsefulLaneletNetworks.malformed_one_split_no_meta(),
             expected_forking_points=None,
         ),
-    ]
-)
-
-GENERATE_INTERSECTIONS_TEST_DATASET = Dataset(
-    [
-        # TODO
     ]
 )
