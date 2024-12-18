@@ -8,6 +8,7 @@ __all__ = [
     "pipeline_extract_ego_vehicle_solutions_from_scenario",
     "pipeline_remove_parked_dynamic_obstacles",
     "pipeline_assign_unique_incremental_scenario_ids",
+    "pipeline_extend_planning_problem_time_interval",
     # Open Street Map
     "pipeline_extract_osm_map",
     "pipeline_convert_osm_map_to_commonroad_scenario",
@@ -55,6 +56,7 @@ from .utils import (
     pipeline_add_metadata_to_scenario,
     pipeline_assign_tags_to_scenario,
     pipeline_assign_unique_incremental_scenario_ids,
+    pipeline_extend_planning_problem_time_interval,
     pipeline_extract_ego_vehicle_solutions_from_scenario,
     pipeline_insert_ego_vehicle_solutions_into_scenario,
     pipeline_remove_colliding_dynamic_obstacles,

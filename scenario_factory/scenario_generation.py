@@ -90,16 +90,14 @@ def _create_planning_problem_initial_state_for_ego_vehicle(
 
 
 def _create_planning_problem_goal_state_for_ego_vehicle(
-    ego_vehicle: DynamicObstacle,
+    ego_vehicle: DynamicObstacle, goal_time_interval: Interval
 ) -> TraceState:
     """
     Create a new state that can be used as a goal state in a planning problem
     """
     final_state_of_ego_vehicle = copy.deepcopy(ego_vehicle.prediction.trajectory.final_state)
     goal_state = PMState(
-        time_step=Interval(
-            final_state_of_ego_vehicle.time_step - 1, final_state_of_ego_vehicle.time_step
-        ),
+        time_step=goal_time_interval,
         position=Rectangle(
             length=6,
             width=2,
@@ -113,6 +111,7 @@ def _create_planning_problem_goal_state_for_ego_vehicle(
 def create_planning_problem_for_ego_vehicle(
     lanelet_network: LaneletNetwork,
     ego_vehicle: DynamicObstacle,
+    planning_problem_time_interval: Interval,
     planning_problem_with_lanelet: bool = True,
 ) -> PlanningProblem:
     """
@@ -120,12 +119,15 @@ def create_planning_problem_for_ego_vehicle(
 
     :param lanelet_network: Lanelet network used to match the goal state to the final lanelets, if `planning_problem_with_lanelet` is set.
     :param ego_vehicle: The ego vehicle with a trajectory that will form the basis for the planning problem
+    :param planning_problem_time_interval: The time step interval set for the goal state of the planning problem.
     :param planning_problem_with_lanelet: Whether the goal region should also contain references to the final lanelet. If the intial state and goal region are on the same lanelet, the goal region will not contain a reference to the final lanelet.
 
     :returns: A new PlanningProblem for the `ego_vehicle`
     """
     initial_state = _create_planning_problem_initial_state_for_ego_vehicle(ego_vehicle)
-    goal_state = _create_planning_problem_goal_state_for_ego_vehicle(ego_vehicle)
+    goal_state = _create_planning_problem_goal_state_for_ego_vehicle(
+        ego_vehicle, planning_problem_time_interval
+    )
 
     goal_region_lanelet_mapping = None
     if planning_problem_with_lanelet is True:
@@ -176,19 +178,27 @@ def create_planning_problem_for_ego_vehicle(
 
 
 def create_planning_problem_set_and_solution_for_ego_vehicle(
-    scenario: Scenario, ego_vehicle: DynamicObstacle, planning_problem_with_lanelet: bool = True
+    scenario: Scenario,
+    ego_vehicle: DynamicObstacle,
+    scenario_time_steps: int,
+    planning_problem_with_lanelet: bool = True,
 ) -> Tuple[PlanningProblemSet, PlanningProblemSolution]:
     """
     Create a new planning problem set and solution for the trajectory of the :param:`ego_vehicle`. The initial and final state will become the start and goal state of the planning problem, while the trajectory will be used as the solution trajectory.
 
-    :param scenario: Scenario used to match the trajectory to the lanelet network
-    :param ego_vehicle: The ego vehicle with a trajectory that will form the basis for the planning problem and solution
-    :param planning_problem_with_lanelet: Whether the goal region should also contain references to the final lanelet
+    :param scenario: Scenario used to match the trajectory to the lanelet network.
+    :param ego_vehicle: The ego vehicle with a trajectory that will form the basis for the planning problem and solution.
+    :param scenario_time_steps: The wanted length of the ego scenario. This will be used to set the planning problem time interval.
+    :param planning_problem_with_lanelet: Whether the goal region should also contain references to the final lanelet.
 
     :returns: The planning problem set and its associated solution
     """
+    planning_problem_time_interval = Interval(0, scenario_time_steps)
     planning_problem = create_planning_problem_for_ego_vehicle(
-        scenario.lanelet_network, ego_vehicle, planning_problem_with_lanelet
+        scenario.lanelet_network,
+        ego_vehicle,
+        planning_problem_time_interval,
+        planning_problem_with_lanelet,
     )
     planning_problem_set = PlanningProblemSet([planning_problem])
     planning_problem_solution = create_planning_problem_solution_for_ego_vehicle(
@@ -302,7 +312,10 @@ def generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_man
 
     planning_problem_set, planning_problem_solution = (
         create_planning_problem_set_and_solution_for_ego_vehicle(
-            ego_scenario, cropped_ego_vehicle, scenario_config.planning_pro_with_lanelet
+            ego_scenario,
+            cropped_ego_vehicle,
+            scenario_config.cr_scenario_time_steps,
+            scenario_config.planning_pro_with_lanelet,
         )
     )
     return ego_scenario, planning_problem_set, planning_problem_solution
