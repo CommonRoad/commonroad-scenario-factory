@@ -28,6 +28,8 @@ __all__ = [
     "pipeline_compute_criticality_metrics",
     "pipeline_compute_waymo_metrics",
     "pipeline_compute_single_scenario_metrics",
+    # Visualization
+    "pipeline_render_commonroad_scenario",
 ]
 
 from .globetrotter import (
@@ -63,3 +65,4 @@ from .utils import (
     pipeline_remove_parked_dynamic_obstacles,
     pipeline_write_scenario_to_file,
 )
+from .visualization_renderer import pipeline_render_commonroad_scenario

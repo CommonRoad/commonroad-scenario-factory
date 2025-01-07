@@ -10,6 +10,7 @@ from scenario_factory.pipeline import PipelineContext
 from scenario_factory.pipeline_steps import (
     pipeline_add_metadata_to_scenario,
     pipeline_assign_tags_to_scenario,
+    pipeline_render_commonroad_scenario,
     pipeline_simulate_scenario_with_ots,
     pipeline_write_scenario_to_file,
 )
@@ -90,6 +91,7 @@ def generate(
     pipeline = (
         base_pipeline.chain(scenario_generation_pipeline)
         .map(pipeline_assign_tags_to_scenario)
+        .map(pipeline_render_commonroad_scenario(output_path, fps=5, time_steps=25))
         .map(pipeline_write_scenario_to_file(output_path))
     )
     inputs = None
