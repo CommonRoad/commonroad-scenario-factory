@@ -1,9 +1,13 @@
-[tool.poetry]
+[project]
 name = "commonroad-scenario-factory"
 version = "0.1.0"
 description = "Automated scenario generation for CommonRoad based on SUMO traffic simulations."
-authors = ["Florian Finkeldei <florian.finkeldei@tum.de>"]
+authors = [{name = "Florian Finkeldei", email = "<florian.finkeldei@tum.de>"}]
+requires-python = ">=3.10"
 readme = "README.md"
+dynamic = ["dependencies"]
+
+[tool.poetry]
 packages = [{include = "scenario_factory"}]
 
 [[tool.poetry.source]]
@@ -77,6 +81,6 @@ source = ["scenario_factory"]
 module = "scenario_factory.scenario_features.*"
 ignore_errors = true
 
-[tool.poetry.scripts]
+[project.scripts]
 scenario-factory = "scripts.cli:generate"
 globetrotter = "scripts.cli:globetrotter"
