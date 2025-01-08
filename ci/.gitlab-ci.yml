@@ -11,7 +11,7 @@ default:
   before_script: &default_before_script
     - pip install poetry
     - poetry config virtualenvs.in-project true
-    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.lrz.de/".insteadOf "git@gitlab.lrz.de:"
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.lrz.de".insteadOf "ssh://git@gitlab.lrz.de"
   cache:
     paths:
       # Cache the poetry installation for all jobs.
