@@ -13,7 +13,7 @@ from scenario_factory.ego_vehicle_selection import (
     threshold_and_max_detection,
 )
 from scenario_factory.ego_vehicle_selection.criterions import LaneChangeCriterion
-from tests.helpers import create_test_obstacle_with_trajectory
+from tests.helpers.obstacle import create_test_obstacle_with_trajectory
 
 
 class TestThresholdAndLagDection:

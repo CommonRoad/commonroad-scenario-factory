@@ -24,7 +24,7 @@ from scenario_factory.pipelines import create_scenario_generation_pipeline
 from scenario_factory.scenario_config import ScenarioFactoryConfig
 from scenario_factory.scenario_types import load_scenarios_from_folder
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
-from tests.resources import ResourceType
+from tests.resources.interface import ResourceType
 
 
 def _is_valid_commonroad_scenario(scenario_path: Path) -> bool:
@@ -34,7 +34,18 @@ def _is_valid_commonroad_scenario(scenario_path: Path) -> bool:
 
 class TestGlobetrotterPipeline:
     def test_globetrotter_pipeline_extracts_intersections(self):
-        input_maps = ResourceType.OSM_MAP.get_folder().glob("*.osm")
+        # TODO: Rework Integration Tests to new Test Infrastructure.
+        # In this case: concrete parametrization instead of 'glob'-ing & single test per case
+        # input_maps = ResourceType.OSM_MAP.get_folder().glob("*.osm")
+        input_maps = [
+            ResourceType.OSM_MAP.get_folder() / map_name
+            for map_name in [
+                "ALB_Korce-1.osm",
+                "HND_Santa_Barbara-1.osm",
+                "IND_Jakarta-1.osm",
+                "USA_Memphis-1.osm",
+            ]
+        ]
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_folder = Path(tempdir) / "intersections"
@@ -82,7 +93,7 @@ class TestScenarioGeneration:
             assert len(result.values) == 0
 
     def test_scenario_generation(self):
-        input_scenarios = load_scenarios_from_folder(ResourceType.COMMONROAD_SCENARIO.get_folder())
+        input_scenarios = load_scenarios_from_folder(ResourceType.CR_SCENARIO.get_folder())
         assert len(input_scenarios) > 0
         scenario_factory_config = ScenarioFactoryConfig(seed=1, cr_scenario_time_steps=15)
         scenario_generation_pipeline = create_scenario_generation_pipeline(
@@ -111,7 +122,7 @@ class TestScenarioGeneration:
 
 class TestSimulationWithSumo:
     def test_simulate_scenario_with_sumo_creates_random_traffic_on_empty_map(self):
-        input_maps = load_scenarios_from_folder(ResourceType.COMMONROAD_MAP.get_folder())
+        input_maps = load_scenarios_from_folder(ResourceType.CR_MAP.get_folder())
         assert len(input_maps) > 0
 
         with tempfile.TemporaryDirectory() as tempdir:
@@ -151,7 +162,7 @@ class TestSimulationWithSumo:
 
 class TestSimulationWithOts:
     def test_simulate_scenario_with_ots_creates_random_traffic_on_empty_map(self):
-        input_maps = load_scenarios_from_folder(ResourceType.COMMONROAD_MAP.get_folder())
+        input_maps = load_scenarios_from_folder(ResourceType.CR_MAP.get_folder())
         assert len(input_maps) > 0
 
         with tempfile.TemporaryDirectory() as tempdir:
