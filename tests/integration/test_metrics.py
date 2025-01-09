@@ -35,7 +35,7 @@ def test_can_compute_waymo_metrics_after_simulation(
         .map(pipeline_compute_waymo_metrics)
     )
 
-    scenarios = load_scenarios_from_folder(ResourceType.COMMONROAD_SCENARIO.get_folder())
+    scenarios = load_scenarios_from_folder(ResourceType.CR_SCENARIO.get_folder())
     result = pipeline.execute(scenarios, debug=True)
     assert len(result.errors) == 0
     assert len(result.values) == len(scenarios)
@@ -70,7 +70,7 @@ def test_can_compute_single_scenario_metrics_after_simulation(
         .map(pipeline_compute_single_scenario_metrics)
     )
 
-    scenarios = load_scenarios_from_folder(ResourceType.COMMONROAD_SCENARIO.get_folder())
+    scenarios = load_scenarios_from_folder(ResourceType.CR_SCENARIO.get_folder())
     result = pipeline.execute(scenarios, debug=True)
     assert len(result.errors) == 0
     assert len(result.values) == len(scenarios)

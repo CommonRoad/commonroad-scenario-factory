@@ -24,12 +24,12 @@ class TestPipelineComputeCriticalityMetrics:
             pipeline_compute_criticality_metrics()(ctx, scenario_container)
 
     @pytest.mark.parametrize(
-        argnames="scenario_file", argvalues=RESOURCES[ResourceType.COMMONROAD_SCENARIO]
+        argnames="scenario_file", argvalues=RESOURCES[ResourceType.CR_SCENARIO]
     )
     def test_computes_criticality_metrics_and_stores_result_in_scenario_container_attachment(
         self, scenario_file: str
     ) -> None:
-        scenario_path = ResourceType.COMMONROAD_SCENARIO.get_folder() / scenario_file
+        scenario_path = ResourceType.CR_SCENARIO.get_folder() / scenario_file
         scenario, planning_problem_set = CommonRoadFileReader(scenario_path).open()
         scenario_container = ScenarioContainer(scenario, planning_problem_set=planning_problem_set)
 
@@ -48,12 +48,12 @@ class TestPipelineComputeCriticalityMetrics:
 
 class TestPipelineComputeSingleScenarioMetrics:
     @pytest.mark.parametrize(
-        argnames="scenario_file", argvalues=RESOURCES[ResourceType.COMMONROAD_SCENARIO]
+        argnames="scenario_file", argvalues=RESOURCES[ResourceType.CR_SCENARIO]
     )
     def test_computes_metrics_and_stores_result_in_scenario_container_attachment(
         self, scenario_file: str
     ) -> None:
-        scenario_path = ResourceType.COMMONROAD_SCENARIO.get_folder() / scenario_file
+        scenario_path = ResourceType.CR_SCENARIO.get_folder() / scenario_file
         scenario, planning_problem_set = CommonRoadFileReader(scenario_path).open()
         scenario_container = ScenarioContainer(scenario, planning_problem_set=planning_problem_set)
 

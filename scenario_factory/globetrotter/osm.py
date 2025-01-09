@@ -4,6 +4,10 @@ __all__ = [
     "OsmApiMapProvider",
     "verify_and_repair_commonroad_scenario",
     "convert_osm_file_to_commonroad_scenario",
+    "extract_bounding_box_from_osm_map",
+    "find_osm_file_for_region",
+    "fix_center_polylines",
+    "get_canonical_region_name",
 ]
 
 import logging

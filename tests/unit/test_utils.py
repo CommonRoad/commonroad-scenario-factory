@@ -19,7 +19,7 @@ from scenario_factory.utils import (
     get_full_state_list_of_obstacle,
 )
 from scenario_factory.utils.align import align_traffic_light_to_time_step
-from tests.helpers import create_test_obstacle_with_trajectory
+from tests.helpers.obstacle import create_test_obstacle_with_trajectory
 
 
 class TestAlignStateToTimeStep:

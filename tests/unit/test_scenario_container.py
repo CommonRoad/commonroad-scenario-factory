@@ -45,15 +45,15 @@ class TestTryLoadXmlFileAsCommonRoadScenario:
         result = _try_load_xml_file_as_commonroad_scenario(file_path)
         assert result is None
 
-    @pytest.mark.parametrize("file", RESOURCES[ResourceType.COMMONROAD_SOLUTION])
+    @pytest.mark.parametrize("file", RESOURCES[ResourceType.CR_SOLUTION])
     def test_returns_none_if_file_is_commonroad_solution(self, file: str) -> None:
-        file_path = ResourceType.COMMONROAD_SOLUTION.get_folder() / file
+        file_path = ResourceType.CR_SOLUTION.get_folder() / file
         result = _try_load_xml_file_as_commonroad_scenario(file_path)
         assert result is None
 
-    @pytest.mark.parametrize("file", RESOURCES[ResourceType.COMMONROAD_SCENARIO])
+    @pytest.mark.parametrize("file", RESOURCES[ResourceType.CR_SCENARIO])
     def test_can_successfully_load_commonroad_scenario(self, file: str) -> None:
-        file_path = ResourceType.COMMONROAD_SCENARIO.get_folder() / file
+        file_path = ResourceType.CR_SCENARIO.get_folder() / file
         result = _try_load_xml_file_as_commonroad_scenario(file_path)
         assert result is not None
         assert isinstance(result[0], Scenario)
@@ -71,23 +71,23 @@ class TestTryLoadXmlFileAsCommonRoadSolution:
         solution = _try_load_xml_file_as_commonroad_solution(file_path)
         assert solution is None
 
-    @pytest.mark.parametrize("file", RESOURCES[ResourceType.COMMONROAD_SCENARIO])
+    @pytest.mark.parametrize("file", RESOURCES[ResourceType.CR_SCENARIO])
     def test_returns_none_if_file_is_commonroad_scenario(self, file: str) -> None:
-        file_path = ResourceType.COMMONROAD_SCENARIO.get_folder() / file
+        file_path = ResourceType.CR_SCENARIO.get_folder() / file
         solution = _try_load_xml_file_as_commonroad_solution(file_path)
         assert solution is None
 
-    @pytest.mark.parametrize("file", RESOURCES[ResourceType.COMMONROAD_SOLUTION])
+    @pytest.mark.parametrize("file", RESOURCES[ResourceType.CR_SOLUTION])
     def test_can_successfully_load_commonroad_solution(self, file: str) -> None:
-        file_path = ResourceType.COMMONROAD_SOLUTION.get_folder() / file
+        file_path = ResourceType.CR_SOLUTION.get_folder() / file
         solution = _try_load_xml_file_as_commonroad_solution(file_path)
         assert isinstance(solution, Solution)
 
 
 class TestDetermineXmlFileType:
-    @pytest.mark.parametrize("scenario_file", RESOURCES[ResourceType.COMMONROAD_SCENARIO])
+    @pytest.mark.parametrize("scenario_file", RESOURCES[ResourceType.CR_SCENARIO])
     def test_identifies_all_scenarios(self, scenario_file: str) -> None:
-        scenario_path = ResourceType.COMMONROAD_SCENARIO.get_folder() / scenario_file
+        scenario_path = ResourceType.CR_SCENARIO.get_folder() / scenario_file
         determined_xml_file_type = _determine_xml_file_type(scenario_path)
         assert determined_xml_file_type == _CommonRoadXmlFileType.SCENARIO
 
@@ -97,9 +97,9 @@ class TestDetermineXmlFileType:
         determined_xml_file_type = _determine_xml_file_type(osm_map_path)
         assert determined_xml_file_type == _CommonRoadXmlFileType.UNKNOWN
 
-    @pytest.mark.parametrize("solution_file", RESOURCES[ResourceType.COMMONROAD_SOLUTION])
+    @pytest.mark.parametrize("solution_file", RESOURCES[ResourceType.CR_SOLUTION])
     def test_identifies_all_solutions(self, solution_file: str) -> None:
-        solution_path = ResourceType.COMMONROAD_SOLUTION.get_folder() / solution_file
+        solution_path = ResourceType.CR_SOLUTION.get_folder() / solution_file
         determined_xml_file_type = _determine_xml_file_type(solution_path)
         assert determined_xml_file_type == _CommonRoadXmlFileType.SOLUTION
 
@@ -110,7 +110,7 @@ class TestLoadScenariosFromFolder:
             load_scenarios_from_folder("non existing folder")
 
     def test_succesfully_loads_all_scenarios_from_folder(self):
-        scenarios_folder = ResourceType.COMMONROAD_SCENARIO.get_folder()
+        scenarios_folder = ResourceType.CR_SCENARIO.get_folder()
         scenario_containers = load_scenarios_from_folder(scenarios_folder)
 
         assert all(
@@ -123,8 +123,8 @@ class TestLoadScenariosFromFolder:
         temp_dir = TemporaryDirectory()
         temp_dir_path = Path(temp_dir.name)
 
-        solutions_folder = ResourceType.COMMONROAD_SOLUTION.get_folder()
-        scenarios_folder = ResourceType.COMMONROAD_SCENARIO.get_folder()
+        solutions_folder = ResourceType.CR_SOLUTION.get_folder()
+        scenarios_folder = ResourceType.CR_SCENARIO.get_folder()
 
         # TODO: The logic below is ugly and very unstable
         # A more advanced resource managment solution would help here, to correlate scenarios with solutions.

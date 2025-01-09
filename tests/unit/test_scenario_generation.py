@@ -11,7 +11,7 @@ from scenario_factory.scenario_generation import (
     create_planning_problem_set_and_solution_for_ego_vehicle,
     delete_colliding_obstacles_from_scenario,
 )
-from tests.helpers import create_test_obstacle_with_trajectory
+from tests.helpers.obstacle import create_test_obstacle_with_trajectory
 
 
 class TestDeleteCollidingObstaclesFromScenario:
