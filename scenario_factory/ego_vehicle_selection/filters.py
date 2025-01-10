@@ -91,7 +91,9 @@ def _does_ego_vehicle_maneuver_last_long_enough(
 
 
 def _does_ego_vehicle_maneuver_happen_on_interesting_lanelet_network(
-    maneuver: EgoVehicleManeuver, lanelet_network: LaneletNetwork, scenario_time_steps: int
+    maneuver: EgoVehicleManeuver,
+    lanelet_network: LaneletNetwork,
+    scenario_time_steps: int,
 ) -> bool:
     """
     Check whether an ego vehicle maneuver happens on an interesting lanelet network.
@@ -155,14 +157,7 @@ def _does_ego_vehicle_maneuver_happen_on_interesting_lanelet_network(
         # The start or end lane has adjacent lanes, this is interesting!
         return True
 
-    # Diregard with a high probability
-    if random.uniform(0, 1) > 0.4:
-        # TODO: This random rejection was taken from the original code to preserve compabtility. Should this be kept? Could this be moved away from the 'interesting' lanelet functionality?
-        _LOGGER.debug(
-            f"Randomly rejected maneuver {maneuver}, because it does not have any interesting lanelet features"
-        )
-        return False
-    return True
+    return False
 
 
 def _does_ego_vehicle_maneuver_have_enough_surrounding_vehicles_on_adjacent_lanes_at_start_of_scenario(
@@ -246,14 +241,34 @@ class MinimumVelocityFilter(EgoVehicleManeuverFilter):
 class InterestingLaneletNetworkFilter(EgoVehicleManeuverFilter):
     """
     Only select `EgoVehicleManauever`s that happen on 'interesting' lanelets
+
+    :param random_inclusion_probability:
+        If the lanelet network is not interesting, the scenario might still be included in the result.
+        This is controlled by the `random_inclusion_probability`, which determines the probability
+        of whether an uninteresting lanelet network will be included.
     """
+
+    def __init__(self, random_inclusion_probability: float = 0.4) -> None:
+        self._random_inclusion_probability = random_inclusion_probability
 
     def matches(
         self, scenario: Scenario, scenario_time_steps: int, ego_vehicle_maneuver: EgoVehicleManeuver
     ) -> bool:
-        return _does_ego_vehicle_maneuver_happen_on_interesting_lanelet_network(
-            ego_vehicle_maneuver, scenario.lanelet_network, scenario_time_steps
+        is_interesting = _does_ego_vehicle_maneuver_happen_on_interesting_lanelet_network(
+            ego_vehicle_maneuver,
+            scenario.lanelet_network,
+            scenario_time_steps,
         )
+        if is_interesting:
+            return True
+
+        if random.uniform(0, 1) < self._random_inclusion_probability:
+            _LOGGER.debug(
+                f"Randomly included maneuver {ego_vehicle_maneuver}, although it does not have any interesting lanelet features"
+            )
+            return True
+
+        return False
 
 
 class EnoughSurroundingVehiclesFilter(EgoVehicleManeuverFilter):

@@ -2,20 +2,24 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import (
+    Callable,
     Iterable,
     List,
     Optional,
     Sequence,
+    TypeVar,
+    Union,
 )
 
 import multiprocess
+from typing_extensions import Self
 
 from scenario_factory.pipeline.pipeline_context import PipelineContext
 from scenario_factory.pipeline.pipeline_executor import PipelineExecutor
 from scenario_factory.pipeline.pipeline_step import (
-    PipelineFilterFuncType,
-    PipelineFoldFuncType,
-    PipelineMapFuncType,
+    PipelineFilterStep,
+    PipelineFoldStep,
+    PipelineMapStep,
     PipelineStep,
     PipelineStepResult,
     PipelineStepType,
@@ -53,6 +57,10 @@ class PipelineExecutionResult:
             )
 
 
+V = TypeVar("V")
+R = TypeVar("R")
+
+
 class Pipeline:
     """
     A pipeline defines the sequential execution of map, filter and fold steps.
@@ -66,28 +74,34 @@ class Pipeline:
 
     def map(
         self,
-        map_step: PipelineStep[PipelineMapFuncType],
-    ) -> "Pipeline":
+        map_step: Union[PipelineMapStep, Callable[[], PipelineMapStep]],
+    ) -> Self:
         """
         Insert a map step.
         """
+        if not isinstance(map_step, PipelineMapStep):
+            map_step = map_step()
         self._steps.append(map_step)
         return self
 
-    def fold(self, fold_step: PipelineStep[PipelineFoldFuncType]) -> "Pipeline":
+    def fold(self, fold_step: Union[PipelineFoldStep, Callable[[], PipelineFoldStep]]) -> Self:
         """
         Insert a fold step.
         """
+        if not isinstance(fold_step, PipelineFoldStep):
+            fold_step = fold_step()
         self._steps.append(fold_step)
         return self
 
     def filter(
         self,
-        filter_step: PipelineStep[PipelineFilterFuncType],
-    ) -> "Pipeline":
+        filter_step: Union[PipelineFilterStep, Callable[[], PipelineFilterStep]],
+    ) -> Self:
         """
         Insert a filter step.
         """
+        if not isinstance(filter_step, PipelineFilterStep):
+            filter_step = filter_step()
         self._steps.append(filter_step)
         return self
 
@@ -112,7 +126,7 @@ class Pipeline:
 
         if final_step.type == PipelineStepType.MAP:
             # If the last step is no filter, the final values are simply the output values of the last step
-            return [result.output for result in final_step_results]
+            return [result.output for result in final_step_results if result.output is not None]
         elif final_step.type == PipelineStepType.FILTER:
             # If the last step is a filter step, than its outputs are boolean values, while the final values are the inputs for the filter step
             return [result.input for result in final_step_results if result.output is True]

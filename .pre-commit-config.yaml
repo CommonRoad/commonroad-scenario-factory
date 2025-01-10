@@ -10,7 +10,8 @@ repos:
         # The mkdocs.yaml contains a string that is not supported by check-yaml, but is according to spec
         exclude: mkdocs.yaml
       - id: check-added-large-files
-        exclude: tests/resources/
+        exclude: resources/
+
   - repo: https://github.com/python-poetry/poetry
     rev: 2.0.0
     hooks:

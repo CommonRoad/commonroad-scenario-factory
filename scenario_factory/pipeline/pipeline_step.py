@@ -1,15 +1,13 @@
-import collections.abc
 import functools
 import uuid
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import (
     Callable,
+    Concatenate,
     Generic,
     Optional,
-    Protocol,
-    Sequence,
-    TypeAlias,
+    ParamSpec,
     TypeVar,
 )
 
@@ -28,49 +26,15 @@ def _get_function_name(func) -> str:
         return str(func)
 
 
-# Upper Type bound for arguments to pipeline steps
-class PipelineStepArguments: ...
-
-
-# We want to use PipelineStepArguments as a type parameter in Callable, which requires covariant types
-_PipelineStepArgumentsTypeT = TypeVar(
-    "_PipelineStepArgumentsTypeT", bound=PipelineStepArguments, covariant=True
-)
-PipelineStepInputTypeT = TypeVar("PipelineStepInputTypeT")
-PipelineStepOutputTypeT = TypeVar("PipelineStepOutputTypeT")
-
-
-# Type aliases to make the function definitions more readable
-PipelineMapFuncType: TypeAlias = Callable[
-    [PipelineContext, PipelineStepInputTypeT], PipelineStepOutputTypeT
-]
-_PipelineMapFuncWithArgsType: TypeAlias = Callable[
-    [_PipelineStepArgumentsTypeT, PipelineContext, PipelineStepInputTypeT],
-    PipelineStepOutputTypeT,
-]
-
-PipelineFoldFuncType: TypeAlias = Callable[
-    [PipelineContext, Sequence[PipelineStepInputTypeT]],
-    Sequence[PipelineStepOutputTypeT],
-]
-
-
-class PipelineFilterPredicate(Protocol):
-    def matches(self, *args, **kwargs) -> bool: ...
-
-
-_PipelineFilterPredicateT = TypeVar("_PipelineFilterPredicateT", bound=PipelineFilterPredicate)
-
-PipelineFilterFuncType: TypeAlias = Callable[[PipelineContext, PipelineStepInputTypeT], bool]
-_PipelineFilterFuncWithPredicateType: TypeAlias = Callable[
-    [_PipelineFilterPredicateT, PipelineContext, PipelineStepInputTypeT], bool
-]
-
-
 class PipelineStepType(Enum):
     MAP = auto()
+    """Execute the pipeline step for each individual item in the pipeline."""
+
     FILTER = auto()
+    """Execute the pipeline step for each individual item in the pipeline and decide whtether the item should be further processed."""
+
     FOLD = auto()
+    """Execute the pipeline step for all item at together."""
 
 
 class PipelineStepExecutionMode(Enum):
@@ -84,26 +48,28 @@ class PipelineStepExecutionMode(Enum):
     """Run this step sequentially on the main thread"""
 
 
-_AnyPipelineStep = TypeVar(
-    "_AnyPipelineStep",
-    PipelineMapFuncType,
-    PipelineFilterFuncType,
-    PipelineFoldFuncType,
-)
+P = ParamSpec("P")
+V = TypeVar("V")
+R = TypeVar("R")
 
 
-class PipelineStep(Generic[_AnyPipelineStep]):
+class PipelineStep(Generic[V, R]):
     """
     A `PipelineStep` is a wrapper around the real step function, to add more information about the step like its type or preferred execution mode.
     """
 
     def __init__(
         self,
-        step_func: _AnyPipelineStep,
+        step_func: Callable[Concatenate[PipelineContext, V, P], R],
+        step_args: tuple,  # We only know that the args are a tuple, but not the type of each element
+        step_kwargs: dict,  # We only know that the kwargs are a dict, but not the type of each key/value
         type: PipelineStepType,
         mode: PipelineStepExecutionMode = PipelineStepExecutionMode.CONCURRENT,
     ):
-        self._step_func: _AnyPipelineStep = step_func
+        self._step_func = step_func
+        self._step_args = step_args
+        self._step_kwargs = step_kwargs
+        # self._step_kwargs = step_kwargs
         self._type = type
         self._mode = mode
 
@@ -135,8 +101,8 @@ class PipelineStep(Generic[_AnyPipelineStep]):
 
         return self.identifier == other.identifier
 
-    def __call__(self, *args, **kwargs):
-        return self._step_func(*args, **kwargs)
+    def __call__(self, ctx: PipelineContext, input_value: V) -> R:
+        return self._step_func(ctx, input_value, *self._step_args, **self._step_kwargs)
 
     def __hash__(self) -> int:
         # bind the hash dunder to the identifier, so it can be used reliably as dict keys
@@ -146,41 +112,60 @@ class PipelineStep(Generic[_AnyPipelineStep]):
         return f"{self._name} ({self._id})"
 
 
-def pipeline_map(
-    mode: PipelineStepExecutionMode = PipelineStepExecutionMode.CONCURRENT,
-) -> Callable[[PipelineMapFuncType], PipelineStep[PipelineMapFuncType]]:
+class PipelineMapStep(PipelineStep[V, R]):
+    def __init__(self, step_func, step_args, step_kwargs, mode):
+        super().__init__(step_func, step_args, step_kwargs, PipelineStepType.MAP, mode)
+
+
+class PipelineFoldStep(PipelineStep[V, R]):
+    def __init__(self, step_func, step_args, step_kwargs, mode):
+        super().__init__(step_func, step_args, step_kwargs, PipelineStepType.FOLD, mode)
+
+
+class PipelineFilterStep(PipelineStep[V, bool]):
+    def __init__(self, step_func, step_args, step_kwargs, mode):
+        super().__init__(step_func, step_args, step_kwargs, PipelineStepType.FILTER, mode)
+
+
+# Defines the decorators that must be used on each function that should become a pipeline step.
+# To achieve typing transparency `ParamSpec` is used to annotate optional parameters for each spec.
+# For the type annotations to work correctly, the `ParamSpec` must be placed at the end of the
+# `Concatenate`. This might lead to unintutitive ergonomics because the optional parameters will
+# be provided before the other parameters, when the pipeline step is created, but is necessary:
+# ```python
+# @pipeline_map()
+# def pipeline_foo(ctx: PipelineContext, val: int, arg1: float = 1.0, arg2: float = 0.5) -> float:
+#     return val * arg1 + arg2
+
+# pipeline = Pipeline()
+# pipeline.map(pipeline_foo(arg1=2.0, arg2=0.0))
+# ```
+
+
+def pipeline_map(mode: PipelineStepExecutionMode = PipelineStepExecutionMode.CONCURRENT):
     """
-    Decorate a function to indicate that is used as a map function for the pipeline.
+    Decorate a function with `pipeline_map` to make it usable as a `map` pipeline step.
     """
 
-    def decorator(func: PipelineMapFuncType) -> PipelineStep[PipelineMapFuncType]:
-        return PipelineStep(step_func=func, type=PipelineStepType.MAP, mode=mode)
+    def decorator(func: Callable[Concatenate[PipelineContext, V, P], R]):
+        # Inner wrapper is required to support passing parameters
+        def inner_wrapper(*args: P.args, **kwargs: P.kwargs) -> PipelineMapStep[V, R]:
+            return PipelineMapStep(func, args, kwargs, mode)
+
+        return inner_wrapper
 
     return decorator
 
 
-def pipeline_map_with_args(
-    mode: PipelineStepExecutionMode = PipelineStepExecutionMode.CONCURRENT,
-) -> Callable[
-    [_PipelineMapFuncWithArgsType],
-    Callable[[PipelineStepArguments], PipelineStep[PipelineMapFuncType]],
-]:
+def pipeline_filter(mode: PipelineStepExecutionMode = PipelineStepExecutionMode.CONCURRENT):
     """
-    Decorate a function to indicate its use as a map function for the pipeline. This decorator will partially apply the function by setting the args parameter.
+    Decorate a function with `pipeline_filter` to make it usable as a `filter` pipeline step.
     """
 
-    def decorator(
-        func: _PipelineMapFuncWithArgsType,
-    ) -> Callable[[PipelineStepArguments], PipelineStep[PipelineMapFuncType]]:
-        def inner_wrapper(
-            args: PipelineStepArguments,
-        ) -> PipelineStep[PipelineMapFuncType]:
-            step_func_with_args_applied = functools.partial(func, args)
-            return PipelineStep(
-                step_func=step_func_with_args_applied,
-                type=PipelineStepType.MAP,
-                mode=mode,
-            )
+    def decorator(func: Callable[Concatenate[PipelineContext, V, P], bool]):
+        # Inner wrapper is required to support passing parameters
+        def inner_wrapper(*args: P.args, **kwargs: P.kwargs) -> PipelineFilterStep[V]:
+            return PipelineFilterStep(func, args, kwargs, mode)
 
         return inner_wrapper
 
@@ -188,34 +173,14 @@ def pipeline_map_with_args(
 
 
 def pipeline_fold(mode: PipelineStepExecutionMode = PipelineStepExecutionMode.SEQUENTIAL):
-    def decorator(func: PipelineFoldFuncType) -> PipelineStep[PipelineFoldFuncType]:
-        return PipelineStep(step_func=func, type=PipelineStepType.FOLD, mode=mode)
-
-    return decorator
-
-
-def pipeline_filter(
-    mode: PipelineStepExecutionMode = PipelineStepExecutionMode.CONCURRENT,
-) -> Callable[
-    [_PipelineFilterFuncWithPredicateType],
-    Callable[[PipelineFilterPredicate], PipelineStep[PipelineFilterFuncType]],
-]:
     """
-    Decorate a function to indicate that is used as a filter function for the pipeline.
+    Decorate a function with `pipeline_fold` to make it usable as a `fold` pipeline step.
     """
 
-    def decorator(
-        func: _PipelineFilterFuncWithPredicateType,
-    ) -> Callable[[PipelineFilterPredicate], PipelineStep[PipelineFilterFuncType]]:
-        def inner_wrapper(
-            filter: PipelineFilterPredicate,
-        ) -> PipelineStep[PipelineFilterFuncType]:
-            step_func_with_args_applied = functools.partial(func, filter)
-            return PipelineStep(
-                step_func=step_func_with_args_applied,
-                type=PipelineStepType.FILTER,
-                mode=mode,
-            )
+    def decorator(func: Callable[Concatenate[PipelineContext, V, P], R]):
+        # Inner wrapper is required to support passing parameters
+        def inner_wrapper(*args: P.args, **kwargs: P.kwargs) -> PipelineFoldStep[V, R]:
+            return PipelineFoldStep(func, args, kwargs, mode)
 
         return inner_wrapper
 
@@ -223,13 +188,13 @@ def pipeline_filter(
 
 
 @dataclass
-class PipelineStepResult(Generic[PipelineStepInputTypeT, PipelineStepOutputTypeT]):
+class PipelineStepResult(Generic[V, R]):
     """
     Result of the successfull or failed execution of a pipeline step.
     """
 
-    step: PipelineStep
-    input: PipelineStepInputTypeT
-    output: Optional[PipelineStepOutputTypeT]
+    step: PipelineStep[V, R]
+    input: V
+    output: Optional[R]
     error: Optional[str]
     exec_time: int

@@ -14,7 +14,8 @@ from typing import Iterator, Optional, Tuple
 
 import iso3166
 import numpy as np
-from commonroad.scenario.scenario import Location, ScenarioID
+import pyproj
+from commonroad.scenario.scenario import GeoTransformation, Location, ScenarioID
 from crdesigner.map_conversion.osm2cr.converter_modules.utility.geonamesID import (
     find_nearest_neighbor,
 )
@@ -23,6 +24,8 @@ from crdesigner.map_conversion.osm2cr.converter_modules.utility.labeling_create_
 )
 
 RADIUS_EARTH: float = 6.371 * 1e3
+PROJECTION_EPSG_4326 = "EPSG:4326"
+PROJECTION_EPSG_3857 = "EPSG:3857"
 
 
 # Cache the geonames database so it is only loaded once
@@ -73,8 +76,18 @@ class Coordinates:
     def from_tuple(cls, coords: Tuple[float, float]) -> "Coordinates":
         return cls(coords[0], coords[1])
 
+    @classmethod
+    def from_tuple_cartesian(cls, coords: Tuple[float, float]) -> "Coordinates":
+        transformer = pyproj.Transformer.from_crs(PROJECTION_EPSG_3857, PROJECTION_EPSG_4326)
+        lat, lon = transformer.transform(coords[0], coords[1])
+        return cls(lat, lon)
+
     def as_tuple(self) -> Tuple[float, float]:
         return (self.lat, self.lon)
+
+    def as_tuple_cartesian(self) -> Tuple[float, float]:
+        transformer = pyproj.Transformer.from_crs(PROJECTION_EPSG_4326, PROJECTION_EPSG_3857)
+        return transformer.transform(self.lat, self.lon)
 
     def __str__(self) -> str:
         return f"{self.lat}/{self.lon}"
@@ -132,6 +145,7 @@ class RegionMetadata:
             gps_latitude=self.coordinates.lat,
             gps_longitude=self.coordinates.lon,
             geo_name_id=self.geoname_id,
+            geo_transformation=GeoTransformation(geo_reference=PROJECTION_EPSG_3857),
         )
 
     def as_commonroad_scenario_id(self) -> ScenarioID:

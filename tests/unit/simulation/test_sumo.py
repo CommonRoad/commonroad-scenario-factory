@@ -2,12 +2,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional
 
-from commonroad.scenario.scenario import Scenario, Tag
+from commonroad.scenario.scenario import Scenario
 
-from scenario_factory.builder import ScenarioBuilder
 from scenario_factory.simulation import (
     SimulationConfig,
-    SimulationMode,
     simulate_commonroad_scenario_with_sumo,
 )
 from tests.unit.simulation.simulator_test_base import SimulatorTestBase
@@ -15,10 +13,10 @@ from tests.unit.simulation.simulator_test_base import SimulatorTestBase
 
 class TestSimulateCommonroadScenarioWithSumo(SimulatorTestBase):
     def simulate(
-        self, scenario: Scenario, simulation_config: SimulationConfig, seed: int
+        self, scenario: Scenario, simulation_config: SimulationConfig
     ) -> Optional[Scenario]:
         with TemporaryDirectory() as tempdir:
             simulated_scenario = simulate_commonroad_scenario_with_sumo(
-                scenario, simulation_config, Path(tempdir), seed=seed
+                scenario, simulation_config, Path(tempdir)
             )
             return simulated_scenario

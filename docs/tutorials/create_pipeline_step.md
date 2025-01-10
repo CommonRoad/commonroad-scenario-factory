@@ -11,7 +11,7 @@ Let's start by creating a `tutorial.py` file in the root of the scenario factory
 import logging
 
 from scenario_factory.pipeline import pipeline_map, PipelineContext
-from scenario_factory.scenario_types import ScenarioContainer
+from scenario_factory.scenario_container import ScenarioContainer
 
 # Make sure that we can log messages
 configure_root_logger(logging.INFO)
@@ -36,7 +36,7 @@ To use the newly created pipeline step `pipeline_hello_world`, we have to create
 import logging
 
 from scenario_factory.pipeline import Pipeline, pipeline_map, PipelineContext
-from scenario_factory.scenario_types import (
+from scenario_factory.scenario_container import (
     ScenarioContainer,
     load_scenarios_from_folder,
 )
@@ -171,7 +171,7 @@ In the above example, each step receives one input and returns one output value.
 
 ## Take Arguments
 
-When your pipeline steps are executed the arguments `ctx` and `scenario_container` are automatically filled in by the pipeline. But sometimes it is desirable to further parameterize the execution of a pipeline step. For this purpose [`pipeline_map_with_args`](/reference/api/pipeline/#scenario_factory.pipeline.pipeline_map_with_args) can be used instead of the [`pipeline_map`](/reference/api/pipeline/#scenario_factory.pipeline.pipeline_map) decorator. This enables you to accept an extra static argument. The argument needs to be supplied once, when the step is attached to the pipeline and will be used for every execution of that step.
+When your pipeline steps are executed the arguments `ctx` and `scenario_container` are automatically filled in by the pipeline. But sometimes it is desirable to further parameterize the execution of a pipeline step. You can define as many parameters as you need after the value argument (in this case `scenario_container`). The arguments need to be supplied once, when the step is attached to the pipeline and will be used for every execution of that step.
 
 ```python linenums="1" hl_lines="1 5"
 from dataclasses import dataclass
@@ -180,16 +180,12 @@ from scenario_factory.pipeline import Pipeline, pipeline_map, pipeline_map_with_
 
 ...
 
-@dataclass
-class SuperCoolFunctionalityArguments(PipelineStepArguments):
-    map_id_selector: int
-
-@pipeline_map_with_args()
-def pipeline_super_cool_functionality(args: SuperCoolFunctionalityArguments, ctx: PipelineContext, scenario_container: ScenarioContainer) -> ScenarioContainer:
+@pipeline_map()
+def pipeline_super_cool_functionality(ctx: PipelineContext, scenario_container: ScenarioContainer, map_id_selector: int) -> ScenarioContainer:
     commonroad_scenario = scenario_container.scenario
-    if commonroad_scenario.scenario_id.map_id == args.map_id_selector:
+    if commonroad_scenario.scenario_id.map_id == map_id_selector:
         _LOGGER.info(
-            "Processing CommonRoad Scenario %s in 'pipeline_hello_world'",
+            "Processing CommonRoad Scenario %s in 'pipeline_super_cool_functionality'",
             commonroad_scenario.scenario_id,
         )
     return scenario_container
@@ -198,7 +194,7 @@ def pipeline_super_cool_functionality(args: SuperCoolFunctionalityArguments, ctx
 
 pipeline = Pipeline()
 pipeline.map(pipeline_hello_world)
-pipeline.map(pipeline_super_cool_functionality(SuperCoolFunctionalityArguments(map_id_selector=3)))
+pipeline.map(pipeline_super_cool_functionality(map_id_selector=3))
 
 ```
 
@@ -240,13 +236,13 @@ class ScenarioIdFilter(ABC):
         ...
 
 @pipeline_filter()
-def pipeline_scenario_id_filter(predicate: ScenarioIdFilter, ctx: PipelineContext, scenario_container: ScenarioContainer) -> bool:
+def pipeline_scenario_id_filter(ctx: PipelineContext, scenario_container: ScenarioContainer, predicate: ScenarioIdFilter) -> bool:
     return predicate.matches(scenario_container.scenario.scenario_id)
 
 ...
 ```
 
-Similar to the `pipeline_map_with_args`, a filter takes 3 arguments and is pre-conditioned with the filter predicate. The filter step itself does not perform any filtering, but instead defers this to the filter predicate. Usually, a pipeline filter only defines the data type on which it filters and the base class for the filter predicate. This way, many different filters can be defined while the number of total pipeline steps is kept to a minimum and code duplication is reduced. Additionally, this allows users to easily define custom filter predicates, without having to write steps for each filter.
+Usually, a pipeline filter only defines the data type on which it filters and the base class for the filter predicate. This way, many different filters can be defined while the number of total pipeline steps is kept to a minimum and code duplication is reduced. Additionally, this allows users to easily define custom filter predicates, without having to write steps for each filter.
 
 Concrete filter predicates are defined as subclasses of the filter predicate type that the pipeline step accepts:
 
@@ -284,7 +280,7 @@ $ poetry run python tutorial.py
 Filters are applied to each individual item in the pipeline. When multiple filters are used, they basically act as an `and` operation, because each filter must match, so that the item is processed further. Additionally, filters can only consider one element. For some applications it might be necessary, to implement `or` operations or to compare items to each other (e.g. select the 10 most interesting scenarios). While the first problem can be circumvented, by employing `map` steps, the later one cannot. For this purpose `fold` steps exist, which can process the entire pipeline stack at once, instead of each item individually.
 
 !!! warning
-    Because fold/reduce steps receive the whole pipeline stack, they might introduce a major performance penalty! So use them, only if necessary!
+    Because fold/reduce steps receive the whole pipeline stack, they might introduce a major performance penalty. So use them, only if necessary!
 
 A fold step always takes an iterable (the previous pipeline stack) and must also return an iterable.
 

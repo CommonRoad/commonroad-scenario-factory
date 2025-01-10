@@ -1,19 +1,45 @@
-import copy
 import logging
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
-from typing import Optional
+from typing import AnyStr, Optional
 
 import jpype
 from commonroad.geometry.shape import Rectangle, Shape
-from commonroad.prediction.prediction import Trajectory, TrajectoryPrediction
+from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import ObstacleType
 from commonroad.scenario.scenario import DynamicObstacle, Scenario, Tag
 from crots.abstractions.abstraction_level import AbstractionLevel
 
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
-from scenario_factory.utils import StreamToLogger, is_state_with_discrete_time_step
+from scenario_factory.utils import (
+    copy_scenario,
+    crop_trajectory_to_time_frame,
+    get_scenario_final_time_step,
+)
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class _StreamToLogger:
+    """
+    Generic Stream that can be used as a replacement for an StringIO to redirect stdout and stderr to a logger.
+    """
+
+    def __init__(self, logger: logging.Logger) -> None:
+        self._logger = logger
+
+    def write(self, s: AnyStr) -> int:
+        stripped = s.strip()
+        if len(stripped) == 0:
+            return 0
+
+        self._logger.debug(stripped)
+        return len(s)
+
+    def flush(self):
+        pass
+
+    def close(self):
+        pass
 
 
 def _determine_obstacle_shape_for_obstacle_type(obstacle_type: ObstacleType) -> Shape:
@@ -33,42 +59,6 @@ def _determine_obstacle_shape_for_obstacle_type(obstacle_type: ObstacleType) -> 
         raise ValueError(f"Unknown obstacle type {obstacle_type}")
 
 
-def _cut_trajectory_to_time_step(
-    trajectory: Trajectory, max_time_step: int
-) -> Optional[Trajectory]:
-    """
-    Cut the :param:`trajectory` so that no state's time step exceeds :param:`max_time_step`. \
-
-    :param trajectory: The trajectory that should be cut. Will not be modified.
-    :param max_time_step: The time step until which the trajectory should be cut.
-    :returns: The cut trajectory or None, if :param:`trajectory` starts after :param:`max_time_step`.
-    """
-    assert is_state_with_discrete_time_step(
-        trajectory.final_state
-    ), f"Cannot cut trajectory with final state {trajectory.final_state} because its time step is not a discrete value"
-
-    if trajectory.final_state.time_step <= max_time_step:
-        # The trajectory does not exceed the max time step, so the trajectory is already correct
-        return trajectory
-
-    if trajectory.final_state.time_step > max_time_step:
-        # The trajectory starts only after the max time step, so we cannot cut a trajectory from this
-        return None
-
-    new_state_list = list(
-        filter(lambda state: state.time_step <= max_time_step, trajectory.state_list)
-    )
-
-    trajectory_initial_state = new_state_list[0]
-    assert is_state_with_discrete_time_step(
-        trajectory_initial_state
-    ), f"Cannot cut trajectory with initial state {trajectory_initial_state} because its time step is not a discrete value"
-
-    return Trajectory(
-        initial_time_step=trajectory_initial_state.time_step, state_list=new_state_list
-    )
-
-
 def _correct_dynamic_obstacle(
     dynamic_obstacle: DynamicObstacle, max_time_step: Optional[int] = None
 ) -> DynamicObstacle:
@@ -84,8 +74,8 @@ def _correct_dynamic_obstacle(
     if max_time_step is not None:
         # Fallback prediction is None, for the case that no valid trajectory can be cut
         new_prediction = None
-        cut_trajectory = _cut_trajectory_to_time_step(
-            dynamic_obstacle.prediction.trajectory, max_time_step
+        cut_trajectory = crop_trajectory_to_time_frame(
+            dynamic_obstacle.prediction.trajectory, min_time_step=0, max_time_step=max_time_step
         )
         # If the original trajectory starts after max_time_step, it cannot be cut and therefore cut_trajectory would be None
         if cut_trajectory is not None:
@@ -207,7 +197,7 @@ def _simulation_mode_to_crots_abstraction_level(
         return AbstractionLevel.RANDOM
     elif simulation_mode == SimulationMode.RESIMULATION:
         return AbstractionLevel.RESIMULATION
-    elif simulation_mode == SimulationMode.DELAY_RESIMULATION:
+    elif simulation_mode == SimulationMode.DELAY:
         return AbstractionLevel.DELAY
     elif simulation_mode == SimulationMode.DEMAND_TRAFFIC_GENERATION:
         return AbstractionLevel.DEMAND
@@ -225,7 +215,7 @@ def _execute_ots_simulation(
     simulation_mode: SimulationMode,
     seed: int,
     simulation_length: Optional[int] = None,
-) -> Optional[Scenario]:
+) -> Scenario:
     """
     Simulate :param:`input_scenario` in OTS with :param:`simulation_mode`.
 
@@ -238,6 +228,7 @@ def _execute_ots_simulation(
     """
     from crots.conversion.setup import setup_ots
 
+    # This sets up the java environment for OTS and starts OTS
     setup_ots()
     from crots.abstractions.simulation_execution import SimulationExecutor
 
@@ -258,7 +249,7 @@ def _execute_ots_simulation(
     )
 
     _redirect_java_log_messages_from_ots_to_logger(_LOGGER)
-    stream = StreamToLogger(_LOGGER)
+    stream = _StreamToLogger(_LOGGER)
     # Also StreamToLogger implements the I/O interface, it is not a subclass of IO.
     # Therefore, the type checker does not recognice that infact everything is alright.
     with redirect_stdout(stream):  # type: ignore
@@ -281,34 +272,36 @@ def _execute_ots_simulation(
                     )
                     return new_scenario
                 except Exception as e:
+                    # Not optimal to catch all exceptions here, but OTS does not expose a consistent error type...
                     _LOGGER.error("Error while simulating %s: %s", input_scenario.scenario_id, e)
                     raise e
 
 
-def _can_simulate_scenario_with_simulation_config(
+def _check_can_simulate_scenario_with_simulation_config(
     scenario: Scenario, simulation_config: SimulationConfig
-) -> bool:
+) -> None:
     """
-    Check whether the :param:`scenario` has properties that could lead to exceptions in cr-ots-interface when simulated with :param:`simulation_config`.
+    Check whether the `scenario` has properties that could lead to exceptions in cr-ots-interface when simulated with `simulation_config`.
+
+    :param scenario: The scenario that should be simulated.
+    :param simulation_config: The simulation config for the scenario.
+
+    :raises RuntimeError: If the scenario cannot be simulated with the given simulation config.
     """
     if simulation_config.mode != SimulationMode.RANDOM_TRAFFIC_GENERATION:
         # All simulation modes except random traffic generation, need dynamic obstacles in the scenario
         if len(scenario.dynamic_obstacles) == 0:
-            _LOGGER.warning(
+            raise RuntimeError(
                 f"Cannot simulate scenario {scenario.scenario_id} in OTS with {simulation_config.mode}: The scenario does not contain any dynamic obstacles."
             )
-            return False
 
     if simulation_config.mode == SimulationMode.INFRASTRUCTURE_TRAFFIC_GENERATION:
         # The infrastructure simulation mode only considers obstacles that were not defined at the initial time step.
         # But if all obstacles are definied at the initial time step, the simulation is empty, which is not gracefully handled by cr-ots.
         if all(obstacle.initial_state.time_step <= 0 for obstacle in scenario.dynamic_obstacles):
-            _LOGGER.warning(
+            raise RuntimeError(
                 f"Cannot simulate scenario {scenario.scenario_id} in OTS with {simulation_config.mode}: The simulation mode only considers obstacles after the initial time step, but all obstacles start at the initial time step. So the simulation would be empty."
             )
-            return False
-
-    return True
 
 
 def _patch_scenario_metadata_after_simulation(simulated_scenario: Scenario):
@@ -332,8 +325,8 @@ def _patch_scenario_metadata_after_simulation(simulated_scenario: Scenario):
 
 
 def simulate_commonroad_scenario_with_ots(
-    commonroad_scenario: Scenario, simulation_config: SimulationConfig, seed: int
-) -> Optional[Scenario]:
+    commonroad_scenario: Scenario, simulation_config: SimulationConfig
+) -> Scenario:
     """
     Use the microscopic traffic simulator OTS, to simulate the scenario according to the simulation mode in `simulation_config`.
 
@@ -344,30 +337,24 @@ def simulate_commonroad_scenario_with_ots(
     :returns: A new CommonRoad scenario with the simulated obstacles and None, if the simulation was unsuccessfull.
     """
 
-    if not _can_simulate_scenario_with_simulation_config(commonroad_scenario, simulation_config):
-        return None
+    _check_can_simulate_scenario_with_simulation_config(commonroad_scenario, simulation_config)
 
-    input_scenario = copy.deepcopy(commonroad_scenario)
+    # Scenario must be copied, because it might be modified during the simulation
+    input_scenario = copy_scenario(commonroad_scenario)
     new_scenario = _execute_ots_simulation(
-        input_scenario, simulation_config.mode, seed, simulation_config.simulation_steps
+        input_scenario,
+        simulation_config.mode,
+        simulation_config.seed,
+        simulation_config.simulation_steps,
     )
-    if new_scenario is None:
-        return None
 
-    max_time_step = 0
-    if len(new_scenario.dynamic_obstacles) > 0:
-        max_time_step = max(
-            [
-                obstacle.prediction.trajectory.final_state.time_step
-                for obstacle in new_scenario.dynamic_obstacles
-            ]
-        )
+    scenario_length = get_scenario_final_time_step(new_scenario)
 
     _LOGGER.debug(
         "Simulated scenario %s and created %s random obstacles for %s time steps",
         str(new_scenario.scenario_id),
         len(new_scenario.dynamic_obstacles),
-        max_time_step,
+        scenario_length,
     )
 
     if simulation_config.mode == SimulationMode.RANDOM_TRAFFIC_GENERATION:

@@ -1,3 +1,4 @@
+import builtins
 import collections.abc
 import logging
 import random
@@ -6,11 +7,14 @@ import time
 import traceback
 import warnings
 from concurrent.futures import Future, ThreadPoolExecutor
+from contextlib import contextmanager
 from typing import (
+    Callable,
     Iterable,
     List,
     Optional,
     Tuple,
+    TypeVar,
 )
 
 import multiprocess
@@ -20,21 +24,38 @@ from scenario_factory.pipeline.pipeline_context import PipelineContext
 from scenario_factory.pipeline.pipeline_step import (
     PipelineStep,
     PipelineStepExecutionMode,
-    PipelineStepInputTypeT,
-    PipelineStepOutputTypeT,
     PipelineStepResult,
     PipelineStepType,
 )
-from scenario_factory.utils import redirect_all_print_calls_to
 
 _LOGGER = logging.getLogger(__name__)
 
 
+@contextmanager
+def _redirect_all_print_calls_to(target: Optional[Callable] = None):
+    """
+    Patch out the python builtin `print` function so that it becomes a nop.
+    """
+    backup_print = builtins.print
+    if target is None:
+        builtins.print = lambda *args, **kwargs: None
+    else:
+        builtins.print = target
+    try:
+        yield
+    finally:
+        builtins.print = backup_print
+
+
+V = TypeVar("V")
+R = TypeVar("R")
+
+
 def _wrap_pipeline_step(
     ctx: PipelineContext,
-    pipeline_step: PipelineStep,
-    input: PipelineStepInputTypeT,
-) -> PipelineStepResult[PipelineStepInputTypeT, PipelineStepOutputTypeT]:
+    pipeline_step: PipelineStep[V, R],
+    input_value: V,
+) -> PipelineStepResult[V, R]:
     """
     Helper function to execute a pipeline function on an arbirtary input. Will capture all output and errors.
     """
@@ -42,26 +63,22 @@ def _wrap_pipeline_step(
     with warnings.catch_warnings():
         start_time = time.time_ns()
         try:
-            value = pipeline_step(ctx, input)
+            value = pipeline_step(ctx, input_value)
         except Exception:
             error = traceback.format_exc()
         end_time = time.time_ns()
 
-    result: PipelineStepResult[PipelineStepInputTypeT, PipelineStepOutputTypeT] = (
-        PipelineStepResult(pipeline_step, input, value, error, end_time - start_time)
-    )
+    result = PipelineStepResult(pipeline_step, input_value, value, error, end_time - start_time)
     return result
 
 
 def _execute_pipeline_step(
     ctx: PipelineContext,
-    pipeline_step,
+    pipeline_step: PipelineStep[V, R],
     step_index: int,
-    input_value: PipelineStepInputTypeT,
-) -> Tuple[int, PipelineStepResult[PipelineStepInputTypeT, PipelineStepOutputTypeT]]:
-    result: PipelineStepResult[PipelineStepInputTypeT, PipelineStepOutputTypeT] = (
-        _wrap_pipeline_step(ctx, pipeline_step, input_value)
-    )
+    input_value: V,
+) -> Tuple[int, PipelineStepResult[V, R]]:
+    result = _wrap_pipeline_step(ctx, pipeline_step, input_value)
     return step_index + 1, result
 
 
@@ -92,6 +109,8 @@ class PipelineExecutor:
         self._ctx = ctx
         self._steps = steps
 
+        # Keep track of how many steps are currently being executed in the pipeline.
+        # This number is used to determine whether the execution was finished.
         self._num_of_running_pipeline_steps = 0
 
         self._pipeline_step_results: List[PipelineStepResult] = []
@@ -231,15 +250,19 @@ class PipelineExecutor:
 
     def _yield_for_fold(self, step: PipelineStep, step_index: int, input_value) -> None:
         """
-        Suspend the execution of the fold :param:`step` until all other elements have reached the fold step.
+        Suspend the execution of the fold `step` until all other elements have reached the fold step.
         """
         self._num_of_values_queued_for_fold += 1
         self._values_queued_for_fold.append(input_value)
         if self._fold_step is None:
+            # This is the first yield for fold and therefore, we need to mark the relevant step
             self._fold_step = step
             self._fold_step_index = step_index
 
     def _perform_fold_on_all_queued_values(self):
+        """
+        After all previous execution strings have reached the fold step, perform the fold.
+        """
         if self._fold_step is None or self._fold_step_index is None:
             raise RuntimeError(
                 "Tried performing a fold, but the fold step is not set! This is a bug!"
@@ -258,7 +281,7 @@ class PipelineExecutor:
         )
 
         # Reset the fold state, *before* the next tasks are scheduled.
-        # This is done, so that no race-condition is encountered if the
+        # This is done, so that no race-condition is encountered if another fold should be executed right after.
         self._reset_fold_state()
 
         # Just chain using the standard callback. This might be inefficient,
@@ -279,7 +302,7 @@ class PipelineExecutor:
             # the whole print function is replaced for the pipeline execution.
             # Generally, all functions should make use of the logging module...
             print_redirection_target = None if suppress_print else print
-            with redirect_all_print_calls_to(print_redirection_target):
+            with _redirect_all_print_calls_to(print_redirection_target):
                 for elem in input_values:
                     self._submit_step_for_execution(self._steps[0], 0, elem)
 

@@ -4,8 +4,7 @@ import pytest
 
 from scenario_factory.pipeline import Pipeline, PipelineContext
 from tests.helpers.pipeline import (
-    IsEvenFilter,
-    pipeline_simple_filter,
+    pipeline_even_filter,
     pipeline_simple_fold,
     pipeline_simple_map,
 )
@@ -20,7 +19,7 @@ class TestPipeline:
         pipeline = (
             Pipeline()
             .map(pipeline_simple_map)
-            .filter(pipeline_simple_filter(IsEvenFilter()))
+            .filter(pipeline_even_filter)
             .fold(pipeline_simple_fold)
         )
 
@@ -38,7 +37,7 @@ class TestPipeline:
         pipeline = (
             Pipeline()
             .map(pipeline_simple_map)
-            .filter(pipeline_simple_filter(IsEvenFilter()))
+            .filter(pipeline_even_filter)
             .fold(pipeline_simple_fold)
         )
 

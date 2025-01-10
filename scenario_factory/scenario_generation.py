@@ -7,99 +7,34 @@ __all__ = [
 import copy
 import logging
 import math
-from typing import List, Optional, Set, Tuple, Type
+from typing import List, Set, Tuple
 
 import numpy as np
 from commonroad.common.solution import (
-    CostFunction,
-    KSState,
     PlanningProblemSolution,
-    VehicleModel,
-    VehicleType,
 )
 from commonroad.common.util import Interval
-from commonroad.geometry.shape import Rectangle, Shape
+from commonroad.geometry.shape import Rectangle
 from commonroad.planning.goal import GoalRegion
 from commonroad.planning.planning_problem import PlanningProblem, PlanningProblemSet
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.scenario import DynamicObstacle, Scenario
-from commonroad.scenario.state import InitialState, PMState, State, TraceState
-from commonroad.scenario.trajectory import Trajectory
+from commonroad.scenario.state import InitialState, PMState, TraceState
 
 from scenario_factory.ego_vehicle_selection import EgoVehicleManeuver
 from scenario_factory.scenario_checker import get_colliding_dynamic_obstacles_in_scenario
 from scenario_factory.scenario_config import ScenarioFactoryConfig
-from scenario_factory.utils import copy_scenario, get_full_state_list_of_obstacle
+from scenario_factory.utils import (
+    align_dynamic_obstacle_to_time_step,
+    align_scenario_to_time_step,
+    copy_scenario,
+    create_planning_problem_solution_for_ego_vehicle,
+    crop_dynamic_obstacle_to_time_frame,
+    find_most_likely_lanelet_by_state,
+)
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _find_most_likely_lanelet_by_state(
-    lanelet_network: LaneletNetwork, state: TraceState
-) -> Optional[int]:
-    if not isinstance(state.position, Shape):
-        return None
-
-    lanelet_ids = lanelet_network.find_lanelet_by_shape(state.position)
-    if len(lanelet_ids) == 0:
-        return None
-
-    if len(lanelet_ids) == 1:
-        return lanelet_ids[0]
-
-    return lanelet_ids[0]
-
-
-def _create_new_obstacle_in_time_frame(
-    orig_obstacle: DynamicObstacle, start_time: int, end_time: int, with_prediction: bool = True
-) -> Optional[DynamicObstacle]:
-    """
-    Create a copy of orig_obstacle aligned to time step 0.
-
-    :param orig_obstacle: The obstacle from which the new one will be derived
-    :param start_time: Start of the time frame (inclusive)
-    :param end_time: End of the time frame (exclusive)
-    :param with_prediction: Whether to include the aligned trajectory in the resulting obstacle
-
-    :returns: The new DynamicObstacle that is aligned to the time frame or None, if no state was definied for the start of the time frame
-    """
-    # TODO: The inclusion criterion here is quiet weak, because it is only checked whether the obstacle is there at the beginning of the scenario. Maybe a better inclusion criterion would be to check, whether there is a trajectory of minimum length x in the time frame?
-    state_at_start = copy.deepcopy(orig_obstacle.state_at_time(start_time))
-    if state_at_start is None:
-        return None
-
-    # As state_at_start can also be a TraceState, an extra InitialState must be created from it
-    initial_state = InitialState(
-        time_step=0,
-        position=state_at_start.position,
-        orientation=state_at_start.orientation,
-        velocity=state_at_start.velocity,
-        acceleration=state_at_start.acceleration,
-    )
-    new_obstacle = DynamicObstacle(
-        obstacle_id=orig_obstacle.obstacle_id,
-        obstacle_type=orig_obstacle.obstacle_type,
-        obstacle_shape=orig_obstacle.obstacle_shape,
-        initial_state=initial_state,
-    )
-
-    if with_prediction:
-        # The state_list creation is seperated in to two list comprehensions, so that mypy does not complain about possible None values...
-        state_list = [
-            orig_obstacle.state_at_time(time_step) for time_step in range(start_time + 1, end_time)
-        ]
-        state_list = [copy.deepcopy(state) for state in state_list if state is not None]
-        if len(state_list) > 0:
-            for i, state in enumerate(state_list):
-                state.time_step = i + 1
-
-            new_obstacle.prediction = TrajectoryPrediction(
-                Trajectory(initial_time_step=1, state_list=state_list),
-                shape=orig_obstacle.obstacle_shape,
-            )
-
-    return new_obstacle
 
 
 def _select_obstacles_in_sensor_range_of_ego_vehicle(
@@ -155,16 +90,14 @@ def _create_planning_problem_initial_state_for_ego_vehicle(
 
 
 def _create_planning_problem_goal_state_for_ego_vehicle(
-    ego_vehicle: DynamicObstacle,
+    ego_vehicle: DynamicObstacle, goal_time_interval: Interval
 ) -> TraceState:
     """
     Create a new state that can be used as a goal state in a planning problem
     """
     final_state_of_ego_vehicle = copy.deepcopy(ego_vehicle.prediction.trajectory.final_state)
     goal_state = PMState(
-        time_step=Interval(
-            final_state_of_ego_vehicle.time_step - 1, final_state_of_ego_vehicle.time_step
-        ),
+        time_step=goal_time_interval,
         position=Rectangle(
             length=6,
             width=2,
@@ -175,41 +108,67 @@ def _create_planning_problem_goal_state_for_ego_vehicle(
     return goal_state
 
 
-def _create_planning_problem_for_ego_vehicle(
+def create_planning_problem_for_ego_vehicle(
     lanelet_network: LaneletNetwork,
     ego_vehicle: DynamicObstacle,
+    planning_problem_time_interval: Interval,
     planning_problem_with_lanelet: bool = True,
 ) -> PlanningProblem:
     """
-    Create a new planning problem for the trajectory of the :param:`ego_vehicle`. The initial and final state will become the start and goal state of the planning problem, while the trajectory will be used as the solution trajectory.
+    Create a new planning problem for the trajectory of the `ego_vehicle`. The initial and final state will become the start and goal state of the planning problem.
 
-    :param lanelet_network: Lanelet network used to match the goal state to the final lanelets
+    :param lanelet_network: Lanelet network used to match the goal state to the final lanelets, if `planning_problem_with_lanelet` is set.
     :param ego_vehicle: The ego vehicle with a trajectory that will form the basis for the planning problem
-    :param planning_problem_with_lanelet: Whether the goal region should also contain references to the final lanelet
+    :param planning_problem_time_interval: The time step interval set for the goal state of the planning problem.
+    :param planning_problem_with_lanelet: Whether the goal region should also contain references to the final lanelet. If the intial state and goal region are on the same lanelet, the goal region will not contain a reference to the final lanelet.
 
-    :returns: A new PlanningProblem for the :param:`ego_vehicle`
+    :returns: A new PlanningProblem for the `ego_vehicle`
     """
     initial_state = _create_planning_problem_initial_state_for_ego_vehicle(ego_vehicle)
-    goal_state = _create_planning_problem_goal_state_for_ego_vehicle(ego_vehicle)
+    goal_state = _create_planning_problem_goal_state_for_ego_vehicle(
+        ego_vehicle, planning_problem_time_interval
+    )
 
     goal_region_lanelet_mapping = None
     if planning_problem_with_lanelet is True:
-        # We should create a planning problem goal region, that is associated with the lanelet on which the ego vehicle lands in its goal_state
-        lanelet_id_at_goal_state = _find_most_likely_lanelet_by_state(
-            lanelet_network=lanelet_network, state=goal_state
-        )
+        # We should create a planning problem with a goal region, that is associated with the lanelet on which the ego vehicle lands in its goal_state
+        lanelet_id_at_goal_state = find_most_likely_lanelet_by_state(lanelet_network, goal_state)
         if lanelet_id_at_goal_state is None:
             raise ValueError(
-                f"Tried to match ego vehicle {ego_vehicle} to the lanelet in its goal state, but no lanelet could be found for state: {goal_state}"
+                f"Tried to match ego vehicle {ego_vehicle.obstacle_id} to the lanelet in its goal state, but no lanelet could be found for state: {goal_state}."
             )
 
-        # Create the mapping to be used by the GoalRegion construction
-        goal_region_lanelet_mapping = {0: [lanelet_id_at_goal_state]}
+        # Also check the initial lanelet, to determine if the goal and initial lanelet are the same
+        lanelet_id_at_initial_state = find_most_likely_lanelet_by_state(
+            lanelet_network, initial_state
+        )
+        if lanelet_id_at_initial_state is None:
+            # We are sometimes not able to match the initial state to a lanelet,
+            # because the trajectories begin outside of the lanelet network.
+            # In such cases, we cannot guarantee that the goal state and initial state are
+            # not directly on the same lanelet and therefore do not associate
+            # the goal region with the goal lanelet.
+            _LOGGER.debug(
+                f"While creating planning problem for ego vehicle {ego_vehicle.obstacle_id} tried to match initial state of ego vehicle to a lanelet, but initial state is not on the lanelet network."
+            )
+        elif lanelet_id_at_initial_state == lanelet_id_at_goal_state:
+            # If the initial state and goal state happen on the same lanelet,
+            # the goal lanelet will not be associated with the goal region, because
+            # otherwise the planning problem would already be solved by the initial state.
+            _LOGGER.debug(
+                f"While creating planning problem for ego vehicle {ego_vehicle.obstacle_id} matched goal state and initial state to same lanelet. This configuration is invalid, therefore the planning problem will not have a goal lanelet set."
+            )
+        else:
+            # Create the mapping to be used by the GoalRegion construction.
+            # Generally, we could also set multiple lanelets per state, but then this would clash
+            # with the `position` of the goal state, which is set to the polygon of the
+            # associated lanelet.
+            goal_region_lanelet_mapping = {0: [lanelet_id_at_goal_state]}
 
-        # Patch the postion of the goal state to match the whole lanelet
-        # TODO: This was the behaviour of the original code. Is this the correct behaviour?
-        lanelet_at_goal_state = lanelet_network.find_lanelet_by_id(lanelet_id_at_goal_state)
-        goal_state.position = lanelet_at_goal_state.polygon
+            # Patch the postion of the goal state to match the whole lanelet
+            # TODO: This was the behaviour of the original code. Is this the correct behaviour?
+            lanelet_at_goal_state = lanelet_network.find_lanelet_by_id(lanelet_id_at_goal_state)
+            goal_state.position = lanelet_at_goal_state.polygon
 
     goal_region = GoalRegion([goal_state], goal_region_lanelet_mapping)
     planning_problem_id = ego_vehicle.obstacle_id
@@ -218,62 +177,31 @@ def _create_planning_problem_for_ego_vehicle(
     return planning_problem
 
 
-def _create_trajectory_for_planning_problem_solution(
-    ego_vehicle: DynamicObstacle, target_state_type: Type[State]
-) -> Trajectory:
-    """
-    Create a trajectory of the :param:`ego_vehicle`, that can be used in a planning problem solution.
-    """
-    state_list = get_full_state_list_of_obstacle(ego_vehicle, target_state_type)
-
-    trajectory = Trajectory(
-        initial_time_step=state_list[0].time_step,
-        state_list=state_list,
-    )
-    return trajectory
-
-
-def _create_planning_problem_solution_for_ego_vehicle(
-    ego_vehicle: DynamicObstacle, planning_problem: PlanningProblem
-) -> PlanningProblemSolution:
-    """
-    Create a planning problem solution for the :param:`planning_problem` with the trajectory of the :param:`ego_vehicle`. The solution always has the KS vehicle model.
-    """
-    # TODO: Enable different solution vehicle models, instead of only KS.
-    # It would be better, to select the vehicle model based on the trajectory state types.
-    # Currently, this is not possible easily because their are some discrepencies between
-    # the states used in trajectories and the state types for solutions.
-    # See https://gitlab.lrz.de/cps/commonroad/commonroad-io/-/issues/131 for more infos.
-    trajectory = _create_trajectory_for_planning_problem_solution(
-        ego_vehicle, target_state_type=KSState
-    )
-    planning_problem_solution = PlanningProblemSolution(
-        planning_problem_id=planning_problem.planning_problem_id,
-        vehicle_model=VehicleModel.KS,
-        vehicle_type=VehicleType.FORD_ESCORT,
-        cost_function=CostFunction.TR1,
-        trajectory=trajectory,
-    )
-    return planning_problem_solution
-
-
 def create_planning_problem_set_and_solution_for_ego_vehicle(
-    scenario: Scenario, ego_vehicle: DynamicObstacle, planning_problem_with_lanelet: bool = True
+    scenario: Scenario,
+    ego_vehicle: DynamicObstacle,
+    scenario_time_steps: int,
+    planning_problem_with_lanelet: bool = True,
 ) -> Tuple[PlanningProblemSet, PlanningProblemSolution]:
     """
     Create a new planning problem set and solution for the trajectory of the :param:`ego_vehicle`. The initial and final state will become the start and goal state of the planning problem, while the trajectory will be used as the solution trajectory.
 
-    :param scenario: Scenario used to match the trajectory to the lanelet network
-    :param ego_vehicle: The ego vehicle with a trajectory that will form the basis for the planning problem and solution
-    :param planning_problem_with_lanelet: Whether the goal region should also contain references to the final lanelet
+    :param scenario: Scenario used to match the trajectory to the lanelet network.
+    :param ego_vehicle: The ego vehicle with a trajectory that will form the basis for the planning problem and solution.
+    :param scenario_time_steps: The wanted length of the ego scenario. This will be used to set the planning problem time interval.
+    :param planning_problem_with_lanelet: Whether the goal region should also contain references to the final lanelet.
 
     :returns: The planning problem set and its associated solution
     """
-    planning_problem = _create_planning_problem_for_ego_vehicle(
-        scenario.lanelet_network, ego_vehicle, planning_problem_with_lanelet
+    planning_problem_time_interval = Interval(0, scenario_time_steps)
+    planning_problem = create_planning_problem_for_ego_vehicle(
+        scenario.lanelet_network,
+        ego_vehicle,
+        planning_problem_time_interval,
+        planning_problem_with_lanelet,
     )
     planning_problem_set = PlanningProblemSet([planning_problem])
-    planning_problem_solution = _create_planning_problem_solution_for_ego_vehicle(
+    planning_problem_solution = create_planning_problem_solution_for_ego_vehicle(
         ego_vehicle, planning_problem
     )
     # The planning problem solution is not wrapped in its container object like the planning problem is wrapped in a planning problem set,
@@ -306,17 +234,26 @@ def create_scenario_for_ego_vehicle_maneuver(
         if obstacle.initial_state.time_step > ego_vehicle_maneuver.start_time:
             continue
 
-        new_obstacle = _create_new_obstacle_in_time_frame(
+        new_obstacle = crop_dynamic_obstacle_to_time_frame(
             obstacle,
             ego_vehicle_maneuver.start_time,
-            ego_vehicle_maneuver.start_time + scenario_config.cr_scenario_time_steps + 1,
-            with_prediction=True,
+            ego_vehicle_maneuver.start_time + scenario_config.cr_scenario_time_steps,
         )
         if new_obstacle is not None:
             new_obstacles.append(new_obstacle)
 
-    new_scenario = copy_scenario(scenario, copy_lanelet_network=True)
+    new_scenario = copy_scenario(
+        scenario,
+        copy_dynamic_obstacles=False,
+        copy_static_obstacles=False,
+        copy_environment_obstacles=False,
+        copy_phantom_obstacles=False,
+    )
     new_scenario.add_objects(new_obstacles)
+
+    # Make sure that the scenario starts at time step 0, and all obstacles and traffic lights
+    # are also aligned to the new zero point.
+    align_scenario_to_time_step(new_scenario, ego_vehicle_maneuver.start_time)
 
     return new_scenario
 
@@ -360,22 +297,25 @@ def generate_scenario_with_planning_problem_set_and_solution_for_ego_vehicle_man
 
     # Make sure that the ego vehicle is also aligned to the start of the new scenario and not to the old scenario.
     # This is important, because the planning problem will be created from the trajectories start and end state.
-    aligned_ego_vehicle = _create_new_obstacle_in_time_frame(
+    cropped_ego_vehicle = crop_dynamic_obstacle_to_time_frame(
         ego_vehicle_maneuver.ego_vehicle,
-        start_time=ego_vehicle_maneuver.start_time,
-        end_time=ego_vehicle_maneuver.start_time + scenario_config.cr_scenario_time_steps + 1,
-        with_prediction=True,
+        min_time_step=ego_vehicle_maneuver.start_time,
+        max_time_step=ego_vehicle_maneuver.start_time + scenario_config.cr_scenario_time_steps,
     )
-    if aligned_ego_vehicle is None:
+    if cropped_ego_vehicle is None:
         raise RuntimeError(
             f"Tried to align ego vehicle {ego_vehicle_maneuver.ego_vehicle} to the start of its scenario, but somehow it does not have a state at its maneuver start. This is a bug."
         )
+    align_dynamic_obstacle_to_time_step(cropped_ego_vehicle, ego_vehicle_maneuver.start_time)
 
     ego_scenario.scenario_id.prediction_id = ego_vehicle_maneuver.ego_vehicle.obstacle_id
 
     planning_problem_set, planning_problem_solution = (
         create_planning_problem_set_and_solution_for_ego_vehicle(
-            ego_scenario, aligned_ego_vehicle, scenario_config.planning_pro_with_lanelet
+            ego_scenario,
+            cropped_ego_vehicle,
+            scenario_config.cr_scenario_time_steps,
+            scenario_config.planning_pro_with_lanelet,
         )
     )
     return ego_scenario, planning_problem_set, planning_problem_solution

@@ -1,4 +1,4 @@
-from typing import Generator, List, Optional, Sequence, Set, Tuple, Union
+from typing import Generator, List, Optional, Set
 
 from commonroad.scenario.intersection import (
     Intersection,
@@ -8,10 +8,10 @@ from commonroad.scenario.lanelet import (
     Lanelet,
 )
 
-from scenario_factory.builder.core import BuilderIdAllocator
+from scenario_factory.builder.core import BuilderCore, BuilderIdAllocator
 
 
-class IntersectionIncomingElementBuilder:
+class IntersectionIncomingElementBuilder(BuilderCore[IntersectionIncomingElement]):
     """
     The `IntersectionIncomingElementBuilder` is used to easily construct `IntersectionIncomingElement`s for intersections. It aids in automatically determining the correct successor lanelets for incoming lanelets.
 
@@ -83,7 +83,7 @@ class IntersectionIncomingElementBuilder:
         return self._intersection_incoming_element
 
 
-class IntersectionBuilder:
+class IntersectionBuilder(BuilderCore[Intersection]):
     """
     The `IntersectionBuilder` is used to easily create intersections. The main benefit from using `IntersectionBuilder` over constructing the `Intersection` manually, is the use of the `IntersectionIncomingElementBuilder`, which can automatically infer the relationships of lanelets inside an interesction.
     """

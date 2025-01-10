@@ -11,18 +11,16 @@ from scenario_factory.pipeline_steps.globetrotter import (
     pipeline_verify_and_repair_commonroad_scenario,
 )
 from scenario_factory.pipeline_steps.simulation import (
-    SimulateScenarioArguments,
     pipeline_simulate_scenario_with_ots,
 )
 from scenario_factory.pipeline_steps.utils import (
-    WriteScenarioToFileArguments,
     pipeline_add_metadata_to_scenario,
     pipeline_assign_tags_to_scenario,
     pipeline_write_scenario_to_file,
 )
 from scenario_factory.pipelines import create_scenario_generation_pipeline
 from scenario_factory.scenario_config import ScenarioFactoryConfig
-from scenario_factory.scenario_types import load_scenarios_from_folder
+from scenario_factory.scenario_container import load_scenarios_from_folder
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 from tests.resources.interface import ResourceType
 
@@ -56,11 +54,7 @@ class TestGlobetrotterPipeline:
                 .map(pipeline_verify_and_repair_commonroad_scenario)
                 .map(pipeline_extract_intersections)
                 .map(pipeline_add_metadata_to_scenario)
-                .map(
-                    pipeline_write_scenario_to_file(
-                        WriteScenarioToFileArguments(output_folder=output_folder)
-                    )
-                )
+                .map(pipeline_write_scenario_to_file(output_folder))
             )
             ctx = PipelineContext(Path(tempdir))
             execution_result = globetrotter_pipeline.execute(
@@ -106,7 +100,7 @@ class TestScenarioGeneration:
             (
                 scenario_generation_pipeline.map(pipeline_add_metadata_to_scenario)
                 .map(pipeline_assign_tags_to_scenario)
-                .map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_folder)))
+                .map(pipeline_write_scenario_to_file(output_folder))
             )
 
             ctx = PipelineContext(Path(tempdir), scenario_factory_config)
@@ -114,7 +108,7 @@ class TestScenarioGeneration:
                 input_scenarios, ctx, num_threads=None, num_processes=None
             )
             assert len(result.errors) == 0
-            assert len(result.values) == 4
+            assert len(result.values) == 3
 
             for scenario_path in output_folder.glob("*.cr.xml"):
                 assert _is_valid_commonroad_scenario(scenario_path)
@@ -132,20 +126,14 @@ class TestSimulationWithSumo:
             (
                 pipeline.map(
                     pipeline_simulate_scenario_with_sumo(
-                        SimulateScenarioArguments(
-                            config=SimulationConfig(
-                                mode=SimulationMode.RANDOM_TRAFFIC_GENERATION,
-                                simulation_steps=300,
-                            )
+                        SimulationConfig(
+                            mode=SimulationMode.RANDOM_TRAFFIC_GENERATION,
+                            simulation_steps=300,
                         )
                     )
                 )
                 .map(pipeline_add_metadata_to_scenario)
-                .map(
-                    pipeline_write_scenario_to_file(
-                        WriteScenarioToFileArguments(output_folder=output_folder)
-                    )
-                )
+                .map(pipeline_write_scenario_to_file(output_folder))
             )
             ctx = PipelineContext(Path(tempdir))
 
@@ -172,20 +160,14 @@ class TestSimulationWithOts:
             (
                 pipeline.map(
                     pipeline_simulate_scenario_with_ots(
-                        SimulateScenarioArguments(
-                            config=SimulationConfig(
-                                mode=SimulationMode.RANDOM_TRAFFIC_GENERATION,
-                                simulation_steps=300,
-                            )
+                        SimulationConfig(
+                            mode=SimulationMode.RANDOM_TRAFFIC_GENERATION,
+                            simulation_steps=300,
                         )
                     )
                 )
                 .map(pipeline_add_metadata_to_scenario)
-                .map(
-                    pipeline_write_scenario_to_file(
-                        WriteScenarioToFileArguments(output_folder=output_folder)
-                    )
-                )
+                .map(pipeline_write_scenario_to_file(output_folder))
             )
             ctx = PipelineContext(Path(tempdir))
 

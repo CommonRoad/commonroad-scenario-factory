@@ -4,25 +4,18 @@ from tempfile import TemporaryDirectory
 
 import numpy as np
 
-from scenario_factory.globetrotter.region import load_regions_from_csv
 from scenario_factory.pipeline import Pipeline, PipelineContext
 from scenario_factory.pipeline_steps import (
-    SimulateScenarioArguments,
-    WriteScenarioToFileArguments,
-    pipeline_add_metadata_to_scenario,
-    pipeline_assign_tags_to_scenario,
-    pipeline_simulate_scenario_with_ots,
+    pipeline_simulate_scenario_with_sumo,
     pipeline_write_scenario_to_file,
 )
-from scenario_factory.pipeline_steps.simulation import pipeline_simulate_scenario_with_sumo
 from scenario_factory.pipelines import (
-    create_globetrotter_pipeline,
     create_scenario_generation_pipeline,
     select_osm_map_provider,
 )
 from scenario_factory.scenario_config import ScenarioFactoryConfig
-from scenario_factory.scenario_types import load_scenarios_from_folder
-from scenario_factory.simulation.config import SimulationConfig, SimulationMode
+from scenario_factory.scenario_container import load_scenarios_from_folder
+from scenario_factory.simulation import SimulationConfig, SimulationMode
 from scenario_factory.utils import configure_root_logger
 
 configure_root_logger()
@@ -54,12 +47,8 @@ with TemporaryDirectory() as temp_dir:
 
     pipeline = (
         Pipeline()
-        .map(
-            pipeline_simulate_scenario_with_sumo(
-                SimulateScenarioArguments(config=simulation_config)
-            )
-        )
-        .map(pipeline_write_scenario_to_file(WriteScenarioToFileArguments(output_path)))
+        .map(pipeline_simulate_scenario_with_sumo(simulation_config))
+        .map(pipeline_write_scenario_to_file(output_path))
     )
 
     inputs = load_scenarios_from_folder(Path("/tmp/intersections"))
