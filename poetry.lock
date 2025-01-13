@@ -3560,7 +3560,7 @@ name = "sumocr"
 version = "2024.1"
 description = "Python tool to interface with the SUMO traffic simulator"
 optional = false
-python-versions = "<3.12,>=3.9"
+python-versions = "<3.12,>=3.10"
 groups = ["main"]
 files = []
 develop = false
@@ -3579,8 +3579,8 @@ typing-extensions = "^4.12.2"
 [package.source]
 type = "git"
 url = "ssh://git@gitlab.lrz.de/cps/sumo-interface.git"
-reference = "84733eb2e749dbd73e16b7127ec42a408594fe64"
-resolved_reference = "84733eb2e749dbd73e16b7127ec42a408594fe64"
+reference = "13d9023583a873ec8f23b5ba47b96e2f8cb079b5"
+resolved_reference = "13d9023583a873ec8f23b5ba47b96e2f8cb079b5"
 
 [[package]]
 name = "sumolib"
@@ -3929,4 +3929,4 @@ test = ["pytest (>=4.6.7)", "pytest-checkdocs (>=1.2.5)", "pytest-checkdocs (>=2
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.10"
-content-hash = "8973456fe9f9a8df3d19b77ff78bcf48fce86711cc4e9b828249fc874689c243"
+content-hash = "8d52db7b0258c36a1b140d56854e24cba223ced0d3354d08fbfa547c3c1288be"
