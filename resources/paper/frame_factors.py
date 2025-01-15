@@ -17,7 +17,7 @@ def get_frame_factor_sim(scenario: Scenario) -> float:
             return 0.85
         case "DEU_AachenHeckstrasse":
             return 0.90
-        case "DEU_LocationCLower4":
+        case "DEU_LocationCLower6":
             return 0.94
         case _:
             raise ValueError(f"No frame factor defined for scenario {scenario.scenario_id}")
@@ -36,7 +36,7 @@ def get_frame_factor_orig(scenario: Scenario) -> float:
             return 0.7
         case "DEU_AachenHeckstrasse":
             return 0.78
-        case "DEU_LocationCLower4":
+        case "DEU_LocationCLower6":
             return 0.87
         case _:
             raise ValueError(f"No frame factor defined for scenario {scenario.scenario_id}")

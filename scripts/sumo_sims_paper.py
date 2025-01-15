@@ -8,6 +8,7 @@ from scenario_factory.pipeline_steps import (
     pipeline_compute_waymo_metrics,
     pipeline_remove_parked_dynamic_obstacles,
     pipeline_simulate_scenario_with_sumo,
+    pipeline_simulate_scenario_with_ots
 )
 from scenario_factory.scenario_container import (
     ScenarioContainer,
@@ -18,16 +19,15 @@ from scenario_factory.scenario_container import (
 from scenario_factory.simulation import SimulationConfig, SimulationMode
 
 # Input values, change according to needs
-simulation_mode = SimulationMode.DEMAND_TRAFFIC_GENERATION
+simulation_mode = SimulationMode.RESIMULATION
 simulation_steps = 300  # Only used for random traffic generation
-start_seed = 576
-num_simulations = 2
-output_path = Path("/tmp/sumo/random")
-
+start_seed = 1
+num_simulations = 1
+output_path = Path("/tmp/sims_paper")
 
 output_path.mkdir(parents=True, exist_ok=True)
 
-scenarios = load_scenarios_from_folder(Path(__file__).parents[1].joinpath("resources/paper/"))
+scenarios = load_scenarios_from_folder(Path(__file__).parents[1].joinpath("resources/paper_accepted/"))
 
 is_resimulation = simulation_mode in [SimulationMode.DELAY, SimulationMode.RESIMULATION]
 frame_factor_callback = get_frame_factor_sim if is_resimulation else None
@@ -41,7 +41,7 @@ for i in range(start_seed, start_seed + num_simulations):
         simulation_steps if simulation_mode == SimulationMode.RANDOM_TRAFFIC_GENERATION else None,
         seed=i,
     )
-    pipeline.map(pipeline_simulate_scenario_with_sumo(simulation_config))
+    pipeline.map(pipeline_simulate_scenario_with_ots(simulation_config))
 
     pipeline.map(pipeline_compute_single_scenario_metrics(frame_factor_callback))
     if is_resimulation:

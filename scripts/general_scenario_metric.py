@@ -17,7 +17,7 @@ pipeline.map(pipeline_remove_parked_dynamic_obstacles).map(
 )
 
 scenario_containers = load_scenarios_from_folder(
-    Path(__file__).parents[1].joinpath("resources/paper/"),
+    Path(__file__).parents[1].joinpath("resources/paper_accepted/"),
 )
 
 result = pipeline.execute(scenario_containers)
