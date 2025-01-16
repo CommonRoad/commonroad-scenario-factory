@@ -13,7 +13,7 @@ from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistin
 from commonroad.common.solution import CommonRoadSolutionWriter, Solution
 from commonroad.common.util import Interval
 from commonroad.planning.planning_problem import PlanningProblemSet
-from commonroad.scenario.obstacle import DynamicObstacle
+from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 
 from scenario_factory.pipeline import (
     PipelineContext,
@@ -295,6 +295,32 @@ def pipeline_remove_parked_dynamic_obstacles(
 
     return scenario_container
 
+
+@pipeline_map()
+def pipeline_remove_pedestrians(
+    ctx: PipelineContext, scenario_container: ScenarioContainer
+) -> ScenarioContainer:
+    """
+    Remove all pedestrians from the scenario.
+
+    :param ctx: The pipeline context.
+    :param scenario_container: The scenario container from which the pedestrians will be removed. Will be modified in place.
+    """
+    commonroad_scenario = scenario_container.scenario
+
+    num_removed = 0
+    for dynamic_obstacle in commonroad_scenario.dynamic_obstacles:
+        if dynamic_obstacle.obstacle_type == ObstacleType.PEDESTRIAN:
+            commonroad_scenario.remove_obstacle(dynamic_obstacle)
+            num_removed += 1
+
+    _LOGGER.debug(
+        "Removed %s pedestrians from scenario %s",
+        num_removed,
+        commonroad_scenario.scenario_id,
+    )
+
+    return scenario_container
 
 @pipeline_fold()
 def pipeline_assign_unique_incremental_scenario_ids(

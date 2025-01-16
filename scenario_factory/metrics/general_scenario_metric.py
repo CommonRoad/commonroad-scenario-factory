@@ -126,7 +126,9 @@ def _compute_spawn_frequency(scenario: Scenario) -> float:
     if number_of_spawned_vehicles == 0:
         return 0.0
 
-    max_time_step = get_scenario_final_time_step(scenario)
+    # max_time_step = get_scenario_final_time_step(scenario)
+    max_spawn_time_step = max(obs.initial_state.time_step for obs in scenario.dynamic_obstacles)
+    max_time_step = max_spawn_time_step
     if max_time_step <= min_time_step:
         return 0.0
 

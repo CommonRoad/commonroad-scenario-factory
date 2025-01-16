@@ -89,7 +89,7 @@ def copy_scenario(
     copy_phantom_obstacles: bool = True,
 ) -> Scenario:
     """
-    Helper to efficiently copy a CommonRoad Scenario. Should be prefered over a simple deepcopy of the scenario object, if not all elements of the input scenario are required in the end (e.g. the dynamic obstacles should not be included)
+    Helper to efficiently copy a CommonRoad Scenario. Should be preferred over a simple deepcopy of the scenario object if not all elements of the input scenario are required in the end (e.g. the dynamic obstacles should not be included)
 
     :param scenario: The scenario to be copied.
     :param copy_lanelet_network: If True, the lanelet network (and all of its content) will be copied to the new scenario. If False, the new scenario will have no lanelet network.
@@ -153,8 +153,15 @@ def iterate_zipped_dynamic_obstacles_from_scenarios(
 
     base_scenario = scenarios[0]
     common_obstacle_ids = set(get_dynamic_obstacle_ids_in_scenario(base_scenario))
+    obstacle_ids_union = set(get_dynamic_obstacle_ids_in_scenario(base_scenario))
     for scenario in scenarios[1:]:
         common_obstacle_ids.intersection_update(get_dynamic_obstacle_ids_in_scenario(scenario))
+        obstacle_ids_union.update(get_dynamic_obstacle_ids_in_scenario(scenario))
+
+    missed_obstacle_ids = obstacle_ids_union - common_obstacle_ids
+    if len(missed_obstacle_ids) > 0:
+        print(f"Missed obstacle ids: {obstacle_ids_union - common_obstacle_ids}")
+
 
     if len(common_obstacle_ids) == 0:
         raise RuntimeError(
