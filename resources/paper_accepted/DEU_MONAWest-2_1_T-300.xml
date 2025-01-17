@@ -46,8 +46,7 @@
     </rightBound>
     <predecessor ref="2"/>
     <adjacentLeft ref="3" drivingDir="opposite"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="3">
     <leftBound>
@@ -63,22 +62,6 @@
         <x>-192.8387</x>
         <y>-23.1651</y>
       </point>
-      <point>
-        <x>-194.9856</x>
-        <y>-26.5938</y>
-      </point>
-      <point>
-        <x>-197.1875</x>
-        <y>-29.9844</y>
-      </point>
-      <point>
-        <x>-199.6833</x>
-        <y>-33.1687</y>
-      </point>
-      <point>
-        <x>-202.6379</x>
-        <y>-35.9079</y>
-      </point>
     </leftBound>
     <rightBound>
       <point>
@@ -93,28 +76,10 @@
         <x>-197.363</x>
         <y>-20.3316</y>
       </point>
-      <point>
-        <x>-199.1767</x>
-        <y>-23.3602</y>
-      </point>
-      <point>
-        <x>-200.9905</x>
-        <y>-26.3889</y>
-      </point>
-      <point>
-        <x>-202.9796</x>
-        <y>-29.3046</y>
-      </point>
-      <point>
-        <x>-205.2894</x>
-        <y>-31.9531</y>
-      </point>
     </rightBound>
     <successor ref="4"/>
     <adjacentLeft ref="1" drivingDir="opposite"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
-    <trafficSignRef ref="102"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="5">
     <leftBound>
@@ -203,8 +168,7 @@
     </rightBound>
     <successor ref="6"/>
     <adjacentRight ref="7" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="7">
     <leftBound>
@@ -294,8 +258,7 @@
     <successor ref="8"/>
     <adjacentLeft ref="5" drivingDir="same"/>
     <adjacentRight ref="9" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="9">
     <leftBound>
@@ -385,8 +348,7 @@
     <successor ref="10"/>
     <adjacentLeft ref="7" drivingDir="same"/>
     <adjacentRight ref="11" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="11">
     <leftBound>
@@ -476,8 +438,7 @@
     <successor ref="12"/>
     <successor ref="2"/>
     <adjacentLeft ref="9" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="13">
     <leftBound>
@@ -511,8 +472,7 @@
     <predecessor ref="6"/>
     <adjacentRight ref="14" drivingDir="same"/>
     <laneletType>intersection</laneletType>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="14">
     <leftBound>
@@ -547,8 +507,7 @@
     <adjacentLeft ref="13" drivingDir="same"/>
     <adjacentRight ref="15" drivingDir="same"/>
     <laneletType>intersection</laneletType>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="15">
     <leftBound>
@@ -583,8 +542,7 @@
     <adjacentLeft ref="14" drivingDir="same"/>
     <adjacentRight ref="16" drivingDir="same"/>
     <laneletType>intersection</laneletType>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="16">
     <leftBound>
@@ -619,8 +577,7 @@
     <predecessor ref="4"/>
     <adjacentLeft ref="15" drivingDir="same"/>
     <laneletType>intersection</laneletType>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="17">
     <leftBound>
@@ -685,8 +642,7 @@
     </rightBound>
     <successor ref="18"/>
     <adjacentRight ref="19" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="19">
     <leftBound>
@@ -752,8 +708,7 @@
     <successor ref="20"/>
     <adjacentLeft ref="17" drivingDir="same"/>
     <adjacentRight ref="21" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="21">
     <leftBound>
@@ -819,8 +774,7 @@
     <successor ref="22"/>
     <adjacentLeft ref="19" drivingDir="same"/>
     <adjacentRight ref="23" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="23">
     <leftBound>
@@ -885,8 +839,7 @@
     </rightBound>
     <successor ref="24"/>
     <adjacentLeft ref="21" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="25">
     <leftBound>
@@ -961,8 +914,7 @@
     <successor ref="26"/>
     <adjacentRight ref="27" drivingDir="same"/>
     <laneletType>intersection</laneletType>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="27">
     <leftBound>
@@ -1036,9 +988,9 @@
     <predecessor ref="20"/>
     <successor ref="28"/>
     <adjacentLeft ref="25" drivingDir="same"/>
+    <adjacentRight ref="29" drivingDir="same"/>
     <laneletType>intersection</laneletType>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="29">
     <leftBound>
@@ -1111,9 +1063,8 @@
     </rightBound>
     <predecessor ref="22"/>
     <successor ref="30"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
-    <trafficSignRef ref="102"/>
+    <adjacentLeft ref="27" drivingDir="same"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="26">
     <leftBound>
@@ -1147,8 +1098,7 @@
     <predecessor ref="25"/>
     <successor ref="31"/>
     <adjacentRight ref="28" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="28">
     <leftBound>
@@ -1182,8 +1132,8 @@
     <predecessor ref="27"/>
     <successor ref="32"/>
     <adjacentLeft ref="26" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
+    <adjacentRight ref="30" drivingDir="same"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="30">
     <leftBound>
@@ -1640,8 +1590,466 @@
     </rightBound>
     <predecessor ref="29"/>
     <successor ref="32"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
+    <adjacentLeft ref="28" drivingDir="same"/>
+    <adjacentRight ref="33" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+  </lanelet>
+  <lanelet id="33">
+    <leftBound>
+      <point>
+        <x>-132.2111</x>
+        <y>-119.2656</y>
+      </point>
+      <point>
+        <x>-131.7571</x>
+        <y>-119.4959</y>
+      </point>
+      <point>
+        <x>-131.3019</x>
+        <y>-119.7243</y>
+      </point>
+      <point>
+        <x>-130.8449</x>
+        <y>-119.9509</y>
+      </point>
+      <point>
+        <x>-130.3872</x>
+        <y>-120.1753</y>
+      </point>
+      <point>
+        <x>-129.9283</x>
+        <y>-120.3979</y>
+      </point>
+      <point>
+        <x>-129.4684</x>
+        <y>-120.6188</y>
+      </point>
+      <point>
+        <x>-129.0074</x>
+        <y>-120.838</y>
+      </point>
+      <point>
+        <x>-128.5454</x>
+        <y>-121.0557</y>
+      </point>
+      <point>
+        <x>-128.082</x>
+        <y>-121.2721</y>
+      </point>
+      <point>
+        <x>-127.6182</x>
+        <y>-121.4868</y>
+      </point>
+      <point>
+        <x>-127.1536</x>
+        <y>-121.7002</y>
+      </point>
+      <point>
+        <x>-126.6881</x>
+        <y>-121.9124</y>
+      </point>
+      <point>
+        <x>-126.222</x>
+        <y>-122.1235</y>
+      </point>
+      <point>
+        <x>-125.7547</x>
+        <y>-122.3337</y>
+      </point>
+      <point>
+        <x>-125.2873</x>
+        <y>-122.5428</y>
+      </point>
+      <point>
+        <x>-124.8193</x>
+        <y>-122.7509</y>
+      </point>
+      <point>
+        <x>-124.3508</x>
+        <y>-122.9582</y>
+      </point>
+      <point>
+        <x>-123.8819</x>
+        <y>-123.1649</y>
+      </point>
+      <point>
+        <x>-123.4125</x>
+        <y>-123.3709</y>
+      </point>
+      <point>
+        <x>-122.9425</x>
+        <y>-123.5766</y>
+      </point>
+      <point>
+        <x>-122.4724</x>
+        <y>-123.7816</y>
+      </point>
+      <point>
+        <x>-122.0023</x>
+        <y>-123.9861</y>
+      </point>
+      <point>
+        <x>-121.5318</x>
+        <y>-124.1904</y>
+      </point>
+      <point>
+        <x>-121.0613</x>
+        <y>-124.3946</y>
+      </point>
+      <point>
+        <x>-120.5903</x>
+        <y>-124.5988</y>
+      </point>
+      <point>
+        <x>-120.1197</x>
+        <y>-124.8028</y>
+      </point>
+      <point>
+        <x>-119.6491</x>
+        <y>-125.0068</y>
+      </point>
+      <point>
+        <x>-119.1798</x>
+        <y>-125.2135</y>
+      </point>
+      <point>
+        <x>-118.7119</x>
+        <y>-125.4232</y>
+      </point>
+      <point>
+        <x>-118.2442</x>
+        <y>-125.6331</y>
+      </point>
+      <point>
+        <x>-117.7764</x>
+        <y>-125.8437</y>
+      </point>
+      <point>
+        <x>-117.3092</x>
+        <y>-126.0546</y>
+      </point>
+      <point>
+        <x>-116.8425</x>
+        <y>-126.266</y>
+      </point>
+      <point>
+        <x>-116.3761</x>
+        <y>-126.4781</y>
+      </point>
+      <point>
+        <x>-115.9102</x>
+        <y>-126.6909</y>
+      </point>
+      <point>
+        <x>-115.4444</x>
+        <y>-126.9048</y>
+      </point>
+      <point>
+        <x>-114.9796</x>
+        <y>-127.1193</y>
+      </point>
+      <point>
+        <x>-114.5154</x>
+        <y>-127.3348</y>
+      </point>
+      <point>
+        <x>-114.0519</x>
+        <y>-127.5514</y>
+      </point>
+      <point>
+        <x>-113.5892</x>
+        <y>-127.7692</y>
+      </point>
+      <point>
+        <x>-113.1272</x>
+        <y>-127.9882</y>
+      </point>
+      <point>
+        <x>-112.6656</x>
+        <y>-128.2088</y>
+      </point>
+      <point>
+        <x>-112.2054</x>
+        <y>-128.4306</y>
+      </point>
+      <point>
+        <x>-111.7461</x>
+        <y>-128.6539</y>
+      </point>
+      <point>
+        <x>-111.2878</x>
+        <y>-128.8788</y>
+      </point>
+      <point>
+        <x>-110.8306</x>
+        <y>-129.1053</y>
+      </point>
+      <point>
+        <x>-110.3741</x>
+        <y>-129.3338</y>
+      </point>
+      <point>
+        <x>-109.9191</x>
+        <y>-129.564</y>
+      </point>
+      <point>
+        <x>-109.4654</x>
+        <y>-129.7961</y>
+      </point>
+      <point>
+        <x>-109.013</x>
+        <y>-130.0302</y>
+      </point>
+      <point>
+        <x>-108.5618</x>
+        <y>-130.2664</y>
+      </point>
+      <point>
+        <x>-108.1121</x>
+        <y>-130.5048</y>
+      </point>
+      <point>
+        <x>-107.6632</x>
+        <y>-130.7458</y>
+      </point>
+      <point>
+        <x>-107.2133</x>
+        <y>-130.9906</y>
+      </point>
+      <point>
+        <x>-106.7649</x>
+        <y>-131.2377</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-132.2383</x>
+        <y>-119.3088</y>
+      </point>
+      <point>
+        <x>-131.8089</x>
+        <y>-119.5795</y>
+      </point>
+      <point>
+        <x>-131.3796</x>
+        <y>-119.8503</y>
+      </point>
+      <point>
+        <x>-130.9503</x>
+        <y>-120.1211</y>
+      </point>
+      <point>
+        <x>-130.521</x>
+        <y>-120.3919</y>
+      </point>
+      <point>
+        <x>-130.0917</x>
+        <y>-120.6627</y>
+      </point>
+      <point>
+        <x>-129.6624</x>
+        <y>-120.9335</y>
+      </point>
+      <point>
+        <x>-129.2331</x>
+        <y>-121.2043</y>
+      </point>
+      <point>
+        <x>-128.8038</x>
+        <y>-121.4751</y>
+      </point>
+      <point>
+        <x>-128.3745</x>
+        <y>-121.7459</y>
+      </point>
+      <point>
+        <x>-127.9452</x>
+        <y>-122.0167</y>
+      </point>
+      <point>
+        <x>-127.5159</x>
+        <y>-122.2875</y>
+      </point>
+      <point>
+        <x>-127.0866</x>
+        <y>-122.5583</y>
+      </point>
+      <point>
+        <x>-126.6573</x>
+        <y>-122.8291</y>
+      </point>
+      <point>
+        <x>-126.228</x>
+        <y>-123.0999</y>
+      </point>
+      <point>
+        <x>-125.7987</x>
+        <y>-123.3707</y>
+      </point>
+      <point>
+        <x>-125.3694</x>
+        <y>-123.6415</y>
+      </point>
+      <point>
+        <x>-124.9401</x>
+        <y>-123.9123</y>
+      </point>
+      <point>
+        <x>-124.5108</x>
+        <y>-124.1831</y>
+      </point>
+      <point>
+        <x>-124.0815</x>
+        <y>-124.4539</y>
+      </point>
+      <point>
+        <x>-123.6522</x>
+        <y>-124.7247</y>
+      </point>
+      <point>
+        <x>-123.2229</x>
+        <y>-124.9955</y>
+      </point>
+      <point>
+        <x>-122.7936</x>
+        <y>-125.2663</y>
+      </point>
+      <point>
+        <x>-122.3643</x>
+        <y>-125.5371</y>
+      </point>
+      <point>
+        <x>-121.935</x>
+        <y>-125.8079</y>
+      </point>
+      <point>
+        <x>-121.5057</x>
+        <y>-126.0787</y>
+      </point>
+      <point>
+        <x>-121.0764</x>
+        <y>-126.3495</y>
+      </point>
+      <point>
+        <x>-120.6471</x>
+        <y>-126.6203</y>
+      </point>
+      <point>
+        <x>-120.2177</x>
+        <y>-126.891</y>
+      </point>
+      <point>
+        <x>-119.7884</x>
+        <y>-127.1618</y>
+      </point>
+      <point>
+        <x>-119.3591</x>
+        <y>-127.4326</y>
+      </point>
+      <point>
+        <x>-118.9298</x>
+        <y>-127.7033</y>
+      </point>
+      <point>
+        <x>-118.5005</x>
+        <y>-127.9741</y>
+      </point>
+      <point>
+        <x>-118.0711</x>
+        <y>-128.2449</y>
+      </point>
+      <point>
+        <x>-117.6418</x>
+        <y>-128.5156</y>
+      </point>
+      <point>
+        <x>-117.2125</x>
+        <y>-128.7864</y>
+      </point>
+      <point>
+        <x>-116.7832</x>
+        <y>-129.0572</y>
+      </point>
+      <point>
+        <x>-116.3538</x>
+        <y>-129.3279</y>
+      </point>
+      <point>
+        <x>-115.9245</x>
+        <y>-129.5987</y>
+      </point>
+      <point>
+        <x>-115.4952</x>
+        <y>-129.8695</y>
+      </point>
+      <point>
+        <x>-115.0659</x>
+        <y>-130.1402</y>
+      </point>
+      <point>
+        <x>-114.6366</x>
+        <y>-130.411</y>
+      </point>
+      <point>
+        <x>-114.2072</x>
+        <y>-130.6818</y>
+      </point>
+      <point>
+        <x>-113.7779</x>
+        <y>-130.9525</y>
+      </point>
+      <point>
+        <x>-113.3486</x>
+        <y>-131.2233</y>
+      </point>
+      <point>
+        <x>-112.9193</x>
+        <y>-131.4941</y>
+      </point>
+      <point>
+        <x>-112.4899</x>
+        <y>-131.7648</y>
+      </point>
+      <point>
+        <x>-112.0606</x>
+        <y>-132.0356</y>
+      </point>
+      <point>
+        <x>-111.6313</x>
+        <y>-132.3064</y>
+      </point>
+      <point>
+        <x>-111.202</x>
+        <y>-132.5771</y>
+      </point>
+      <point>
+        <x>-110.7727</x>
+        <y>-132.8479</y>
+      </point>
+      <point>
+        <x>-110.3433</x>
+        <y>-133.1187</y>
+      </point>
+      <point>
+        <x>-109.914</x>
+        <y>-133.3894</y>
+      </point>
+      <point>
+        <x>-109.4847</x>
+        <y>-133.6602</y>
+      </point>
+      <point>
+        <x>-109.0554</x>
+        <y>-133.931</y>
+      </point>
+      <point>
+        <x>-108.6261</x>
+        <y>-134.2018</y>
+      </point>
+    </rightBound>
+    <successor ref="34"/>
+    <adjacentLeft ref="30" drivingDir="same"/>
+    <laneletType>unknown</laneletType>
   </lanelet>
   <lanelet id="31">
     <leftBound>
@@ -1674,8 +2082,7 @@
     </rightBound>
     <predecessor ref="26"/>
     <adjacentRight ref="32" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="32">
     <leftBound>
@@ -1709,8 +2116,41 @@
     <predecessor ref="28"/>
     <predecessor ref="30"/>
     <adjacentLeft ref="31" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
+    <adjacentRight ref="34" drivingDir="same"/>
+    <laneletType>urban</laneletType>
+  </lanelet>
+  <lanelet id="34">
+    <leftBound>
+      <point>
+        <x>-106.7649</x>
+        <y>-131.2377</y>
+      </point>
+      <point>
+        <x>-85.8266</x>
+        <y>-144.099</y>
+      </point>
+      <point>
+        <x>-85.4002</x>
+        <y>-144.3602</y>
+      </point>
+    </leftBound>
+    <rightBound>
+      <point>
+        <x>-108.6261</x>
+        <y>-134.2018</y>
+      </point>
+      <point>
+        <x>-87.6546</x>
+        <y>-147.0837</y>
+      </point>
+      <point>
+        <x>-87.2283</x>
+        <y>-147.3448</y>
+      </point>
+    </rightBound>
+    <predecessor ref="33"/>
+    <adjacentLeft ref="32" drivingDir="same"/>
+    <laneletType>unknown</laneletType>
   </lanelet>
   <lanelet id="6">
     <leftBound>
@@ -1776,8 +2216,7 @@
     <predecessor ref="5"/>
     <successor ref="13"/>
     <adjacentRight ref="8" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="8">
     <leftBound>
@@ -1844,8 +2283,7 @@
     <successor ref="14"/>
     <adjacentLeft ref="6" drivingDir="same"/>
     <adjacentRight ref="10" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="10">
     <leftBound>
@@ -1912,8 +2350,7 @@
     <successor ref="15"/>
     <adjacentLeft ref="8" drivingDir="same"/>
     <adjacentRight ref="12" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="12">
     <leftBound>
@@ -1979,8 +2416,7 @@
     <predecessor ref="11"/>
     <successor ref="16"/>
     <adjacentLeft ref="10" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="2">
     <leftBound>
@@ -2069,11 +2505,26 @@
     </rightBound>
     <predecessor ref="11"/>
     <successor ref="1"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="4">
     <leftBound>
+      <point>
+        <x>-192.8387</x>
+        <y>-23.1651</y>
+      </point>
+      <point>
+        <x>-194.9856</x>
+        <y>-26.5938</y>
+      </point>
+      <point>
+        <x>-197.1875</x>
+        <y>-29.9844</y>
+      </point>
+      <point>
+        <x>-199.6833</x>
+        <y>-33.1687</y>
+      </point>
       <point>
         <x>-202.6379</x>
         <y>-35.9079</y>
@@ -2113,6 +2564,22 @@
     </leftBound>
     <rightBound>
       <point>
+        <x>-197.363</x>
+        <y>-20.3316</y>
+      </point>
+      <point>
+        <x>-199.1767</x>
+        <y>-23.3602</y>
+      </point>
+      <point>
+        <x>-200.9905</x>
+        <y>-26.3889</y>
+      </point>
+      <point>
+        <x>-202.9796</x>
+        <y>-29.3046</y>
+      </point>
+      <point>
         <x>-205.2894</x>
         <y>-31.9531</y>
       </point>
@@ -2151,8 +2618,7 @@
     </rightBound>
     <predecessor ref="3"/>
     <successor ref="16"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="101"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="20">
     <leftBound>
@@ -2225,10 +2691,7 @@
     </rightBound>
     <predecessor ref="19"/>
     <successor ref="27"/>
-    <adjacentLeft ref="18" drivingDir="same"/>
-    <adjacentRight ref="22" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="22">
     <leftBound>
@@ -2301,9 +2764,7 @@
     </rightBound>
     <predecessor ref="21"/>
     <successor ref="29"/>
-    <adjacentLeft ref="20" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="18">
     <leftBound>
@@ -2376,9 +2837,7 @@
     </rightBound>
     <predecessor ref="17"/>
     <successor ref="25"/>
-    <adjacentRight ref="20" drivingDir="same"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
+    <laneletType>urban</laneletType>
   </lanelet>
   <lanelet id="24">
     <leftBound>
@@ -2522,47 +2981,8 @@
       </point>
     </rightBound>
     <predecessor ref="23"/>
-    <laneletType>highway</laneletType>
-    <trafficSignRef ref="100"/>
+    <laneletType>urban</laneletType>
   </lanelet>
-  <trafficSign id="100">
-    <trafficSignElement>
-      <trafficSignID>274</trafficSignID>
-      <additionalValue>16.667</additionalValue>
-    </trafficSignElement>
-    <position>
-      <point>
-        <x>-265.3306</x>
-        <y>-44.9147</y>
-      </point>
-    </position>
-    <virtual>false</virtual>
-  </trafficSign>
-  <trafficSign id="101">
-    <trafficSignElement>
-      <trafficSignID>274</trafficSignID>
-      <additionalValue>13.889</additionalValue>
-    </trafficSignElement>
-    <position>
-      <point>
-        <x>-73.729</x>
-        <y>-125.7727</y>
-      </point>
-    </position>
-    <virtual>false</virtual>
-  </trafficSign>
-  <trafficSign id="102">
-    <trafficSignElement>
-      <trafficSignID>205</trafficSignID>
-    </trafficSignElement>
-    <position>
-      <point>
-        <x>-205.2894</x>
-        <y>-31.9531</y>
-      </point>
-    </position>
-    <virtual>false</virtual>
-  </trafficSign>
   <intersection id="38">
     <incoming id="35">
       <incomingLanelet ref="3"/>
