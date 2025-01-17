@@ -1,10 +1,12 @@
-from pathlib import Path
 import time
+from pathlib import Path
 
 from scenario_factory.pipeline import Pipeline
+from scenario_factory.pipeline_steps import (
+    pipeline_extend_planning_problem_time_interval,
+    pipeline_write_scenario_to_file,
+)
 from scenario_factory.scenario_container import load_scenarios_from_folder
-from scenario_factory.pipeline_steps import pipeline_extend_planning_problem_time_interval, \
-    pipeline_write_scenario_to_file
 
 time_start = time.time_ns()
 scenario_containers = load_scenarios_from_folder(Path("/home/florian/Desktop/dec24_tmp/DEU_Riesa"))

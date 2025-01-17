@@ -162,7 +162,6 @@ def iterate_zipped_dynamic_obstacles_from_scenarios(
     if len(missed_obstacle_ids) > 0:
         print(f"Missed obstacle ids: {obstacle_ids_union - common_obstacle_ids}")
 
-
     if len(common_obstacle_ids) == 0:
         raise RuntimeError(
             f"Cannot zip obstacles from the scenarios {', '.join([str(scenario.scenario_id) for scenario in scenarios])}: The scenarios do not have a single obstacle in common!"

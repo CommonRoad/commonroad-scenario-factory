@@ -83,7 +83,9 @@ def pipeline_write_scenario_to_file(
 
     solution = scenario_container.get_attachment(Solution)
     if solution is not None:
-        solution_file_name = f"{solution.scenario_id}.solution.xml"  # TODO adjust to CommonRoad standard?
+        solution_file_name = (
+            f"{solution.scenario_id}.solution.xml"  # TODO adjust to CommonRoad standard?
+        )
         CommonRoadSolutionWriter(solution).write_to_file(
             str(output_folder), filename=solution_file_name, overwrite=True
         )
@@ -296,6 +298,7 @@ def pipeline_remove_parked_dynamic_obstacles(
 
     return scenario_container
 
+
 @pipeline_map()
 def pipeline_remove_pedestrians(
     ctx: PipelineContext, scenario_container: ScenarioContainer
@@ -322,9 +325,13 @@ def pipeline_remove_pedestrians(
 
     return scenario_container
 
+
 @pipeline_map()
 def pipeline_update_meta_information(
-    ctx: PipelineContext, scenario_container: ScenarioContainer, simulation_config: SimulationConfig, simulation_tool_ots: bool
+    ctx: PipelineContext,
+    scenario_container: ScenarioContainer,
+    simulation_config: SimulationConfig,
+    simulation_tool_ots: bool,
 ) -> ScenarioContainer:
     scenario = scenario_container.scenario
     scenario.affiliation = "Technical University of Munich"
@@ -333,25 +340,23 @@ def pipeline_update_meta_information(
     match simulation_config.mode:
         case SimulationMode.RESIMULATION:
             pred_id += 1
-            mode_string = "Resimulation"
         case SimulationMode.DELAY:
             pred_id += 2
-            mode_string = "Delay"
         case SimulationMode.DEMAND_TRAFFIC_GENERATION:
             pred_id += 3
-            mode_string = "Demand"
         case SimulationMode.INFRASTRUCTURE_TRAFFIC_GENERATION:
             pred_id += 4
-            mode_string = "Infrastructure"
         case SimulationMode.RANDOM_TRAFFIC_GENERATION:
             pred_id += 5
-            mode_string = "Random"
         case _:
             raise ValueError(f"Unknown simulation mode {simulation_config.mode}")
-    assert pred_id!= scenario.scenario_id.prediction_id, "Non unique prediction id."
+    assert pred_id != scenario.scenario_id.prediction_id, "Non unique prediction id."
     scenario.scenario_id.prediction_id = pred_id
-    scenario.source = f"Scenario Factory 2.0 with {'OpenTrafficSim' if simulation_tool_ots else 'SUMO'}"
+    scenario.source = (
+        f"Scenario Factory 2.0 with {'OpenTrafficSim' if simulation_tool_ots else 'SUMO'}"
+    )
     return scenario_container
+
 
 @pipeline_fold()
 def pipeline_assign_unique_incremental_scenario_ids(
