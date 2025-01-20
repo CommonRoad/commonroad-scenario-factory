@@ -91,10 +91,9 @@ def generate(
     pipeline = (
         base_pipeline.chain(scenario_generation_pipeline)
         .map(pipeline_assign_tags_to_scenario)
-        .map(pipeline_render_commonroad_scenario(output_path, fps=5, time_steps=25))
+        .map(pipeline_render_commonroad_scenario(output_path, fps=5))
         .map(pipeline_write_scenario_to_file(output_path))
     )
-    inputs = None
     if coords is not None:
         coordinates = Coordinates.from_str(coords)
         region = RegionMetadata.from_coordinates(coordinates)
