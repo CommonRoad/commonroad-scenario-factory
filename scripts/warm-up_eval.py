@@ -10,8 +10,8 @@ scenario, _ = CommonRoadFileReader(
     Path("/tmp/sims_paper_ots_keep_warmup/DEU_MONAEast-2_2_T-3.xml")
 ).open()
 
-number_of_vehicles_at_k = defaultdict(int)
-velocity_sum_of_vehicles_at_k = defaultdict(float)
+number_of_vehicles_at_k: dict[int, int] = defaultdict(int)
+velocity_sum_of_vehicles_at_k: dict[int, float] = defaultdict(float)
 
 for obs in scenario.dynamic_obstacles:
     # number_of_vehicles_at_k[obs.initial_state.time_step] += 1
@@ -36,7 +36,7 @@ print(f"Warm-up estimate is: {warm_up_with_margin/5}")
 
 times = [x / 5 for x in list(number_of_vehicles_at_k.keys())[:-1]]
 np.savetxt("times.csv", times, delimiter=",")
-rhos = list(number_of_vehicles_at_k.values())[:-1] / total_lanelet_network_length
+rhos = [x / total_lanelet_network_length for x in list(number_of_vehicles_at_k.values())[:-1]]
 np.savetxt("rhos.csv", rhos, delimiter=",")
 velocities = list(velocity_mean_at_k.values())[:-1]
 np.savetxt("velocities.csv", velocities, delimiter=",")
