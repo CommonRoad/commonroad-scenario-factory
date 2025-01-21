@@ -22,7 +22,7 @@ commonroad-drivability-checker = "^2024.1"
 commonroad-scenario-designer = { git = "https://github.com/CommonRoad/commonroad-scenario-designer", rev="5e8a17500e0d5cf3996bb6904876cb468e1ddb15"}
 commonroad-labeling = { git = "git@gitlab.lrz.de:cps/commonroad/automatic-scenario-labeling.git", rev="64985b953da3fdc3a0c3046a64478a040ff17bf1"}
 opentrafficsim = { version = "1.7.5", source = "test" }
-crots = { git = "git@gitlab.lrz.de:cps/commonroad/cr-ots-interface.git", rev = "be47509ebbda0a225d1faa0de2e32d4f68109873"}
+crots = { git = "git@gitlab.lrz.de:cps/commonroad/cr-ots-interface.git", rev = "5c2fe944489aecdfbb783d0794a59be6a8000fdd"}
 sumocr = { git = "git@gitlab.lrz.de:cps/sumo-interface.git", rev = "df917cd701f0e0cda542a0d87eea9c8eb000c400"}
 commonroad-route-planner = ">=2024.2.0,<2025.0"
 commonroad-reactive-planner = "^2024.1"

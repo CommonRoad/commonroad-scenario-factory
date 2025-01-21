@@ -730,8 +730,8 @@ tikzplotlib = "^0.10.1"
 [package.source]
 type = "git"
 url = "ssh://git@gitlab.lrz.de/cps/commonroad/cr-ots-interface.git"
-reference = "be47509ebbda0a225d1faa0de2e32d4f68109873"
-resolved_reference = "be47509ebbda0a225d1faa0de2e32d4f68109873"
+reference = "5c2fe944489aecdfbb783d0794a59be6a8000fdd"
+resolved_reference = "5c2fe944489aecdfbb783d0794a59be6a8000fdd"
 
 [[package]]
 name = "cvxopt"
@@ -3950,4 +3950,4 @@ test = ["pytest (>=4.6.7)", "pytest-checkdocs (>=1.2.5)", "pytest-checkdocs (>=2
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.10"
-content-hash = "2e8dc647a925bf86fd7307ac4c1475b180350d8c63f602f13f570e5a1b643839"
+content-hash = "241778b7296be054a15dd3b62d466ab4253d65b4d671f2020c3c353cf773030a"
