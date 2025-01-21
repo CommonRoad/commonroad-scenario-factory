@@ -24,7 +24,7 @@ from scenario_factory.scenario_container import (
 from scenario_factory.simulation import SimulationConfig, SimulationMode
 
 # Input values, change according to needs
-simulation_tool_ots = False
+simulation_tool_ots = True
 simulation_mode = SimulationMode.RANDOM_TRAFFIC_GENERATION
 simulation_steps = 300  # Only used for random traffic generation
 start_seed = 1

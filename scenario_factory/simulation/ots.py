@@ -243,7 +243,7 @@ def _execute_ots_simulation(
         gui_enabled=False,
         parameters=dict(),
         seed=seed,
-        keep_warmup=False,
+        keep_warmup=True,
         write_to_file=False,
         max_time=max_time,
     )

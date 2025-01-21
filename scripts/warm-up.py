@@ -19,7 +19,6 @@ from scenario_factory.pipeline_steps.utils import (
 )
 from scenario_factory.scenario_container import (
     ScenarioContainer,
-    load_scenarios_from_folder,
     write_general_scenario_metrics_of_scenario_containers_to_csv,
     write_waymo_metrics_of_scenario_containers_to_csv,
 )
@@ -31,15 +30,19 @@ simulation_mode = SimulationMode.DEMAND_TRAFFIC_GENERATION
 simulation_steps = 300  # Only used for random traffic generation
 start_seed = 1
 num_simulations = 1
-output_path = Path(f"/tmp/sims_paper_{'ots' if simulation_tool_ots else 'sumo'}")
+output_path = Path(f"/tmp/sims_paper_{'ots' if simulation_tool_ots else 'sumo'}_keep_warmup")
 
 output_path.mkdir(parents=True, exist_ok=True)
 
-scenario_names = ["DEU_MONAEast-2_2_T-300.xml"]  # , "DEU_MONAMerge-2_2_T-300.xml", "DEU_MONAWest-2_2_T-300.xml"]
+scenario_names = [
+    "DEU_MONAEast-2_2_T-300.xml"
+]  # , "DEU_MONAMerge-2_2_T-300.xml", "DEU_MONAWest-2_2_T-300.xml"]
 scenarios = []
 
 for scenario_name in scenario_names:
-    scenario, _ = CommonRoadFileReader(Path(__file__).parents[1].joinpath(f"resources/paper_accepted/{scenario_name}")).open()
+    scenario, _ = CommonRoadFileReader(
+        Path(__file__).parents[1].joinpath(f"resources/paper_accepted/{scenario_name}")
+    ).open()
     scenarios += [ScenarioContainer(scenario)]
 
 is_resimulation = simulation_mode in [SimulationMode.DELAY, SimulationMode.RESIMULATION]
