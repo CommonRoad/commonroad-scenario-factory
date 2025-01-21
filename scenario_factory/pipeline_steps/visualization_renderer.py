@@ -5,6 +5,7 @@ from commonroad.visualization.mp_renderer import MPRenderer
 
 from scenario_factory.pipeline import PipelineContext, PipelineStepExecutionMode, pipeline_map
 from scenario_factory.scenario_container import ScenarioContainer
+from scenario_factory.utils import get_scenario_final_time_step, get_scenario_start_time_step
 
 
 @pipeline_map(mode=PipelineStepExecutionMode.PARALLEL)
@@ -13,7 +14,6 @@ def pipeline_render_commonroad_scenario(
     scenario_container: ScenarioContainer,
     output_path: Path,
     fps: int = 5,
-    time_steps: int = 25,
 ) -> ScenarioContainer:
     """
     Pipeline step for visualizing a CommonRoad scenario as a video file.
@@ -25,10 +25,14 @@ def pipeline_render_commonroad_scenario(
     """
     scenario = scenario_container.scenario
 
+    # calculate the time frame
+    start_time = get_scenario_start_time_step(scenario)
+    end_time = get_scenario_final_time_step(scenario)
+
     # DrawParams config
     draw_params = MPDrawParams()
-    draw_params.time_begin = 0
-    draw_params.time_end = time_steps
+    draw_params.time_begin = start_time
+    draw_params.time_end = end_time
     draw_params.fps = fps
     draw_params.dynamic_obstacle.show_label = False
     draw_params.dynamic_obstacle.draw_icon = True
