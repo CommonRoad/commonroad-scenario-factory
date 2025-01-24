@@ -20,7 +20,7 @@ class BuilderIdAllocator:
     Simple Id allocator that can be used in builders to create unique CommonRoad Ids
     """
 
-    def __init__(self, seed: int = 1):
+    def __init__(self, seed: int = 0):
         self._id_ctr = seed
 
     def new_id(self) -> int:
@@ -149,3 +149,21 @@ def create_curve(
     # evalute the bezier function according to the number of interpolation points
     ts = np.linspace(0, 1, num=num_interpolation_points)
     return np.array([b(t) for t in ts])
+
+
+def offset_curve(curve: np.ndarray, offset: float) -> np.ndarray:
+    x, y = curve[:, 0], curve[:, 1]
+    # Tangents via finite difference
+    dx = np.gradient(x)
+    dy = np.gradient(y)
+
+    # Normals
+    norm = np.sqrt(dx**2 + dy**2)
+    nx = -dy / norm
+    ny = dx / norm
+
+    # Offset
+    x_offset = x + offset * nx
+    y_offset = y + offset * ny
+
+    return np.column_stack((x_offset, y_offset))

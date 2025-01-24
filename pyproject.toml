@@ -1,6 +1,6 @@
 [project]
 name = "commonroad-scenario-factory"
-version = "0.1.0"
+version = "2.0.0"
 description = "Automated scenario generation for CommonRoad based on SUMO traffic simulations."
 authors = [{name = "Florian Finkeldei", email = "florian.finkeldei@tum.de"}]
 requires-python = ">=3.10"
@@ -16,16 +16,18 @@ url = "https://test.pypi.org/simple/"
 priority = "explicit"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.12" # constraint is given by commonroad-labeling
-commonroad-io = "^2024.3"
-commonroad-drivability-checker = "^2024.1"
-commonroad-scenario-designer = "^0.8.4"
-commonroad-labeling = { git = "git@gitlab.lrz.de:cps/commonroad/automatic-scenario-labeling.git", rev="64985b953da3fdc3a0c3046a64478a040ff17bf1"}
+python = ">=3.10,<3.12" # constraint is given by commonroad-reactive-planner.
+commonroad-io = ">=2024.3"
+commonroad-drivability-checker = ">=2025.3.1"
+commonroad-scenario-designer = { git = "https://github.com/CommonRoad/commonroad-scenario-designer.git", rev = "6f56837eacaf69fa5a943802a18fed8aeec8682d"} # Required since latest version 0.8.4 does not yet support commonroad-drivability-checker>=2025.1.
+commonroad-labeling = { git = "git@gitlab.lrz.de:cps/commonroad/automatic-scenario-labeling.git", rev="2e3049afca62313219805e92339aaae62d56215c"}
 opentrafficsim = { version = "1.7.5", source = "test" }
-crots = { git = "git@gitlab.lrz.de:cps/commonroad/cr-ots-interface.git", rev = "be47509ebbda0a225d1faa0de2e32d4f68109873"}
-sumocr = { git = "git@gitlab.lrz.de:cps/sumo-interface.git", rev = "6fbd6e7e4086faf45d3e7fa7fa4414b6b13c6b77"}
-commonroad-route-planner = "^2024.2"
-commonroad-reactive-planner = "^2024.1"
+commonroad-ots = { git = "git@gitlab.lrz.de:cps/commonroad/cr-ots-interface.git", rev = "e3c130ae4a189a18301926120c1295a0ea87e26b"}
+commonroad-sumo = { git = "git@gitlab.lrz.de:cps/sumo-interface.git", rev = "f915319ee2b1af12be859731a1575a3815e42ff0"}
+commonroad-route-planner = ">=2025.1.0"
+commonroad-reactive-planner = { git = "https://github.com/jrester/commonroad-reactive-planner.git", rev="3247763f18cc7686bd3e58a96195e826092c4917" }
+commonroad-crime = ">=0.4.4"
+commonroad-clcs = ">=2025.1"
 osmium = ">=2.16.0"
 iso3166 = "^2.0"
 libsumo = "^1.19"
@@ -34,6 +36,8 @@ eclipse-sumo = "^1.19"
 click = "^8.1"
 multiprocess = "^0.70"
 typing-extensions = "^4.12.2"
+numpy = ">=1.22.4"
+scipy = ">=1.15.3"
 
 
 [tool.poetry.group.tests]

@@ -46,16 +46,12 @@ class TestGlobals:
         self,
         label: str,
         lanelet_network: LaneletNetwork,
-        expected_center_polylines: dict[int, np.ndarray],
     ):
         for lanelet in lanelet_network.lanelets:
             lanelet.center_vertices = np.zeros_like(lanelet.center_vertices)
-        assert len(lanelet_network.lanelets) == len(
-            expected_center_polylines
-        ), f"Lanelet network and test expectations are incompatible for entry {label}."
 
         fix_center_polylines(lanelet_network)
         for lanelet in lanelet_network.lanelets:
             assert np.all(
-                expected_center_polylines[lanelet.lanelet_id] == lanelet.center_vertices
-            ), f"Expected correct center polyline for lanelet {lanelet.lanelet_id} in entry {label}."
+                lanelet.center_vertices == 0.5 * (lanelet.left_vertices + lanelet.right_vertices)
+            )

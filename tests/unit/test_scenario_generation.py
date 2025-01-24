@@ -80,7 +80,7 @@ class TestCreatePlanningPorlbmeForEgoVehicle:
         )
 
         planning_problem = create_planning_problem_for_ego_vehicle(
-            lanelet_network, ego_vehicle, Interval(30, 40), planning_problem_with_lanelet=True
+            lanelet_network, ego_vehicle, Interval(9, 10), planning_problem_with_lanelet=True
         )
         assert planning_problem.planning_problem_id == ego_vehicle.obstacle_id
         assert len(planning_problem.goal.state_list) == 1

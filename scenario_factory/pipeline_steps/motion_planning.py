@@ -1,3 +1,4 @@
+import commonroad_route_planner.fast_api.fast_api as route_planner_fapi
 from commonroad.common.solution import (
     CostFunction,
     PlanningProblemSolution,
@@ -7,7 +8,6 @@ from commonroad.common.solution import (
 )
 from commonroad.planning.planner_interface import TrajectoryPlannerInterface
 from commonroad.planning.planning_problem import PlanningProblemSet
-from commonroad_route_planner.route_planner import RoutePlanner
 
 from scenario_factory.pipeline import PipelineContext, pipeline_map
 from scenario_factory.scenario_container import ScenarioContainer
@@ -36,11 +36,14 @@ def pipeline_solve_planning_problem_with_motion_planner(
 
     planning_problem_solutions = []
     for planning_problem_id, planning_problem in planning_problem_set.planning_problem_dict.items():
-        route_planner = RoutePlanner(scenario_container.scenario.lanelet_network, planning_problem)
-        route = route_planner.plan_routes().retrieve_first_route()
+        reference_path = (
+            route_planner_fapi.generate_reference_path_from_lanelet_network_and_planning_problem(
+                scenario_container.scenario.lanelet_network, planning_problem
+            )
+        )
 
         trajectory = motion_planner.plan(
-            scenario_container.scenario, planning_problem, ref_path=route.reference_path
+            scenario_container.scenario, planning_problem, ref_path=reference_path.reference_path
         )
         planning_problem_solution = PlanningProblemSolution(
             planning_problem_id=planning_problem_id,
