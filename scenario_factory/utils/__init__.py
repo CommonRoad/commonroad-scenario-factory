@@ -42,6 +42,11 @@ __all__ = [
     "find_most_likely_lanelet_by_state",
     "calculate_deviation_between_states",
     "UniqueIncrementalIdAllocator",
+    # io
+    "determine_xml_file_type",
+    "CommonRoadXmlFileType",
+    "try_load_xml_file_as_commonroad_solution",
+    "try_load_xml_file_as_commonroad_scenario",
 ]
 
 from .align import (
@@ -57,6 +62,12 @@ from .crop import (
     crop_scenario_to_time_frame,
     crop_state_list_to_time_frame,
     crop_trajectory_to_time_frame,
+)
+from .io import (
+    CommonRoadXmlFileType,
+    determine_xml_file_type,
+    try_load_xml_file_as_commonroad_scenario,
+    try_load_xml_file_as_commonroad_solution,
 )
 from .logging import configure_root_logger
 from .obstacle import (

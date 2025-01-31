@@ -1,7 +1,11 @@
 import copy
+from pathlib import Path
 
 import numpy as np
 import pytest
+from commonroad.common.solution import Solution
+from commonroad.planning.planning_problem import PlanningProblemSet
+from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.state import CustomState, ExtendedPMState, InitialState
 from commonroad.scenario.traffic_light import (
     TrafficLight,
@@ -12,14 +16,19 @@ from commonroad.scenario.traffic_light import (
 
 from scenario_factory.builder import ScenarioBuilder
 from scenario_factory.utils import (
+    CommonRoadXmlFileType,
     align_state_list_to_time_step,
     align_state_to_time_step,
+    align_traffic_light_to_time_step,
     convert_state_to_state,
     copy_scenario,
+    determine_xml_file_type,
     get_full_state_list_of_obstacle,
+    try_load_xml_file_as_commonroad_scenario,
+    try_load_xml_file_as_commonroad_solution,
 )
-from scenario_factory.utils.align import align_traffic_light_to_time_step
 from tests.helpers.obstacle import create_test_obstacle_with_trajectory
+from tests.resources.interface import RESOURCES, ResourceType
 
 
 class TestAlignStateToTimeStep:
@@ -232,3 +241,73 @@ class TestGetFullStateListOfObstacle:
         state_list = get_full_state_list_of_obstacle(obstacle)
         assert len(state_list) == 100
         assert all(isinstance(state, CustomState) for state in state_list)
+
+
+class TestTryLoadXmlFileAsCommonRoadScenario:
+    def test_returns_none_if_file_does_not_exist(self) -> None:
+        result = try_load_xml_file_as_commonroad_scenario(Path("not existing path"))
+        assert result is None
+
+    @pytest.mark.parametrize("file", RESOURCES[ResourceType.OSM_MAP])
+    def test_returns_none_if_file_is_osm_map(self, file: str) -> None:
+        file_path = ResourceType.OSM_MAP.get_folder() / file
+        result = try_load_xml_file_as_commonroad_scenario(file_path)
+        assert result is None
+
+    @pytest.mark.parametrize("file", RESOURCES[ResourceType.CR_SOLUTION])
+    def test_returns_none_if_file_is_commonroad_solution(self, file: str) -> None:
+        file_path = ResourceType.CR_SOLUTION.get_folder() / file
+        result = try_load_xml_file_as_commonroad_scenario(file_path)
+        assert result is None
+
+    @pytest.mark.parametrize("file", RESOURCES[ResourceType.CR_SCENARIO])
+    def test_can_successfully_load_commonroad_scenario(self, file: str) -> None:
+        file_path = ResourceType.CR_SCENARIO.get_folder() / file
+        result = try_load_xml_file_as_commonroad_scenario(file_path)
+        assert result is not None
+        assert isinstance(result[0], Scenario)
+        assert isinstance(result[1], PlanningProblemSet)
+
+
+class TestTryLoadXmlFileAsCommonRoadSolution:
+    def test_returns_none_if_file_does_not_exist(self) -> None:
+        solution = try_load_xml_file_as_commonroad_solution(Path("not existing path"))
+        assert solution is None
+
+    @pytest.mark.parametrize("file", RESOURCES[ResourceType.OSM_MAP])
+    def test_returns_none_if_file_is_osm_map(self, file: str) -> None:
+        file_path = ResourceType.OSM_MAP.get_folder() / file
+        solution = try_load_xml_file_as_commonroad_solution(file_path)
+        assert solution is None
+
+    @pytest.mark.parametrize("file", RESOURCES[ResourceType.CR_SCENARIO])
+    def test_returns_none_if_file_is_commonroad_scenario(self, file: str) -> None:
+        file_path = ResourceType.CR_SCENARIO.get_folder() / file
+        solution = try_load_xml_file_as_commonroad_solution(file_path)
+        assert solution is None
+
+    @pytest.mark.parametrize("file", RESOURCES[ResourceType.CR_SOLUTION])
+    def test_can_successfully_load_commonroad_solution(self, file: str) -> None:
+        file_path = ResourceType.CR_SOLUTION.get_folder() / file
+        solution = try_load_xml_file_as_commonroad_solution(file_path)
+        assert isinstance(solution, Solution)
+
+
+class TestDetermineXmlFileType:
+    @pytest.mark.parametrize("scenario_file", RESOURCES[ResourceType.CR_SCENARIO])
+    def test_identifies_all_scenarios(self, scenario_file: str) -> None:
+        scenario_path = ResourceType.CR_SCENARIO.get_folder() / scenario_file
+        determined_xml_file_type = determine_xml_file_type(scenario_path)
+        assert determined_xml_file_type == CommonRoadXmlFileType.SCENARIO
+
+    @pytest.mark.parametrize("osm_map", RESOURCES[ResourceType.OSM_MAP])
+    def test_identifies_osm_maps_as_unkown_file_types(self, osm_map: str) -> None:
+        osm_map_path = ResourceType.OSM_MAP.get_folder() / osm_map
+        determined_xml_file_type = determine_xml_file_type(osm_map_path)
+        assert determined_xml_file_type == CommonRoadXmlFileType.UNKNOWN
+
+    @pytest.mark.parametrize("solution_file", RESOURCES[ResourceType.CR_SOLUTION])
+    def test_identifies_all_solutions(self, solution_file: str) -> None:
+        solution_path = ResourceType.CR_SOLUTION.get_folder() / solution_file
+        determined_xml_file_type = determine_xml_file_type(solution_path)
+        assert determined_xml_file_type == CommonRoadXmlFileType.SOLUTION

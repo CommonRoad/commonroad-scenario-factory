@@ -1,10 +1,7 @@
 import copy
 import csv
 import logging
-import re
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from enum import Enum, auto
 from pathlib import Path
 from typing import (
     Any,
@@ -13,18 +10,13 @@ from typing import (
     Iterable,
     List,
     Optional,
-    Tuple,
     Type,
     TypedDict,
     TypeVar,
     Union,
 )
-from xml.dom import pulldom
-from xml.sax import SAXParseException
 
-from commonroad.common.file_reader import CommonRoadFileReader
-from commonroad.common.solution import CommonRoadSolutionReader, Solution
-from commonroad.common.util import FileFormat
+from commonroad.common.solution import Solution
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario, ScenarioID
 from typing_extensions import Self, Unpack
@@ -36,6 +28,12 @@ from scenario_factory.metrics import (
     WaymoMetric,
     write_general_scenario_metrics_to_csv,
     write_waymo_metrics_to_csv,
+)
+from scenario_factory.utils import (
+    CommonRoadXmlFileType,
+    determine_xml_file_type,
+    try_load_xml_file_as_commonroad_scenario,
+    try_load_xml_file_as_commonroad_solution,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -175,117 +173,6 @@ class ScenarioContainer:
         return str(self._scenario.scenario_id)
 
 
-def _try_load_xml_file_as_commonroad_scenario(
-    xml_file_path: Path,
-) -> Optional[Tuple[Scenario, PlanningProblemSet]]:
-    """
-    Parse `xml_file_path` as a CommonRoad scenario.
-
-    :returns: The `Scenario` and `PlanningProblemSet` from `xml_file_path`, or None if `xml_file_path` is not a valid CommonRoad XML file.
-    """
-    if not xml_file_path.exists():
-        _LOGGER.warning(
-            "Failed to load CommonRoad scenario from %s: File does not exist", xml_file_path
-        )
-        return None
-    try:
-        scenario, planning_problem_set = CommonRoadFileReader(
-            xml_file_path, file_format=FileFormat.XML
-        ).open()
-        return scenario, planning_problem_set
-    except ET.ParseError as e:
-        _LOGGER.warning(
-            "Failed to load CommonRoad scenario from file %s, because file does not contain valid XML: %s",
-            xml_file_path,
-            e,
-        )
-        return None
-    except AssertionError as e:
-        # Sadly, the CommonRoadFileReader does not expose a custom error type.
-        # Therefore, all AssertionErrors are captured here, because they represent most of the errors that occur.
-        _LOGGER.warning("Failed to load CommonRoad scenario from file %s: %s", xml_file_path, e)
-        return None
-
-
-def _try_load_xml_file_as_commonroad_solution(xml_file_path: Path) -> Optional[Solution]:
-    """
-    Parse `xml_file_path` as a CommonRoad solution.
-
-    :returns: The `Solution` from `xml_file_path`, or None if `xml_file_path` is not a valid CommonRoad XML file.
-    """
-    if not xml_file_path.exists():
-        _LOGGER.warning(
-            "Failed to load CommonRoad solution from %s: File does not exist", xml_file_path
-        )
-        return None
-    try:
-        solution = CommonRoadSolutionReader().open(str(xml_file_path))
-        return solution
-    except ET.ParseError as e:
-        _LOGGER.warning(
-            "Failed to load CommonRoad solution from file %s, because file does not contain valid XML: %s",
-            xml_file_path,
-            e,
-        )
-        return None
-    except AttributeError as e:
-        # Sadly, the CommonRoadSolutionReader does not expose a custom error type.
-        # Therefore, all AttributeErrors are captured here,
-        # because this is usually the error indicating that the file is indeed valid XML,
-        # but not a valid solution file.
-        _LOGGER.warning(
-            "Failed to load CommonRoad solution from file %s. The file is valid XML, but not a valid CommonRoad solution file: %s",
-            xml_file_path,
-            e,
-        )
-        return None
-
-
-class _CommonRoadXmlFileType(Enum):
-    """
-    Helper enum to distinguish the different XML files from the CommonRoad ecosystem.
-    """
-
-    UNKNOWN = auto()
-    """The file is either no valid XML or no known file from the CommonRoad ecosystem."""
-
-    SCENARIO = auto()
-    """Identifies a CommonRoad scenario with planning problem set file."""
-
-    SOLUTION = auto()
-    """Identifies a CommonRoad solution file."""
-
-
-def _determine_xml_file_type(xml_file_path: Path) -> _CommonRoadXmlFileType:
-    """
-    Examines the root node of `xml_file_path` to determine which known CommonRoad format the file has.
-
-    If the file cannot be parsed, the file type is determined to be `_CommonRoadXmlFileType.UNKOWN`.
-
-    :param xml_file_path: Path to the XML file that should be checked. Must exist.
-    :returns: The determined file type
-    """
-    # Use pulldom, so that only the minimum of the document needs to be parsed.
-    # This is possible here, because we only need to read the root node,
-    # which should occur at the beginning of the document.
-    xml_context = pulldom.parse(str(xml_file_path))
-    try:
-        for event, node in xml_context:
-            if event != pulldom.START_ELEMENT:
-                continue
-
-            if node.nodeName.lower() == "commonroad":
-                return _CommonRoadXmlFileType.SCENARIO
-            elif node.nodeName.lower() == "commonroadsolution":
-                return _CommonRoadXmlFileType.SOLUTION
-            else:
-                return _CommonRoadXmlFileType.UNKNOWN
-    except SAXParseException:
-        # fall thourgh to unknown if file is not valid XML
-        pass
-    return _CommonRoadXmlFileType.UNKNOWN
-
-
 def load_scenarios_from_folder(
     folder: Union[str, Path],
     reference_scenario_lookup_key: Optional[Callable[[ScenarioID], Optional[Path]]] = None,
@@ -326,9 +213,9 @@ def load_scenarios_from_folder(
         # Reliable determine whether the XML file is a known CommonRoad file.
         # If it is a known CommonRoad file type, also determine which one, so that the correct
         # reader can be used.
-        xml_file_type = _determine_xml_file_type(xml_file_path)
-        if xml_file_type == _CommonRoadXmlFileType.SCENARIO:
-            scenario_parse_result = _try_load_xml_file_as_commonroad_scenario(xml_file_path)
+        xml_file_type = determine_xml_file_type(xml_file_path)
+        if xml_file_type == CommonRoadXmlFileType.SCENARIO:
+            scenario_parse_result = try_load_xml_file_as_commonroad_scenario(xml_file_path)
             if scenario_parse_result is None:
                 continue
 
@@ -354,7 +241,7 @@ def load_scenarios_from_folder(
                 )
                 continue
 
-            reference_scenario_parse_result = _try_load_xml_file_as_commonroad_scenario(
+            reference_scenario_parse_result = try_load_xml_file_as_commonroad_scenario(
                 reference_scenario_path
             )
             if reference_scenario_parse_result is None:
@@ -362,8 +249,8 @@ def load_scenarios_from_folder(
 
             reference_scenario = ReferenceScenario(reference_scenario_parse_result[0])
             scenario_container.add_attachment(reference_scenario)
-        elif xml_file_type == _CommonRoadXmlFileType.SOLUTION:
-            solution = _try_load_xml_file_as_commonroad_solution(xml_file_path)
+        elif xml_file_type == CommonRoadXmlFileType.SOLUTION:
+            solution = try_load_xml_file_as_commonroad_solution(xml_file_path)
             if solution is None:
                 continue
 
@@ -385,34 +272,6 @@ def load_scenarios_from_folder(
         scenario_containers[scenario_id].add_attachment(solution)
 
     return list(scenario_containers.values())
-
-
-def load_scenarios_with_reference_from_folders(
-    path_scenarios: Path, path_reference_scenarios: Path
-) -> List[ScenarioContainer]:
-    scenarios_return: List[ScenarioContainer] = []
-    scenarios = path_scenarios.glob("*.xml")
-    references = {
-        "DEU_MONAEast-2": "C-DEU_MONAEast-2_1_T-299",
-        "DEU_MONAMerge-2": "C-DEU_MONAMerge-2_1_T-299",
-        "DEU_MONAWest-2": "C-DEU_MONAWest-2_1_T-299",
-        "DEU_LocationCLower4-1": "DEU_LocationCLower4-1_48255_T-9754",
-        "DEU_AachenHeckstrasse-1": "DEU_AachenHeckstrasse-1_3115929_T-17428",
-    }
-    for scenario in scenarios:
-        if int(re.search(r"_(\d+)_(?=T-\d+)", scenario.stem)[1]) in (3, 4, 5):  # type: ignore
-            continue
-        cr_scenario, _ = CommonRoadFileReader(scenario).open()
-        try:
-            reference = references[re.match(r"^[^_]+_[^_]+", str(cr_scenario.scenario_id)).group(0)]  # type: ignore
-            reference_scenario = path_reference_scenarios.joinpath(f"{reference}.xml")
-            cr_reference_scenario, _ = CommonRoadFileReader(reference_scenario).open()
-            scenarios_return.append(ScenarioContainer(scenario=cr_scenario))
-            scenarios_return[-1].add_attachment(ReferenceScenario(cr_reference_scenario))
-        except FileNotFoundError as e:
-            _LOGGER.warning(f"Could not find reference scenario for {cr_scenario.scenario_id}: {e}")
-
-    return scenarios_return
 
 
 def write_criticality_metrics_of_scenario_containers_to_csv(
