@@ -1,17 +1,11 @@
 import logging
 from pathlib import Path
+from typing import Union
 
 from commonroad.scenario.scenario import Scenario, Tag
 from crots.abstractions.warm_up_estimator import warm_up_estimator
-from sumocr import NonInteractiveSumoSimulation, SumoSimulationConfig
-from sumocr.cr2sumo.traffic_converter import (
-    InfrastructureSumoTrafficConverterConfig,
-    RandomSumoTrafficConverterConfig,
-    ReferenceDemandSumoTrafficConveterConfig,
-    SafeTrajectorySumoTrafficConverterConfig,
-    SumoTrafficConverterConfig,
-    UnsafeTrajectorySumoTrafficConverterConfig,
-)
+from sumocr import NonInteractiveSumoSimulation, SumoSimulationConfig, SumoTrafficGenerationMode
+from sumocr.cr2sumo.traffic_generator import AbstractTrafficGenerator, RandomTrafficGenerator
 
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 from scenario_factory.utils import (
@@ -23,19 +17,19 @@ from scenario_factory.utils import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def _get_traffic_converter_config_for_simulation_config(
+def _get_traffic_generator_or_mode_for_simulation_config(
     simulation_config: SimulationConfig,
-) -> SumoTrafficConverterConfig:
+) -> Union[AbstractTrafficGenerator, SumoTrafficGenerationMode]:
     if simulation_config.mode == SimulationMode.RANDOM_TRAFFIC_GENERATION:
-        return RandomSumoTrafficConverterConfig(seed=simulation_config.seed)
+        return RandomTrafficGenerator(seed=simulation_config.seed)
     elif simulation_config.mode == SimulationMode.DELAY:
-        return SafeTrajectorySumoTrafficConverterConfig()
+        return SumoTrafficGenerationMode.SAFE_RESIMULATION
     elif simulation_config.mode == SimulationMode.RESIMULATION:
-        return UnsafeTrajectorySumoTrafficConverterConfig()
+        return SumoTrafficGenerationMode.UNSAFE_RESIMULATION
     elif simulation_config.mode == SimulationMode.DEMAND_TRAFFIC_GENERATION:
-        return ReferenceDemandSumoTrafficConveterConfig()
+        return SumoTrafficGenerationMode.DEMAND
     elif simulation_config.mode == SimulationMode.INFRASTRUCTURE_TRAFFIC_GENERATION:
-        return InfrastructureSumoTrafficConverterConfig()
+        return SumoTrafficGenerationMode.INFRASTRUCTURE
     else:
         raise ValueError(
             f"Cannot determine traffic conversion mode for simulation mode {simulation_config.mode}"
@@ -44,7 +38,7 @@ def _get_traffic_converter_config_for_simulation_config(
 
 def _execute_sumo_simulation(
     commonroad_scenario: Scenario,
-    traffic_converter_config: SumoTrafficConverterConfig,
+    traffic_generator_or_mode: Union[AbstractTrafficGenerator, SumoTrafficGenerationMode],
     simulation_steps: int,
     seed: int,
 ) -> Scenario:
@@ -62,7 +56,7 @@ def _execute_sumo_simulation(
     )
     sumo_simulation = NonInteractiveSumoSimulation.from_scenario(
         commonroad_scenario,
-        traffic_converter_config=traffic_converter_config,
+        traffic_generator_or_mode=traffic_generator_or_mode,
         simulation_config=simulation_config,
     )
     simulation_result = sumo_simulation.run(simulation_steps)
@@ -107,7 +101,7 @@ def simulate_commonroad_scenario_with_sumo(
     :raises ValueError: If the selected simulation config is invalid.
     """
 
-    traffic_converter_config = _get_traffic_converter_config_for_simulation_config(
+    traffic_generator_or_mode = _get_traffic_generator_or_mode_for_simulation_config(
         simulation_config
     )
 
@@ -137,7 +131,7 @@ def simulate_commonroad_scenario_with_sumo(
         simulation_steps += warmup_time_steps
 
     new_scenario = _execute_sumo_simulation(
-        scenario, traffic_converter_config, simulation_steps, simulation_config.seed
+        scenario, traffic_generator_or_mode, simulation_steps, simulation_config.seed
     )
 
     _patch_scenario_metadata_after_simulation(new_scenario)
