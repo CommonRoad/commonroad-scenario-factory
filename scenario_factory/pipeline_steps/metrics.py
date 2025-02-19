@@ -113,6 +113,21 @@ def pipeline_compute_single_scenario_metrics(
     """
     Compute the single scenario metrics for the scenario.
 
+    Example: Compute metrics with frame factor adjustments
+
+        def get_frame_factors(scenario: Scenario) -> float:
+            scenario_id = str(scenario.scenario_id).split("-")[-3]
+            match scenario_id:
+                case "DEU_Example":
+                    return 0.78
+                case "ESP_Example":
+                    return 0.6
+                case _:
+                    raise ValueError("No frame factor defined for scenario {scenario.scenario_id}")
+
+        pipeline.map(pipeline_compute_single_scenario_metrics(frame_factor_callback))
+
+
     :param args: `ComputeSingleScenarioMetricsArguments` that specify the configuration for the computation
     :param scenario_container: The scenario for which the metrics should be computed. Will not be modified.
     :param frame_factor_callback: Optionally specify a frame factor callback, that will be used to
