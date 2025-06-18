@@ -63,3 +63,22 @@ pages:
   environment:
     name: Gitlab Pages
     url: https://cps.pages.gitlab.lrz.de/commonroad/scenario-factory
+
+build_and_push_to_pypi_test:
+  stage: deploy
+  when: manual
+  only:
+    - main
+  script:
+    - poetry config repositories.test https://test.pypi.org/legacy/
+    - poetry build
+    - poetry publish --repository test -u __token__ -p ${CR_PYPI_TEST_API_TOKEN}
+
+build_and_push_to_pypi_release:
+  stage: deploy
+  when: manual
+  only:
+    - main
+  script:
+    - poetry build
+    - poetry publish -u __token__ -p ${CR_PYPI_RELEASE_API_TOKEN}
