@@ -5,6 +5,7 @@ description = "Automated scenario generation for CommonRoad based on SUMO traffi
 authors = [{name = "Florian Finkeldei", email = "florian.finkeldei@tum.de"}]
 requires-python = ">=3.10"
 readme = "README.md"
+license = "BSD"
 dynamic = ["dependencies"]
 
 [tool.poetry]
