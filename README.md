@@ -37,4 +37,3 @@ $ git clone git@gitlab.lrz.de:cps/commonroad/scneario-factory.git
 $ cd scenario-factory
 $ poetry install --with tests --with docs --with dev
 ```
-
