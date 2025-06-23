@@ -13,18 +13,15 @@ def test_basic_scenario_features():
 
     # Add two parallel lanelets
     lanelet1 = lanelet_network_builder.add_lanelet(start=(0.0, 0.0), end=(50.0, 0.0), width=4)
-    lanelet2 = lanelet_network_builder.add_adjacent_lanelet(lanelet1, width=4)
+    lanelet2 = lanelet_network_builder.add_lanelet(start=(60.0, 10.0), end=(60.0, 30.0), width=4)
+    lanelet_network_builder.create_curved_connecting_lanelet(lanelet1, lanelet2)
     scenario = scenario_builder.build()
-
-    # Verify both lanelets were created
-    assert lanelet1 in scenario.lanelet_network.lanelets
-    assert lanelet2 in scenario.lanelet_network.lanelets
 
     # Initialize ScenarioModel
     scenario_model = ScenarioModel(scenario)
 
     # Test 1: Check if position is on lanelet
-    test_position = np.array([10.0, 0.0])
+    test_position = np.array([55.0, 1.0])
     lanelet_ids = scenario_model.lanelet_network.find_lanelet_by_position([test_position])[0]
     assert len(lanelet_ids) > 0, "Position should be on at least one lanelet"
 

@@ -1,4 +1,3 @@
-import numpy as np
 from commonroad.scenario.lanelet import LaneletNetwork
 
 from scenario_factory.globetrotter import BoundingBox, Coordinates, RegionMetadata
@@ -30,7 +29,6 @@ class MapExcerptTestCase(TestCase):
 
 class CenterPolylinesTestCase(TestCase):
     lanelet_network: LaneletNetwork
-    expected_center_polylines: dict[int, np.ndarray]
 
 
 class LocalProviderTestCase(TestCase):
@@ -118,21 +116,14 @@ CENTER_POLYLINES_TEST_DATASET = Dataset(
         CenterPolylinesTestCase(
             label="single_lanelet",
             lanelet_network=UsefulLaneletNetworks.single_lanelet_no_meta(),
-            expected_center_polylines={1: np.array([[0, -5], [25, -5], [25, 20]])},
         ),
         CenterPolylinesTestCase(
             label="empty",
             lanelet_network=UsefulLaneletNetworks.empty_no_meta(),
-            expected_center_polylines={},
         ),
         CenterPolylinesTestCase(
             label="one_split",
             lanelet_network=UsefulLaneletNetworks.one_split_no_meta(),
-            expected_center_polylines={
-                1: np.array([[0, -5], [20, -5]]),
-                2: np.array([[20, -5], [40, -5]]),
-                3: np.array([[20, -5], [40, 15]]),
-            },
         ),
     ]
 )

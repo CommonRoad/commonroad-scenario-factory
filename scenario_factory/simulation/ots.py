@@ -7,7 +7,7 @@ from commonroad.geometry.shape import Rectangle, Shape
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import ObstacleType
 from commonroad.scenario.scenario import DynamicObstacle, Scenario, Tag
-from crots.abstractions.abstraction_level import AbstractionLevel
+from commonroad_ots.abstractions.abstraction_level import AbstractionLevel
 
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 from scenario_factory.utils import (
@@ -190,7 +190,7 @@ def _suppress_java_stdout_and_stderr():
         System.setErr(java_original_err)
 
 
-def _simulation_mode_to_crots_abstraction_level(
+def _simulation_mode_to_commonroad_ots_abstraction_level(
     simulation_mode: SimulationMode,
 ) -> AbstractionLevel:
     if simulation_mode == SimulationMode.RANDOM_TRAFFIC_GENERATION:
@@ -226,13 +226,13 @@ def _execute_ots_simulation(
 
     :returns: When the simulation was executed successfully a copy of :param:`input_scenario` with the simulated dynamic obstacles is returned.
     """
-    from crots.conversion.setup import setup_ots
+    from commonroad_ots.conversion.setup import setup_ots
 
     # This sets up the java environment for OTS and starts OTS
     setup_ots()
-    from crots.abstractions.simulation_execution import SimulationExecutor
+    from commonroad_ots.abstractions.simulation_execution import SimulationExecutor
 
-    abstraction_level = _simulation_mode_to_crots_abstraction_level(simulation_mode)
+    abstraction_level = _simulation_mode_to_commonroad_ots_abstraction_level(simulation_mode)
 
     # Only set the max_time if a simulation_length was provided.
     # If max_time is None, the simulation time will be determined based on the trajectories of the dynamic obstacles in the input_scenario.

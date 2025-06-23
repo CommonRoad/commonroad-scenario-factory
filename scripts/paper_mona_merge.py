@@ -2,9 +2,9 @@ import shutil
 from pathlib import Path
 
 from commonroad.common.file_reader import CommonRoadFileReader
-from crots.abstractions.warm_up_estimator import warm_up_estimator
-from sumocr.simulation import NonInteractiveSumoSimulation
-from sumocr.sumo_map.cr2sumo.converter import SumoTrafficGenerationMode
+from commonroad_ots.abstractions.warm_up_estimator import warm_up_estimator
+from commonroad_sumo.cr2sumo.traffic_generator import SumoTrafficGenerationMode
+from commonroad_sumo.simulation import NonInteractiveSumoSimulation
 
 from resources.paper.frame_factors import get_frame_factor_sim
 from scenario_factory.metrics import (
@@ -30,7 +30,7 @@ scenario_name = "C-DEU_MONAMerge-2_1_T-299"
 
 
 # Select traffic generation mode
-traffic_generation_mode = SumoTrafficGenerationMode.TRAJECTORIES
+traffic_generation_mode = SumoTrafficGenerationMode.UNSAFE_RESIMULATION
 
 
 warmup_required = traffic_generation_mode in [

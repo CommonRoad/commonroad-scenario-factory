@@ -3,9 +3,16 @@ from pathlib import Path
 from typing import Union
 
 from commonroad.scenario.scenario import Scenario, Tag
-from crots.abstractions.warm_up_estimator import warm_up_estimator
-from sumocr import NonInteractiveSumoSimulation, SumoSimulationConfig, SumoTrafficGenerationMode
-from sumocr.cr2sumo.traffic_generator import AbstractTrafficGenerator, RandomTrafficGenerator
+from commonroad_ots.abstractions.warm_up_estimator import warm_up_estimator
+from commonroad_sumo import (
+    NonInteractiveSumoSimulation,
+    SumoSimulationConfig,
+    SumoTrafficGenerationMode,
+)
+from commonroad_sumo.cr2sumo.traffic_generator import (
+    AbstractTrafficGenerator,
+    RandomTrafficGenerator,
+)
 
 from scenario_factory.simulation.config import SimulationConfig, SimulationMode
 from scenario_factory.utils import (

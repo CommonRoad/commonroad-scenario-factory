@@ -156,7 +156,7 @@ def create_planning_problem_for_ego_vehicle(
             # the goal lanelet will not be associated with the goal region, because
             # otherwise the planning problem would already be solved by the initial state.
             _LOGGER.debug(
-                f"While creating planning problem for ego vehicle {ego_vehicle.obstacle_id} matched goal state and initial state to same lanelet. This configuration is invalid, therefore the planning problem will not have a goal lanelet set."
+                f"While creating planning problem for ego vehicle {ego_vehicle.obstacle_id} matched goal state and initial state to same lanelet ({lanelet_id_at_initial_state}). This configuration is invalid, therefore the planning problem will not have a goal lanelet set."
             )
         else:
             # Create the mapping to be used by the GoalRegion construction.

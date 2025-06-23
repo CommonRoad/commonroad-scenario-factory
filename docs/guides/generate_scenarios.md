@@ -1,7 +1,7 @@
 # Generate Scenarios for the Scenario Database with the CLI
 
 
-!!! abstract
+!!! Abstract
     One of the primary use cases of the Scenario Factory is, to generate new scenarios for the [CommonRoad Scenario Database](https://commonroad.in.tum.de/scenarios). For this purpose a simple CLI application is provided.
 
 ## Usage

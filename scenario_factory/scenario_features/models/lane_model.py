@@ -7,10 +7,10 @@ import numpy as np
 from commonroad.common.util import Interval
 from commonroad.scenario.lanelet import Lanelet, LaneletNetwork
 from commonroad.visualization.mp_renderer import MPRenderer
-from commonroad_dc.pycrccosy import CurvilinearCoordinateSystem
+from commonroad_clcs.clcs import CLCSParams, CurvilinearCoordinateSystem
 from matplotlib import pyplot as plt
 
-from scenario_factory.scenario_features.models.util import smoothen_polyline
+from .util import smoothen_polyline
 
 
 class SectionID:
@@ -204,7 +204,7 @@ class LaneletSectionNetwork:
         """
         lanelet = self.lanelets[lanelet_id]
         csys = CurvilinearCoordinateSystem(
-            smoothen_polyline(lanelet.center_vertices, resampling_distance=0.5)
+            smoothen_polyline(lanelet.center_vertices, resampling_distance=0.5), CLCSParams()
         )
 
         try:
@@ -221,7 +221,7 @@ class LaneletSectionNetwork:
                 self.debug_plot_curv_projection(
                     lanelet.center_vertices[0],
                     csys,
-                    smoothen_polyline(lanelet.center_vertices, resampling_distance=0.5),
+                    csys.ref_path,
                 )
             raise ProjectionError(f"Coordinate projection failed for lanelet {lanelet_id}.")
 

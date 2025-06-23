@@ -1,5 +1,5 @@
 import numpy as np
-from commonroad_dc.geometry.util import chaikins_corner_cutting, resample_polyline
+from commonroad_clcs.util import chaikins_corner_cutting, resample_polyline
 
 
 def smoothen_polyline(
@@ -18,8 +18,7 @@ def smoothen_polyline(
         return polyline
 
     # Apply Chaikin's corner cutting multiple times
-    for _ in range(3):
-        polyline = np.array(chaikins_corner_cutting(polyline))
+    polyline = chaikins_corner_cutting(polyline, refinements=3)
 
     # Resample to get uniform distance between points
     resampled_polyline = resample_polyline(polyline, resampling_distance)

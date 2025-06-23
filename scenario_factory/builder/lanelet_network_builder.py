@@ -3,12 +3,12 @@ from typing import List, Literal, Optional, Set, Tuple, Union
 import numpy as np
 from commonroad.scenario.lanelet import Lanelet, LaneletNetwork, LaneletType, LineMarking, StopLine
 from commonroad.scenario.traffic_sign import TrafficSign, TrafficSignElement, TrafficSignIDGermany
-from shapely.geometry import LineString
 
 from scenario_factory.builder.core import (
     BuilderCore,
     BuilderIdAllocator,
     create_curve,
+    offset_curve,
 )
 from scenario_factory.builder.intersection_builder import IntersectionBuilder
 from scenario_factory.builder.traffic_light_builder import TrafficLightBuilder
@@ -97,6 +97,7 @@ class LaneletNetworkBuilder(BuilderCore[LaneletNetwork]):
         end: Union[np.ndarray, List[float], Tuple[float, float]],
         width: float = 4.0,
         lanelet_type: LaneletType = LaneletType.URBAN,
+        num_interpolation_points: int = 5,
     ) -> Lanelet:
         """
         Create and add a new lanelet to the lanelet network. The center line is created directly from the `start` to the `end` point while the left and right lines are offset from this center line by width/2.
@@ -109,15 +110,17 @@ class LaneletNetworkBuilder(BuilderCore[LaneletNetwork]):
         if start == end:
             raise ValueError("Lanelet cannot have the same start and end point!")
 
-        center_line = LineString(np.array([start, end]))
-        right_line = center_line.offset_curve(-width / 2)
-        left_line = center_line.offset_curve(width / 2)
+        x = np.linspace(start[0], end[0], num_interpolation_points)
+        y = np.linspace(start[1], end[1], num_interpolation_points)
+        center_vertices = np.column_stack((x, y))
+        left_vertices = offset_curve(center_vertices, -width / 2)
+        right_vertices = offset_curve(center_vertices, width / 2)
 
         lanelet_id = self._id_allocator.new_id()
         new_lanelet = Lanelet(
-            left_vertices=np.array(left_line.coords),
-            center_vertices=np.array(center_line.coords),
-            right_vertices=np.array(right_line.coords),
+            left_vertices=left_vertices,
+            center_vertices=center_vertices,
+            right_vertices=right_vertices,
             lanelet_id=lanelet_id,
             lanelet_type={lanelet_type},
         )
@@ -146,19 +149,14 @@ class LaneletNetworkBuilder(BuilderCore[LaneletNetwork]):
                 f"Cannot add adjacent lanelet on the left to {original_lanelet.lanelet_id}: Already has an adjacent lanelet on the left!"
             )
 
-        left_line, center_line, right_line = None, None, None
         if right:
-            left_line = LineString(original_lanelet.right_vertices)
-            center_line = left_line.offset_curve(-width / 2)
-            right_line = left_line.offset_curve(-width)
+            left_vertices = original_lanelet.right_vertices
+            center_vertices = offset_curve(left_vertices, width / 2)
+            right_vertices = offset_curve(left_vertices, width)
         else:
-            right_line = LineString(original_lanelet.left_vertices)
-            center_line = right_line.offset_curve(width / 2)
-            left_line = right_line.offset_curve(width)
-
-        left_vertices = np.array(left_line.coords)
-        right_vertices = np.array(right_line.coords)
-        center_vertices = np.array(center_line.coords)
+            right_vertices = original_lanelet.left_vertices
+            center_vertices = offset_curve(right_vertices, -width / 2)
+            left_vertices = offset_curve(right_vertices, -width)
 
         if not same_direction:
             # By default the vertices are configured for adjacent lanelets that have the same directon.
@@ -299,3 +297,12 @@ class LaneletNetworkBuilder(BuilderCore[LaneletNetwork]):
             lanelet_network.add_traffic_sign(traffic_sign, lanelet_ids)
 
         return lanelet_network
+
+
+def _add_intermediate_point_to_vertices(
+    vertices: np.ndarray, intermediate_points: int = 5
+) -> np.ndarray:
+    x_vals = np.linspace(vertices[0][0], vertices[-1][0], intermediate_points + 2)
+    y_vals = np.linspace(vertices[0][1], vertices[-1][1], intermediate_points + 2)
+
+    return np.array(list(zip(x_vals, y_vals)))

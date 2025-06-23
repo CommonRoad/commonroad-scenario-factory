@@ -111,7 +111,7 @@ def find_applicable_tags_for_planning_problem_set(
         # Not sure, why it uses an invalid Route type tho...
         route.scenario = scenario  # type: ignore
         for ego_vehicle_criterion in _EGO_VEHICLE_CRITERIONS:
-            initialized_ego_vehicle_criterion = ego_vehicle_criterion(route)
+            initialized_ego_vehicle_criterion = ego_vehicle_criterion(route, scenario)
             matched_tag = initialized_ego_vehicle_criterion.get_tag_if_fulfilled()
             if matched_tag is None:
                 continue
