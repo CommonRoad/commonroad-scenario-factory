@@ -1,0 +1,70 @@
+
+site_name: CommonRoad Scenario Factory
+nav:
+  - index.md
+  - Guides:
+    - guides/index.md
+    - guides/generate_scenarios.md
+    - guides/globetrotter.md
+    - guides/custom_scenario_generation_pipeline.md
+  - Tutorials:
+    - tutorials/index.md
+    - tutorials/create_pipeline_step.md
+    - tutorials/debug.md
+  - Reference:
+    - reference/cli.md
+    - reference/simulation.md
+    - reference/scenario_generation.md
+    - reference/pipeline.md
+    - reference/ego_vehicle_selection.md
+    - API:
+      - reference/api/pipeline_steps.md
+      - reference/api/pipelines.md
+      - reference/api/pipeline.md
+      - reference/api/scenario_container.md
+      - reference/api/simulation.md
+      - reference/api/ego_vehicle_selection.md
+      - reference/api/globetrotter.md
+      - reference/api/builder.md
+      - reference/api/utils.md
+      - reference/api/metrics.md
+theme:
+  name: material
+  logo: img/commonroad_white150.png
+  features:
+  - content.code.copy
+  - content.code.annotate
+plugins:
+- autorefs
+- search
+- mkdocstrings:
+    default_handler: python
+    handlers:
+      python:
+        paths: ["scenario_factory"]
+        options:
+          docstring_style: "sphinx"
+          heading_level: 3
+          show_root_heading: false
+          show_root_toc_entry: false
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - tables
+  - admonition
+  - mkdocs-click
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.emoji:
+      # The values of the following tags appear to be invalid YAML, but are according to mkdocs spec: https://github.com/squidfunk/mkdocs-material/blob/master/docs/reference/icons-emojis.md
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format

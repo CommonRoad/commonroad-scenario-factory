@@ -1,24 +1,39 @@
-# Generation of CommonRoad Scenarios with SUMO
-This repo refactors code which was developed mainly by Moritz Klischat. It can generate interactive and non-interactive CommonRoad traffic scenario, as used, e.g., in the CommonRoad competition. 
+# CommonRoad Scenario Factory
 
-# Installation
-1. Setup of environment
-    1. Install a Python IDE. We suggest using [PyCharm](https://www.jetbrains.com/pycharm/).
-    2. Install  [Anaconda](https://www.anaconda.com/) (or [Miniconda](https://conda.io/miniconda.html)).
-    3. Install [SUMO](https://sumo.dlr.de/docs/Downloads.php). Don't forget to `export SUMO_HOME="/your/path/to/sumo"` in your `.bashrc`.
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/commonroad-scenario-factory.svg)](https://pypi.python.org/pypi/commonroad-scenario-factory/)
+[![PyPI version fury.io](https://badge.fury.io/py/commonroad-scenario-factory.svg)](https://pypi.python.org/pypi/commonroad-scenario-factory/)
+[![PyPI download month](https://img.shields.io/pypi/dm/commonroad-scenario-factory.svg?label=PyPI%20downloads)](https://pypi.python.org/pypi/commonroad-scenario-factory/)
+[![PyPI license](https://img.shields.io/pypi/l/commonroad-scenario-factory.svg)](https://pypi.python.org/pypi/commonroad-scenario-factory/)
 
-2. Clone this repository.
-3. Set up a conda environment for the practical course: `conda create -n "mpfav23" python=3.9`.
-4. Activate conda environment `conda actiavte mpfav23` & pip install the dependencies `pip install -r requirements.txt`.
-5. Add the following repos to the Python path (in PyCharm, this is called project structure: `File` → `Settings` → `Project` → `Project structure` → `Add content root`). Use the current `develop` branch.
 
-| Repo                                                     | Commit (tested)                            |
-|----------------------------------------------------------|--------------------------------------------|
-| `git@gitlab.lrz.de:cps/commonroad-scenario-designer.git` | `f838d127fcccf758053d5446050289e0ecafed3f` |  
-| `git@gitlab.lrz.de:cps/commonroad-scenario-features.git` | `493e745cb81be2a861eb0d9ac002c92560cbada4` | 
-| `git@gitlab.lrz.de:cps/sumo-interface.git`               | `91ff00c056b8178d284fa83cc3379df4fa71c064` |
+The CommonRoad Scenario Factory is a toolbox that combines many different tools from the whole CommonRoad ecosystem to efficiently process CommonRoad scenarios.
+Its current main use case is the generation of new CommonRoad scenarios with the traffic simulators OpenTrafficSim (OTS) and SUMO.
 
-6. Run the [`generate_interactive_senarios.py`](scripts/generate_interactive_senarios.py) script to create interactive scenarios. The required input files (CommonRoad Scenarios, containing a LaneletNetwork), can either be taken from existing CommonRoad scenarios or be created with the [OSM Map Extractor](https://gitlab.lrz.de/cps/osm-map-extractor). With the default settings, 112 solution files should be generated. You'll find these in the output folder. 
+The full documentation can be found at [cps.pages.gitlab.lrz.de/commonroad/scenario-factory](https://cps.pages.gitlab.lrz.de/commonroad/scenario-factory/).
 
-# Previous / outdated Version
-The [backup](backup) directory contains an [installation guide](backup/installation_guide_scenariofactory.md) for installing an out-of-date and buggy version of the scenario factory as well as a required [python script](backup/generate_interactive_senarios.py).
+## Installation
+
+```bash
+$ pip install commonroad-scenario-factory
+```
+
+### Additional Requirements
+
+Most dependencies are already installed through poetry, but some have to be installed manually on your system:
+
+* [osmium](https://osmcode.org/osmium-tool/): Required for the globetrotter package (i.e. the extraction of map segments from OpenStreetMap (OSM)).
+* [Java Runtime Environment](https://www.java.com/en/): Required for running simulations with OpenTrafficSim (OTS).
+
+SUMO and OTS are distributed as python packages and included as dependencies. Therefore, they do not need to be installed separately.
+
+## Development
+
+Before you start with the installation of the scenario factory, make sure that you have at least [python 3.10](https://www.python.org/downloads/) and [poetry](https://www.python.org/downloads/) installed on your system alongside the additional requirements listed above.
+
+To get started with development, clone the repo and install all dependencies:
+
+```
+$ git clone git@gitlab.lrz.de:cps/commonroad/scneario-factory.git
+$ cd scenario-factory
+$ poetry install --with tests --with docs --with dev
+```

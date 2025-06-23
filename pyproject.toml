@@ -1,0 +1,89 @@
+[project]
+name = "commonroad-scenario-factory"
+version = "2.0.0"
+description = "Automated scenario generation for CommonRoad based on SUMO traffic simulations."
+authors = [{name = "Florian Finkeldei", email = "florian.finkeldei@tum.de"}, {name = "Jan-Niklas Weghorn", email = "jan-niklas.weghorn@tum.de"}]
+requires-python = ">=3.10"
+readme = "README.md"
+license = "BSD"
+dynamic = ["dependencies"]
+
+[tool.poetry]
+packages = [{include = "scenario_factory"}]
+
+[[tool.poetry.source]]
+name = "test"
+url = "https://test.pypi.org/simple/"
+priority = "explicit"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.12" # constraint is given by commonroad-reactive-planner.
+commonroad-io = ">=2024.3"
+commonroad-drivability-checker = ">=2025.3.1"
+commonroad-scenario-designer = { git = "https://github.com/CommonRoad/commonroad-scenario-designer.git", rev = "6f56837eacaf69fa5a943802a18fed8aeec8682d"} # Required since latest version 0.8.4 does not yet support commonroad-drivability-checker>=2025.1.
+commonroad-labeling = { version = ">=2025.1", source = "test"}
+commonroad-ots = { version = ">=2025.1", source = "test"}
+commonroad-sumo = { version = ">=2025.1", source = "test"}
+commonroad-route-planner = ">=2025.1.0"
+commonroad-reactive-planner = { git = "https://github.com/jrester/commonroad-reactive-planner.git", rev="3247763f18cc7686bd3e58a96195e826092c4917" } # Required for a small bug fix, which was not yet merged.
+commonroad-crime = ">=0.4.4"
+commonroad-clcs = ">=2025.1"
+osmium = ">=2.16.0"
+iso3166 = "^2.0"
+libsumo = "^1.19"
+scikit-learn = "^1.3"
+eclipse-sumo = "^1.19"
+click = "^8.1"
+multiprocess = "^0.70"
+typing-extensions = "^4.12.2"
+numpy = ">=1.22.4"
+scipy = ">=1.15.3"
+
+
+[tool.poetry.group.tests]
+optional = true
+
+[tool.poetry.group.tests.dependencies]
+pytest = "^7.4.4"
+pytest-mock = "^3.14.0"
+coverage = {version = "^7.5.3", extras = ["toml"] }
+pydantic = "^2.10.1"
+
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = "^1.6.0"
+mkdocstrings-python = "^1.10.3"
+mkdocs-autorefs = "^1.0.1"
+mkdocs-material = "^9.5.12"
+mkdocs-click = "^0.8.1"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.7.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+indent-width = 4
+format.quote-style = "double"
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "I", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402", "F401"]
+
+[tool.coverage.run]
+source = ["scenario_factory"]
+
+[project.scripts]
+scenario-factory = "scripts.cli:generate"
+globetrotter = "scripts.cli:globetrotter"

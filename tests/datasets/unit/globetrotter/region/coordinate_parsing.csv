@@ -1,0 +1,4 @@
+label,string,valid,lat,lon
+"correct_slash","28.7908/-81.6970",true,28.7908,-81.6970
+"correct_comma","-30.107,136.670",true,-30.107,136.670
+"invalid_1","30.1278A032917",false,0,0

@@ -1,2 +1,0 @@
-commonroad-io>=2023.3
-commonroad-drivability-checker>=2023.1

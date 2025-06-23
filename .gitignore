@@ -1,3 +1,13 @@
 .idea/
 output/*
+output_*
 __pycache__
+dec23_data
+
+files/**/*.osm.pbf
+files/**/*.osm
+*.p
+*.cfg
+*.tar.gz
+*.mp4
+.coverage
