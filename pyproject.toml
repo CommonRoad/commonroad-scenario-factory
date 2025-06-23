@@ -20,12 +20,11 @@ python = ">=3.10,<3.12" # constraint is given by commonroad-reactive-planner.
 commonroad-io = ">=2024.3"
 commonroad-drivability-checker = ">=2025.3.1"
 commonroad-scenario-designer = { git = "https://github.com/CommonRoad/commonroad-scenario-designer.git", rev = "6f56837eacaf69fa5a943802a18fed8aeec8682d"} # Required since latest version 0.8.4 does not yet support commonroad-drivability-checker>=2025.1.
-commonroad-labeling = { git = "git@gitlab.lrz.de:cps/commonroad/automatic-scenario-labeling.git", rev="2e3049afca62313219805e92339aaae62d56215c"}
-opentrafficsim = { version = "1.7.5", source = "test" }
-commonroad-ots = { git = "git@gitlab.lrz.de:cps/commonroad/cr-ots-interface.git", rev = "e3c130ae4a189a18301926120c1295a0ea87e26b"}
-commonroad-sumo = { git = "git@gitlab.lrz.de:cps/sumo-interface.git", rev = "f915319ee2b1af12be859731a1575a3815e42ff0"}
+commonroad-labeling = { version = ">=2025.1", source = "test"}
+commonroad-ots = { version = ">=2025.1", source = "test"}
+commonroad-sumo = { version = ">=2025.1", source = "test"}
 commonroad-route-planner = ">=2025.1.0"
-commonroad-reactive-planner = { git = "https://github.com/jrester/commonroad-reactive-planner.git", rev="3247763f18cc7686bd3e58a96195e826092c4917" }
+commonroad-reactive-planner = { git = "https://github.com/jrester/commonroad-reactive-planner.git", rev="3247763f18cc7686bd3e58a96195e826092c4917" } # Required for a small bug fix, which was not yet merged.
 commonroad-crime = ">=0.4.4"
 commonroad-clcs = ">=2025.1"
 osmium = ">=2.16.0"
