@@ -52,14 +52,35 @@ The main focus in the scenario-factory are, as the name implies, CommonRoad Scen
 
 To see why this is necessary, consider the following steps as an example:
 
-* pipeline_create_planning_problems
-* pipeline_add_metadata
-* pipeline_write_scenario_to_file
+* `pipeline_create_planning_problems`
+* `pipeline_add_metadata`
+* `pipeline_write_scenario_to_file`
 
-The step `pipeline_create_planning_problems` will create planning problems for a given scenario. As such, it will return a planning problem alongside its input scenario. The next step `pipeline_add_metadata`, populates the metadata fields (e.g. author) of the scenario. For this  only cares about the scenario, and not any planning problems. In the last step `pipeline_write_scenario_to_file`, the scenario *and* the planning problem should be written to a file. For this purpose, the last step requires the planning problem and the scenario as input.
+The step `pipeline_create_planning_problems` will create planning problems for a given scenario. As such, it will return a planning problem alongside its input scenario. The next step `pipeline_add_metadata`, populates the metadata fields (e.g. author) of the scenario. For this  only cares about the scenario, and not any planning problems. In the last step `pipeline_write_scenario_to_file`, the scenario is written to a file. Additionally, the step can also write a planning problem alongside the scenario if one is defined. For this purpose, the last step would require the planning problem and the scenario as input.
 
-To effectively work with scenarios Scenario Factory, a few requirements arise regarding CommonRoad scenarios:
+To effectively work with scenarios in the CommonRoad Scenario Factory, a few requirements arise regarding CommonRoad scenarios:
 * It must be easy to associate additional data with a CommonRoad scenario (e.g. a planning problem)
 * Pipeline steps should be as reusable as possible by being agnostic of such additional data
 
-For this purpose `ScenarioContainer`s are used as inputs and outputs for most of the pipeline steps. By default, a `ScenarioContainer` wraps a simple CommonRoad scenario, but additional containers exist to accommodate additional objects like `PlanningProblem`s or `PlanningProblemSolution`s. Your pipeline step should always accept the least specific `ScenarioContainer`.
+For this purpose `ScenarioContainer`s are used as inputs and outputs for most of the pipeline steps. By default, a `ScenarioContainer` wraps a simple CommonRoad scenario, but additional data can be associated with each container:
+
+```python
+...
+scenario_container = ScenarioContainer(scenario)
+
+# Add a new planning problem set as attachment. A `ScenarioContainer` can always have only one attachment of a specific type, e.g., PlanningProblemSet.
+scenario_container.add_attachment(PlanningProblemSet(...))
+scenario_container.has_attachment(PlanningProblemSet) # (1)
+planning_problem_set = scenario_container.get_attachment(PlanningProblemSet)
+
+@dataclass
+class MyCustomAttachmentType:
+    foo: int
+
+scenario_container.has_attachment(MyCustomAttachmentType) # (2)
+custom_attachment = scenario_container.get_attachment(MyCustomAttachmentType) # (3)
+```
+
+1. Will return `True`, since an attachment with type `PlanningProblemSet` exists.
+2. Will return `False`, since no attachment with type `MyCustomAttachmentType` has been added yet.
+3. Will return `None`, since no attachment with type `MyCustomAttachmentType` has been added yet.
