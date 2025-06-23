@@ -23,6 +23,7 @@ nav:
       - reference/api/pipeline.md
       - reference/api/scenario_container.md
       - reference/api/simulation.md
+      - reference/api/ego_vehicle_selection.md
       - reference/api/globetrotter.md
       - reference/api/builder.md
       - reference/api/utils.md
