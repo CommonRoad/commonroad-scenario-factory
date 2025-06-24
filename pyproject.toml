@@ -11,6 +11,7 @@ dynamic = ["dependencies"]
 [tool.poetry]
 packages = [
   { include = "scenario_factory" },
+  { include = "scripts" },
   # The currently distributed version of commonroad-scenario-designer 0.8.4 does not allow commonroad-clcs>=2025.1. This breaks dependency resolution since all other dependencies use commonroad-clcs>=2025.1.
   # As PyPI does not allow git dependencies, the package must be vendored directly.
   { from = "external/commonroad-scenario-designer", include = "crdesigner" }
