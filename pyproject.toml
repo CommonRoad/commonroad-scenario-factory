@@ -9,7 +9,12 @@ license = "BSD"
 dynamic = ["dependencies"]
 
 [tool.poetry]
-packages = [{include = "scenario_factory"}]
+packages = [
+  { include = "scenario_factory" },
+  # The currently distributed version of commonroad-scenario-designer 0.8.4 does not allow commonroad-clcs>=2025.1. This breaks dependency resolution since all other dependencies use commonroad-clcs>=2025.1.
+  # As PyPI does not allow git dependencies, the package must be vendored directly.
+  { from = "external/commonroad-scenario-designer", include = "crdesigner" }
+]
 
 [[tool.poetry.source]]
 name = "test"
@@ -20,12 +25,12 @@ priority = "explicit"
 python = ">=3.10,<3.12" # constraint is given by commonroad-reactive-planner.
 commonroad-io = ">=2024.3"
 commonroad-drivability-checker = ">=2025.3.1"
-commonroad-scenario-designer = { git = "https://github.com/CommonRoad/commonroad-scenario-designer.git", rev = "6f56837eacaf69fa5a943802a18fed8aeec8682d"} # Required since latest version 0.8.4 does not yet support commonroad-drivability-checker>=2025.1.
-commonroad-labeling = { version = ">=2025.1", source = "test"}
+# The currently distributed version of commonroad-scenario-designer 0.8.4 does not allow commonroad-clcs>=2025.1. This breaks dependency resolution since all other dependencies use commonroad-clcs>=2025.1.
+# commonroad-scenario-designer = ">=0.8.4"
+commonroad-labeling = { version = ">=2025.1.1", source = "test"}
 commonroad-ots = { version = ">=2025.1", source = "test"}
 commonroad-sumo = { version = ">=2025.1", source = "test"}
 commonroad-route-planner = ">=2025.1.0"
-commonroad-reactive-planner = { git = "https://github.com/jrester/commonroad-reactive-planner.git", rev="3247763f18cc7686bd3e58a96195e826092c4917" } # Required for a small bug fix, which was not yet merged.
 commonroad-crime = ">=0.4.4"
 commonroad-clcs = ">=2025.1"
 osmium = ">=2.16.0"
@@ -38,6 +43,31 @@ multiprocess = "^0.70"
 typing-extensions = "^4.12.2"
 numpy = ">=1.22.4"
 scipy = ">=1.15.3"
+
+# Dependencies from commonroad-scenario-designer.
+pyqt6 = ">=6.6.0"
+matplotlib = ">=3.6.0"
+lxml = "^4.9.2"
+pyproj = "^3.4.1"
+utm = "^0.7.0"
+mgrs = ">=1.4.5"
+shapely = ">=2.0.1"
+ordered-set = "^4.1.0"
+sumocr = "^2024.1"
+networkx = "^3.0"
+omegaconf = "^2.3.0"
+pyyaml = "6.0"
+pygeodesy = "^23.3.23"
+mercantile = "^1.2.1"
+urllib3 = "^2.0.3"
+typer = "^0.9.0"
+antlr4-python3-runtime = "4.9.3"
+pymetis = ">=2020.1"
+similaritymeasures = ">=0.4.4"
+kdtree = "^0.16"
+pandas = "^2.0.2"
+requests = "^2.31.0 "
+pyclothoids = "^0.1.5"
 
 
 [tool.poetry.group.tests]
