@@ -5,6 +5,7 @@ stages:
 
 variables:  # Change pip's cache directory to be inside the project directory since we can only cache local items.
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  GIT_SUBMODULE_STRATEGY: recursive
 
 default:
   image: python:3.10
@@ -33,7 +34,7 @@ main_testing:
     - apt-get update && apt-get install osmium-tool openjdk-17-jre-headless libgl1 libegl1 libxkbcommon0  -y
     - poetry install --with tests
   script:
-    - poetry run coverage run -m pytest
+    - poetry run coverage run -m pytest tests/
     - poetry run coverage report -m || true
     - poetry run coverage xml
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'

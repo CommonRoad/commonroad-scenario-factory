@@ -1,0 +1,6 @@
+[submodule "external/commonroad-scenario-designer"]
+	path = external/commonroad-scenario-designer
+	url = https://github.com/CommonRoad/commonroad-scenario-designer.git
+[submodule "external/commonroad-reactive-planner"]
+	path = external/commonroad-reactive-planner
+	url = https://github.com/jrester/commonroad-reactive-planner.git
