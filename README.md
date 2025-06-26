@@ -9,9 +9,6 @@
 The CommonRoad Scenario Factory is a toolbox that combines many different tools from the whole CommonRoad ecosystem to efficiently process CommonRoad scenarios.
 Its current main use case is the generation of new CommonRoad scenarios with the traffic simulators OpenTrafficSim (OTS) and SUMO.
 
-## Documentation
-
-The full documentation can be found at [cps.pages.gitlab.lrz.de/commonroad/scenario-factory](https://cps.pages.gitlab.lrz.de/commonroad/scenario-factory/).
 
 ## Quick Start
 
@@ -33,7 +30,7 @@ SUMO and OTS are distributed as python packages and included as dependencies. Th
 
 ### Example Usage
 
-This example will setup a basic scenario generation pipeline and output new scenarios to `/tmp/scenario-factory`:
+This example will setup a basic scenario generation pipeline with SUMO and output new scenarios to `/tmp/scenario-factory`:
 
 ```python
 from pathlib import Path
@@ -96,12 +93,6 @@ result.print_cum_time_per_step()
 print(f"Generated {len(result.values)} scenario(s) at {output_path}.")
 ```
 
-## Development
+## Documentation
 
-Before you start with the installation of the scenario factory, make sure that you have at least [python 3.10](https://www.python.org/downloads/) and [poetry](https://www.python.org/downloads/) installed on your system alongside the additional requirements listed above.
-
-To get started with development, clone the repo and install all dependencies:
-
-```sh
-$ poetry install --with tests --with docs --with dev
-```
+The full documentation can be found at [cps.pages.gitlab.lrz.de/commonroad/scenario-factory](https://cps.pages.gitlab.lrz.de/commonroad/scenario-factory/).

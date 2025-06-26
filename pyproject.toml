@@ -8,6 +8,9 @@ readme = "README.md"
 license = "BSD-3-Clause"
 dynamic = ["dependencies"]
 
+[project.urls]
+Documentation = "https://cps.pages.gitlab.lrz.de/commonroad/scenario-factory/"
+
 [tool.poetry]
 packages = [
   { include = "scenario_factory" },
@@ -28,7 +31,7 @@ commonroad-io = ">=2024.3"
 commonroad-drivability-checker = ">=2025.3.1"
 # The currently distributed version of commonroad-scenario-designer 0.8.4 does not allow commonroad-clcs>=2025.1. This breaks dependency resolution since all other dependencies use commonroad-clcs>=2025.1.
 # commonroad-scenario-designer = ">=0.8.4"
-commonroad-labeling = { version = ">=2025.1.1", source = "test"}
+commonroad-labeling = ">=2025.1.1"
 commonroad-ots = { version = ">=2025.1", source = "test"}
 commonroad-sumo = { version = ">=2025.1", source = "test"}
 commonroad-route-planner = ">=2025.1.0"

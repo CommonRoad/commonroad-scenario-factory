@@ -420,8 +420,8 @@ optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "commonroad_labeling-2025.1.1-py3-none-any.whl", hash = "sha256:5727c8ee5ee93a64be5f16fbbca581544537736e45470e2eb5b09372a7d8edad"},
-    {file = "commonroad_labeling-2025.1.1.tar.gz", hash = "sha256:804fcacda42a76ce975d581c8661e566d6fd2e265be1be5da7aaae496ba5e1d8"},
+    {file = "commonroad_labeling-2025.1.1-py3-none-any.whl", hash = "sha256:861bb1a448ffbe43a26dac5ccd46c12c43bcb07aa573a5fc74ecebf7ebc54cae"},
+    {file = "commonroad_labeling-2025.1.1.tar.gz", hash = "sha256:66bf5041d5a4dbf94624b16998da83a1c684045e0b9074eede5c63ec151f0ff6"},
 ]
 
 [package.dependencies]
@@ -441,11 +441,6 @@ pandas = ">=2.2.2,<3.0.0"
 scikit-learn = ">=1.4,<2.0"
 scipy = ">=1.5.2"
 triangle = ">=20230923"
-
-[package.source]
-type = "legacy"
-url = "https://test.pypi.org/simple"
-reference = "test"
 
 [[package]]
 name = "commonroad-ots"
@@ -4192,4 +4187,4 @@ test = ["pytest (>=4.6.7)", "pytest-checkdocs (>=1.2.5) ; python_version < \"3\"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.12"
-content-hash = "3debd83f1c67488cbd1ebf63b644b4eee8ac4771688e5055433c0dfce7b0a63d"
+content-hash = "91896e63706cee892b3910292877ce6a82d953be84c84a241cadb8e09c66f419"
