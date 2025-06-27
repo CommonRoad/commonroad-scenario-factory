@@ -25,6 +25,7 @@ $ pip install commonroad-scenario-factory
 Most required dependencies are already included, but some have to be installed manually on your system:
 
 * [Java Runtime Environment](https://www.java.com/en/): Required for running simulations with OpenTrafficSim (OTS).
+* [osmium](https://osmcode.org/osmium-tool/): Required for extracting segments from pre-downloaded OSM maps.
 
 SUMO and OTS are distributed as python packages and included as dependencies. Therefore, they do not need to be installed separately.
 
