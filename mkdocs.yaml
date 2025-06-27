@@ -28,6 +28,7 @@ nav:
       - reference/api/builder.md
       - reference/api/utils.md
       - reference/api/metrics.md
+  - development.md
 theme:
   name: material
   logo: img/commonroad_white150.png

@@ -49,7 +49,7 @@ pages:
   # available at https://cps.pages.gitlab.lrz.de/commonroad/scenario-factory
   stage: deploy
   only:
-    - develop
+    - main
   publish: site
   before_script:
     - *default_before_script
