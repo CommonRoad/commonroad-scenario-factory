@@ -20,10 +20,6 @@ packages = [
   { from = "external/commonroad-scenario-designer", include = "crdesigner" }
 ]
 
-[[tool.poetry.source]]
-name = "test"
-url = "https://test.pypi.org/simple/"
-priority = "explicit"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12" # constraint is given by commonroad-reactive-planner.
@@ -32,8 +28,8 @@ commonroad-drivability-checker = ">=2025.3.1"
 # The currently distributed version of commonroad-scenario-designer 0.8.4 does not allow commonroad-clcs>=2025.1. This breaks dependency resolution since all other dependencies use commonroad-clcs>=2025.1.
 # commonroad-scenario-designer = ">=0.8.4"
 commonroad-labeling = ">=2025.1.1"
-commonroad-ots = { version = ">=2025.1", source = "test"}
-commonroad-sumo = { version = ">=2025.1", source = "test"}
+commonroad-ots = ">=2025.1"
+commonroad-sumo = ">=2025.1"
 commonroad-route-planner = ">=2025.1.0"
 commonroad-crime = ">=0.4.4"
 commonroad-clcs = ">=2025.1"
