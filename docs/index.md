@@ -1,4 +1,9 @@
-# Scenario Factory
+# CommonRoad Scenario Factory
+
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/commonroad-scenario-factory.svg)](https://pypi.python.org/pypi/commonroad-scenario-factory/)
+[![PyPI version fury.io](https://badge.fury.io/py/commonroad-scenario-factory.svg)](https://pypi.python.org/pypi/commonroad-scenario-factory/)
+[![PyPI download month](https://img.shields.io/pypi/dm/commonroad-scenario-factory.svg?label=PyPI%20downloads)](https://pypi.python.org/pypi/commonroad-scenario-factory/)
+[![PyPI license](https://img.shields.io/pypi/l/commonroad-scenario-factory.svg)](https://pypi.python.org/pypi/commonroad-scenario-factory/)
 
 The CommonRoad Scenario Factory is a collection of tools and projects from the CommonRoad ecosystem, that can combined to easily work with CommonRoad scenarios.
 
