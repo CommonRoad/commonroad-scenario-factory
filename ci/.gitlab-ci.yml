@@ -8,7 +8,7 @@ variables:  # Change pip's cache directory to be inside the project directory si
   GIT_SUBMODULE_STRATEGY: recursive
 
 default:
-  image: python:3.10
+  image: python:3.10-bookworm
   before_script: &default_before_script
     - pip install poetry
     - poetry config virtualenvs.in-project true
