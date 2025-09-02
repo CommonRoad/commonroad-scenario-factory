@@ -23,6 +23,8 @@ class ResourceType(Enum):
             return Path(__file__).parent / "cr_maps"
         elif self == ResourceType.CR_SCENARIO:
             return Path(__file__).parent / "cr_scenarios"
+        elif self == ResourceType.CR_SCENARIO_WITHOUT_PLANNING_PROBLEM:
+            return Path(__file__).parent / "cr_scenarios_without_planning_problems"
         elif self == ResourceType.CR_SOLUTION:
             return Path(__file__).parent / "cr_solutions"
         elif self == ResourceType.CSV_FILES:
