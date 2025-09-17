@@ -1,6 +1,6 @@
 [project]
 name = "commonroad-scenario-factory"
-version = "2.0.0"
+version = "2.1.0"
 description = "Automated scenario generation for CommonRoad based on SUMO traffic simulations."
 authors = [{name = "Florian Finkeldei", email = "florian.finkeldei@tum.de"}, {name = "Jan-Niklas Weghorn", email = "jan-niklas.weghorn@tum.de"}]
 requires-python = ">=3.10"
@@ -33,6 +33,7 @@ commonroad-sumo = ">=2025.1"
 commonroad-route-planner = ">=2025.1.0"
 commonroad-crime = ">=0.4.4"
 commonroad-clcs = ">=2025.1"
+commonroad-stl-monitor = { git = "git@gitlab.lrz.de:cps/commonroad/commonroad-stl-monitor", rev = "f60ae4d58765efdb88bd841d2995a555027cd9c6"}
 osmium = ">=2.16.0"
 iso3166 = "^2.0"
 libsumo = "^1.19"

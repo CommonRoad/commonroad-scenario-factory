@@ -1,7 +1,7 @@
 import copy
 import csv
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import (
     Any,
@@ -44,6 +44,13 @@ class ReferenceScenario:
     reference_scenario: Scenario
 
 
+@dataclass
+class TrafficRuleRobustnessAttachment:
+    """Attachment for a `ScenarioContainer` to save the robustness trace for the compliance of a ego vehicle to traffic rules."""
+
+    robustness: dict[str, list[float]] = field(default_factory=dict)
+
+
 ScenarioContainerAttachmentT = TypeVar(
     "ScenarioContainerAttachmentT",
     PlanningProblemSet,
@@ -53,6 +60,7 @@ ScenarioContainerAttachmentT = TypeVar(
     CriticalityMetrics,
     WaymoMetric,
     GeneralScenarioMetric,
+    TrafficRuleRobustnessAttachment,
 )
 
 
