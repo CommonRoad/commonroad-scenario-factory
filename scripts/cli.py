@@ -91,7 +91,7 @@ def generate(
     pipeline = (
         base_pipeline.chain(scenario_generation_pipeline)
         .map(pipeline_assign_tags_to_scenario)
-        .map(pipeline_render_commonroad_scenario(output_path, fps=5))
+        .map(pipeline_render_commonroad_scenario(output_path))
         .map(pipeline_write_scenario_to_file(output_path))
     )
     if coords is not None:
