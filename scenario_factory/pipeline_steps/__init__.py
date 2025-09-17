@@ -28,6 +28,7 @@ __all__ = [
     "pipeline_compute_criticality_metrics",
     "pipeline_compute_waymo_metrics",
     "pipeline_compute_single_scenario_metrics",
+    "pipeline_compute_compliance_robustness_with_traffic_rule",
     # Visualization
     "pipeline_render_commonroad_scenario",
 ]
@@ -40,6 +41,7 @@ from .globetrotter import (
     pipeline_verify_and_repair_commonroad_scenario,
 )
 from .metrics import (
+    pipeline_compute_compliance_robustness_with_traffic_rule,
     pipeline_compute_criticality_metrics,
     pipeline_compute_single_scenario_metrics,
     pipeline_compute_waymo_metrics,
