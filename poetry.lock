@@ -564,13 +564,15 @@ utm = ">=0.7.0,<0.8.0"
 
 [[package]]
 name = "commonroad-stl-monitor"
-version = "2024.1"
+version = "2025.1"
 description = ""
 optional = false
-python-versions = ">=3.10,<3.12"
+python-versions = "<3.12,>=3.10"
 groups = ["main"]
-files = []
-develop = false
+files = [
+    {file = "commonroad_stl_monitor-2025.1-py3-none-any.whl", hash = "sha256:a7c9689520f427089c49d0fa3a015e3419bd33558d2226682fa78aeaba64ed01"},
+    {file = "commonroad_stl_monitor-2025.1.tar.gz", hash = "sha256:34e0bf421ebfa75f0f1fd70ffede4d2d82e074f96e05ec6b72f1810fa389f66e"},
+]
 
 [package.dependencies]
 commonroad-clcs = ">=2025.1.1,<2026.0.0"
@@ -587,15 +589,9 @@ typing-extensions = ">=4.14.0,<5.0.0"
 
 [package.extras]
 dev = ["pre-commit (>=3.7.1)"]
-doc = ["myst-parser (>=0.18.1)", "sphinx (>=5.3.0)"]
+docs = ["mkdocs (>=1.6,<2.0)", "mkdocs-autorefs (>=1.0,<2.0)", "mkdocs-material (>=9.5,<10.0)", "mkdocstrings-python (>=1.10,<2.0)"]
 test = ["coverage[toml] (>=6.5.0,<7.0.0)", "pytest (>=8.3.5,<9.0.0)", "pytest-xdist[psutil] (>=3.8.0)"]
 visualization = ["matplot2tikz (>=0.3.3)", "networkx (>=3.4.2)", "pygraphviz (>=1.14)", "pyqt6 (>=6.8.1)"]
-
-[package.source]
-type = "git"
-url = "ssh://git@gitlab.lrz.de/cps/commonroad/commonroad-stl-monitor"
-reference = "f60ae4d58765efdb88bd841d2995a555027cd9c6"
-resolved_reference = "f60ae4d58765efdb88bd841d2995a555027cd9c6"
 
 [[package]]
 name = "commonroad-sumo"
@@ -4532,4 +4528,4 @@ test = ["pytest (>=4.6.7)", "pytest-checkdocs (>=1.2.5) ; python_version < \"3\"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.12"
-content-hash = "473d6a7f941541395cd61cabb8a9f1028d21eea55ec50e3cc1f5e154de05a11c"
+content-hash = "3aed66add06976980ff8404ecfb81fd6e6db86ab683eb490e398c0de88bd0dfd"
