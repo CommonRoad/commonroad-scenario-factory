@@ -31,8 +31,11 @@ __all__ = [
     "pipeline_compute_compliance_robustness_with_traffic_rule",
     # Visualization
     "pipeline_render_commonroad_scenario",
+    # Criticality
+    "pipeline_enhance_criticality",
 ]
 
+from .criticality import pipeline_enhance_criticality
 from .globetrotter import (
     pipeline_convert_osm_map_to_commonroad_scenario,
     pipeline_extract_intersections,
