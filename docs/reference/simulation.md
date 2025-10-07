@@ -4,7 +4,7 @@ The Scenario Factory currently supports two simulators: SUMO and OpenTrafficSim 
 
 ## Simulation Mode Overview
 
-In the table below, you can see which [`SimulationMode`](../api/simulation/#scenario_factory.simulation.SimulationMode) is supported by which simulator.
+In the table below, you can see which [`SimulationMode`](api/simulation.md#scenario_factory.simulation.SimulationMode) is supported by which simulator.
 
 | Mode        | SUMO | OTS | Description |
 | ----------- | ---- | --- | ------- |

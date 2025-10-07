@@ -3,14 +3,20 @@ stages:
   - testing
   - deploy
 
-variables:  # Change pip's cache directory to be inside the project directory since we can only cache local items.
+variables:
+  # Change pip's cache directory to be inside the project directory since we can only cache local items.
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   GIT_SUBMODULE_STRATEGY: recursive
+  # `commonroad-stl-monitor` includes test scenarios using git-lfs.
+  # Since they are only required for the tests in the stl-monitor,
+  # they should be excluded here to reduce CI runtime.
+  GIT_LFS_SKIP_SMUDGE: 1
 
 default:
-  image: python:3.10
+  image: python:3.10-bookworm
   before_script: &default_before_script
     - pip install poetry
+    - poetry config system-git-client true
     - poetry config virtualenvs.in-project true
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.lrz.de".insteadOf "ssh://git@gitlab.lrz.de"
   cache:

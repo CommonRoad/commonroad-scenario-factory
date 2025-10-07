@@ -5,6 +5,8 @@ from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 from commonroad_crime.data_structure.base import CriMeBase
 from commonroad_crime.measure import TTC
+from crmonitor.common import World
+from crmonitor.evaluation import OfflineRuleEvaluator
 
 from scenario_factory.metrics import (
     compute_criticality_metrics_for_scenario_and_planning_problem_set,
@@ -19,6 +21,7 @@ from scenario_factory.pipeline import (
 from scenario_factory.scenario_container import (
     ReferenceScenario,
     ScenarioContainer,
+    TrafficRuleRobustnessAttachment,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -145,3 +148,72 @@ def pipeline_compute_single_scenario_metrics(
     )
 
     return scenario_container.with_attachments(general_scenario_metric=general_scenario_metric)
+
+
+@pipeline_map()
+def pipeline_compute_compliance_robustness_with_traffic_rule(
+    ctx: PipelineContext,
+    scenario_container: ScenarioContainer,
+    traffic_rule_name: str,
+    ego_vehicle_id: int | None = None,
+) -> ScenarioContainer:
+    """
+    Compute the compliance robustness of an ego vehicle to a given traffic rule.
+
+    If the `ScenarioContainer` has a `PlanningProblemSet` attachment and the `ego_vehicle_id
+    parameter is not set, this will automatically use the planning problem Id as the ego vehicle Id.
+    It is assumed that the corresponding vehicle is part of the scenario, e.g., because it was
+    already injected using `pipeline_insert_ego_vehicle_solutions_into_scenario`.
+
+    :param ctx: The context for this pipeline execution
+    :param scenario_container: The scenario for which the traffic rule compliance should be evaluated.
+    :param traffic_rule_name: The name of the traffic rule from `commonroad-stl-monitor` which should be evaluated.
+    :param ego_vehicle_id: Optionally provide the Id of a vehicle in the scenario, which should be considered to be the ego vehicle. If this parameter is given, this pipeline step will not try to automatically determine the ego vehicle from the `PlanningProblemSet`.
+
+    :returns: The input `ScenarioContainer` with a `TrafficRuleRobustnessAttachment` and the robustness for the given traffic rule.
+    """
+    # If no ego vehicle was explicitly specified, it should be determined automatically.
+    if ego_vehicle_id is None:
+        # If the scenario container has an associated planning problem set, the ego vehicle is the planning problem set.
+        planning_problem_set = scenario_container.get_attachment(PlanningProblemSet)
+        if planning_problem_set is None:
+            raise ValueError(
+                f"Failed to determine ego vehicle to compute compliance with traffic rule {traffic_rule_name} for scenario {scenario_container.scenario.scenario_id}: No ego vehicle Id was provided and scenario has no associated planning problem set"
+            )
+
+        # To be able to determine the ego vehicle from the planning problem set, exactly one planning problem set must be defined.
+        ego_vehicle_ids = list(planning_problem_set.planning_problem_dict.keys())
+        if len(ego_vehicle_ids) != 1:
+            raise ValueError(
+                f"Failed to determine ego vehicle to compute compliance with traffic rule {traffic_rule_name} for scenario {scenario_container.scenario.scenario_id}: Associated planning problem set has {len(ego_vehicle_ids)} possible ego vehicles, but must contain of only one ego vehicle"
+            )
+
+        ego_vehicle_id = ego_vehicle_ids[0]
+
+        # The possible ego vehicle must be part of the scenario, so that the evaluator can evaluate the traffic rule for the vehicle.
+        # It can be injected with, e.g., `pipeline_insert_ego_vehicle_solutions_into_scenario`.
+        ego_vehicle = scenario_container.scenario.obstacle_by_id(ego_vehicle_id)
+        if ego_vehicle is None:
+            raise ValueError(
+                f"Failed to determine ego vehicle to compute compliance with traffic rule {traffic_rule_name} for scenario {scenario_container.scenario.scenario_id}: Ego vehicle {ego_vehicle_id} from associated planning problem set is not part of the scenario"
+            )
+
+    world = World.create_from_scenario(scenario_container.scenario)
+
+    rule_evaluator = OfflineRuleEvaluator.create_for_rule(
+        traffic_rule_name, dt=scenario_container.scenario.dt
+    )
+    # Evaluate the compliance of the ego vehicle.
+    robustness_trace = rule_evaluator.evaluate(world, ego_vehicle_id)
+
+    # Save the robustness trace to the scenario container.
+    traffic_rule_robustness_attachment = scenario_container.get_attachment(
+        TrafficRuleRobustnessAttachment
+    )
+    if traffic_rule_robustness_attachment is None:
+        traffic_rule_robustness_attachment = TrafficRuleRobustnessAttachment()
+        scenario_container.add_attachment(traffic_rule_robustness_attachment)
+
+    traffic_rule_robustness_attachment.robustness[traffic_rule_name] = robustness_trace
+
+    return scenario_container

@@ -1,6 +1,8 @@
 from pathlib import Path
 
+from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.visualization.draw_params import MPDrawParams
+from commonroad.visualization.drawable import IDrawable
 from commonroad.visualization.mp_renderer import MPRenderer
 
 from scenario_factory.pipeline import PipelineContext, PipelineStepExecutionMode, pipeline_map
@@ -13,14 +15,14 @@ def pipeline_render_commonroad_scenario(
     ctx: PipelineContext,
     scenario_container: ScenarioContainer,
     output_path: Path,
-    fps: int = 5,
 ) -> ScenarioContainer:
     """
-    Pipeline step for visualizing a CommonRoad scenario as a video file.
+    Pipeline step for visualizing a CommonRoad scenario as a video file (gif).
 
-    :param args: Instance of RenderCommonRoadScenarioArgs containing parameters such as the output path, FPS, and time steps.
     :param ctx: PipelineContext object used for logging and shared resources during execution.
     :param scenario_container: ScenarioContainer holding the CommonRoad scenario to be rendered.
+    :param output_path: The folder where the video will be saved.
+
     :return: The unchanged ScenarioContainer after rendering is complete.
     """
     scenario = scenario_container.scenario
@@ -33,7 +35,6 @@ def pipeline_render_commonroad_scenario(
     draw_params = MPDrawParams()
     draw_params.time_begin = start_time
     draw_params.time_end = end_time
-    draw_params.fps = fps
     draw_params.dynamic_obstacle.show_label = False
     draw_params.dynamic_obstacle.draw_icon = True
     draw_params.dynamic_obstacle.draw_shape = True
@@ -41,6 +42,22 @@ def pipeline_render_commonroad_scenario(
     rnd = MPRenderer()
     output_file = output_path / f"{scenario.scenario_id}.gif"
 
-    rnd.create_video([scenario], str(output_file), draw_params=draw_params)
+    # `MPRenderer.create_video` requires a list of all objects that should be included in the video.
+    # Since some objects (e.g., planning problem sets) are optional on a scenario container
+    # they are conditionally included for visualization.
+    rnd_obj_list: list[IDrawable] = [scenario]
+
+    planning_problem_set = scenario_container.get_attachment(PlanningProblemSet)
+    if planning_problem_set is not None:
+        rnd_obj_list.append(planning_problem_set)
+
+    rnd.create_video(
+        rnd_obj_list,
+        str(output_file),
+        draw_params=draw_params,
+        # Explicitly set the dt in case the `MPRenderer` cannot auto-detect it.
+        # dt must be in [ms], but scenario dt is in [s]. Therefore, it must be scaled with 1000.
+        dt=scenario.dt * 1000.0,
+    )
 
     return scenario_container

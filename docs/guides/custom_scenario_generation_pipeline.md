@@ -48,7 +48,7 @@ with TemporaryDirectory() as temp_dir:
     result.print_cum_time_per_step()
 ```
 
-1. The Scenario Factory already has some pre-defined [pipelines](../../reference/api/pipelines), that we can use here.
+1. The Scenario Factory already has some pre-defined [pipelines](../reference/api/pipelines.md), that we can use here.
 2. Similarly to the globetrotter pipeline a basic scenario generation pipeline is already provided.
 
 ## Simulation
@@ -61,7 +61,7 @@ with TemporaryDirectory() as temp_dir:
 By default, SUMO is used to simulate random traffic on the scenarios create by globetrotter. In Addition to SUMO, the Scenario Factory also supports OpenTrafficSim, which can be used as a drop-in replacement:
 
 !!! tip
-    For a comparison of the simulators check out the [simulation reference](../../reference/simulation).
+    For a comparison of the simulators check out the [simulation reference](../reference/simulation.md).
 
 ```python linenums="5" hl_lines="5"
 ...

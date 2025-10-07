@@ -8,7 +8,7 @@ The Scenario Factory is centered around a data processing pipeline. This pipelin
 
 ## Existing Pipeline Steps
 
-A list of all existing pipeline steps can be found [here](../api/pipeline_steps)
+A list of all existing pipeline steps can be found [here](api/pipeline_steps.md)
 
 ## Pipeline Step Concurrency and Parallelism Modes
 

@@ -1,4 +1,3 @@
-
 site_name: CommonRoad Scenario Factory
 nav:
   - index.md
@@ -35,6 +34,26 @@ theme:
   features:
   - content.code.copy
   - content.code.annotate
+  # Dark/Light Theme switching and auto-detection.
+  palette:
+  - media: "(prefers-color-scheme)"
+    toggle:
+      icon: material/brightness-auto
+      name: Switch to light mode
+  - media: "(prefers-color-scheme: light)"
+    scheme: default
+    primary: indigo
+    accent: blue
+    toggle:
+      icon: material/weather-sunny
+      name: Switch to dark mode
+  - media: "(prefers-color-scheme: dark)"
+    scheme: slate
+    primary: indigo
+    accent: blue
+    toggle:
+      icon: material/weather-night
+      name: Switch to system preference
 plugins:
 - autorefs
 - search
@@ -43,11 +62,34 @@ plugins:
     handlers:
       python:
         paths: ["scenario_factory"]
+        inventories:
+        # Include typing information for the python stdlib.
+        - https://docs.python.org/3/objects.inv
+        # Include typing information for commonroad-io.
+        - https://cps.pages.gitlab.lrz.de/commonroad/commonroad-io/objects.inv
         options:
+          # By default the CommonRoad projects use sphinx for documentation.
           docstring_style: "sphinx"
+          # Include all python elements even if they have no docstring.
+          show_if_no_docstring: true
           heading_level: 3
-          show_root_heading: false
-          show_root_toc_entry: false
+          # Indicates which module the section is about.
+          show_root_toc_entry: true
+          show_root_heading: true
+          # Merge the documentation of a class with the documentation of its init.
+          # Ensures consistency for different documentation styles.
+          merge_init_into_class: true
+          # The signature of an attribute/method is split into two lines: one with the name as heading and one with the signature.
+          # This greatly increases the readability of the documentation.
+          separate_signature: true
+          # Do not show a button to reveal the source.
+          show_source: false
+          # Include the signatures (i.e. typing information) for each element.
+          show_signature_annotations: true
+          # Show what type an element has (i.e. attr, class, meth) in its heading.
+          show_symbol_type_heading: true
+          # Show what type an element has (i.e. attr, class, meth) in the Table of Contents.
+          show_symbol_type_toc: true
 markdown_extensions:
   - attr_list
   - md_in_html

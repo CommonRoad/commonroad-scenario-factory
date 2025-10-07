@@ -101,7 +101,6 @@ def simulate_commonroad_scenario_with_sumo(
     :param scenario: The scenario with a lanelet network on which random traffic should be generated.
     :param simulation_config: The configuration for this simulation.
     :param working_directory: An empty directory that can be used to place SUMOs intermediate files there.
-    :param seed: The random seed, used for the random traffic generation.
 
     :returns: A new scenario with the simulated trajectories.
 

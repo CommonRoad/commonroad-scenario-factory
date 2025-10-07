@@ -332,7 +332,6 @@ def simulate_commonroad_scenario_with_ots(
 
     :param commonroad_scenario: The CommonRoad scenario which will be simulated. If the `SimulationMode` is not `SimulationMode.RANDOM_TRAFFIC_GENERATION`, dynamic obstacles must be present in the scenario.
     :param simulation_config: Configuration for the simulation.
-    :param seed: Seed used for the traffic generation in OTS.
 
     :returns: A new CommonRoad scenario with the simulated obstacles and None, if the simulation was unsuccessfull.
     """

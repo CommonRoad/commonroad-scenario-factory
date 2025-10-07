@@ -1,7 +1,7 @@
 import tempfile
 from pathlib import Path
 
-from sumocr.scenario.scenario_wrapper import CommonRoadFileReader
+from commonroad.common.file_reader import CommonRoadFileReader
 
 from scenario_factory.pipeline import Pipeline, PipelineContext
 from scenario_factory.pipeline_steps import pipeline_simulate_scenario_with_sumo

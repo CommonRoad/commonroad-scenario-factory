@@ -28,4 +28,4 @@ $ poetry install --with tests --with docs --with dev
 
 ## Use the Scenario Factory
 
-After you have set up the Scenario Factory, you can try to [generate some scenarios](./generate_scenarios).
+After you have set up the Scenario Factory, you can try to [generate some scenarios](./generate_scenarios.md).
